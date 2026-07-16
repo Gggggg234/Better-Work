@@ -5,7 +5,8 @@ Plataforma que conecta personas que necesitan un servicio con trabajadores y emp
 ## Stack
 
 - **Next.js 16** (App Router, Server Components + Server Actions, Turbopack)
-- **Prisma 6 + SQLite** (desarrollo; el schema es portable a PostgreSQL/Supabase cambiando el datasource)
+- **Prisma 6 + PostgreSQL (Supabase)**
+- **Supabase Storage** — fotos de perfil, galerías y feed
 - **Tailwind CSS 4** — diseño minimalista blanco/negro/grises
 - **Leaflet + OpenStreetMap (tiles CARTO)** — mapa sin API keys
 - **JWT (jose) en cookie httpOnly** + bcryptjs para autenticación
@@ -15,10 +16,12 @@ Plataforma que conecta personas que necesitan un servicio con trabajadores y emp
 
 ```bash
 npm install
-npx prisma migrate dev   # crea prisma/dev.db
-node prisma/seed.mjs     # datos de demo
+cp .env.example .env     # completá DATABASE_URL y AUTH_SECRET
 npm run dev
 ```
+
+El esquema ya está aplicado en Supabase. Si arrancás una base nueva:
+`npx prisma migrate dev --name init` y opcionalmente `node prisma/seed.mjs` (datos demo).
 
 ## Cuentas de prueba (contraseña: `demo1234`)
 
@@ -29,31 +32,44 @@ npm run dev
 | Trabajador | jorge.paredes@demo.com (y 11 más) |
 | Empresa | empresa@demo.com |
 
-## Publicar en producción (Vercel + PostgreSQL)
+## Producción
 
-Esta app usa SQLite en desarrollo. **SQLite no funciona en Vercel** (filesystem efímero),
-así que en producción hay que usar PostgreSQL y almacenamiento externo para las imágenes.
+La app usa **PostgreSQL (Supabase)** y **Supabase Storage** para las imágenes.
 
-1. **Base de datos**: creá una PostgreSQL (Supabase / Neon / Vercel Postgres) y copiá su `DATABASE_URL`.
-2. En `prisma/schema.prisma` cambiá `provider = "sqlite"` por `provider = "postgresql"`.
-3. Regenerá las migraciones para Postgres: borrá `prisma/migrations/` y corré, con `DATABASE_URL` apuntando a la nueva base:
-   ```bash
-   npx prisma migrate dev --name init
-   node prisma/seed.mjs   # opcional: datos demo / categorías + admin
-   ```
-4. **Variables de entorno** (en Vercel → Settings → Environment Variables):
-   - `DATABASE_URL` — la de PostgreSQL.
-   - `AUTH_SECRET` — `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
-   - `NEXT_PUBLIC_SITE_URL` — la URL pública (para OG/robots/sitemap).
-5. **Imágenes**: hoy se guardan en `public/uploads` (efímero en Vercel). Migrá `src/lib/upload.ts`
-   a Supabase Storage / S3 (es el único archivo a tocar) o usá un servidor propio con disco persistente.
-6. **Pagos**: hoy hay un proveedor simulado en `src/lib/payments/`. Para cobros reales, implementá
-   la interfaz `PaymentProvider` (p. ej. Mercado Pago) y activala en `src/lib/payments/index.ts`.
-7. Deploy: conectá el repo a Vercel. El `build` ya corre `prisma generate`; para aplicar migraciones
-   usá `npm run db:deploy` (`prisma migrate deploy`) en el paso de build o post-deploy.
+### Ya está hecho
+- Proyecto Supabase **Better Work** (`oulwejxaorrosqlexnnz`, región `sa-east-1`) con el
+  esquema completo aplicado (20 tablas + índices + claves foráneas).
+- **RLS activo sin políticas** en todas las tablas: la API pública de Supabase no expone
+  datos. La app se conecta por Postgres directo (Prisma), que no pasa por RLS.
+- Bucket público **`uploads`** (8 MB, solo imágenes) para fotos de perfil, galerías y feed.
+- Datos iniciales: 12 categorías de oficios, configuración por defecto (comisión 5 %,
+  plan empresa $25.000, publicidad 7/15/30 días) y el usuario Super Admin.
 
-> Alternativa self-hosted: en un VPS/Docker con Node y disco persistente, SQLite y `public/uploads`
-> funcionan tal cual; solo definí `AUTH_SECRET` y `NEXT_PUBLIC_SITE_URL`.
+### Variables de entorno (Vercel → Settings → Environment Variables)
+
+| Variable | De dónde sale |
+|---|---|
+| `DATABASE_URL` | Supabase → Project Settings → **Database** → Connection string → **Transaction pooler** (reemplazá `[YOUR-PASSWORD]`) |
+| `AUTH_SECRET` | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://oulwejxaorrosqlexnnz.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → **API Keys** → `service_role` (secreta) |
+| `NEXT_PUBLIC_SITE_URL` | La URL pública del sitio (para OG/robots/sitemap) |
+
+> Sin `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`, las imágenes caen a
+> `/public/uploads` (sirve en local; **no** en Vercel, que tiene filesystem efímero).
+
+### Deploy
+1. Subí el repo a GitHub (`git remote add origin … && git push -u origin main`).
+2. En Vercel: **Add New → Project → Import** el repo (framework Next.js se autodetecta).
+3. Cargá las variables de arriba y deployá. El `build` ya corre `prisma generate`.
+
+Si más adelante cambiás el esquema: `npx prisma migrate dev` en local y
+`npm run db:deploy` (`prisma migrate deploy`) contra producción.
+
+### Pagos
+Hoy hay un proveedor **simulado** en `src/lib/payments/` (aprueba todo, no mueve dinero real).
+Para cobrar de verdad, implementá la interfaz `PaymentProvider` (p. ej. Mercado Pago) y
+activala en `src/lib/payments/index.ts`. El resto de la app no cambia.
 
 ## Funcionalidades
 
