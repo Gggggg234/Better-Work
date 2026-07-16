@@ -1,0 +1,349 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         String   // CLIENT | WORKER | COMPANY | ADMIN
+  avatarUrl    String?
+  suspended    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  workerProfile  WorkerProfile?
+  companyProfile CompanyProfile?
+  jobsAsClient   Job[]          @relation("ClientJobs")
+  jobsAsWorker   Job[]          @relation("WorkerJobs")
+  reviewsGiven   Review[]       @relation("Rater")
+  reviewsGotten  Review[]       @relation("Rated")
+  messages       Message[]
+  conversationsA Conversation[] @relation("ConvA")
+  conversationsB Conversation[] @relation("ConvB")
+  reportsMade    Report[]       @relation("Reporter")
+  reportsGotten  Report[]       @relation("Target")
+  applications   Application[]
+  paymentAccounts PaymentAccount[]
+  posts          Post[]         @relation("PostAuthor")
+  postLikes      PostLike[]
+  postComments   PostComment[]
+  postSaves      PostSave[]
+  postReports    PostReport[]
+}
+
+/**
+ * Cuentas de pago vinculadas a un usuario.
+ * - purpose PAYMENT: con qué paga el cliente (tarjeta, MP, billetera).
+ * - purpose PAYOUT: dónde recibe el dinero el trabajador (MP, banco, billetera).
+ * Nunca se guardan datos sensibles completos: `detail` es un dato enmascarado
+ * (alias, CVU/CBU o últimos 4 dígitos) y `meta` queda reservado para el token
+ * del proveedor cuando se integre (Mercado Pago u otro).
+ */
+model PaymentAccount {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   String   // PAYMENT | PAYOUT
+  provider  String   // MERCADO_PAGO | CARD_CREDIT | CARD_DEBIT | BANK | WALLET
+  label     String
+  holder    String   @default("")
+  detail    String   @default("") // alias / CVU / CBU / últimos 4 (enmascarado)
+  meta      String   @default("{}")
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model WorkerProfile {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profession   String
+  bio          String    @default("")
+  experience   Int       @default(0) // años
+  categoryId   String?
+  category     Category? @relation(fields: [categoryId], references: [id])
+  services     String    @default("[]") // JSON string[]
+  gallery      String    @default("[]") // JSON string[] (urls)
+  city         String    @default("")
+  zone         String    @default("")
+  lat          Float?
+  lng          Float?
+  radiusKm     Float     @default(10) // 5/10/20/50, 100=ciudad, 500=provincia
+  schedule     String    @default("") // rango horario ej "08:00-18:00"
+  availableDays String   @default("[]") // JSON string[] ej ["Lun","Mar","Mie"]
+  workMode     String    @default("AMBOS") // ONSITE | REMOTE | AMBOS
+  whatsapp     String?
+  mpAlias      String? // alias de Mercado Pago para cobrar
+  mpCvu        String? // CVU de Mercado Pago (opcional)
+  mpHolder     String? // nombre del titular de la cuenta
+  payMethods   String    @default("[]") // JSON string[] ej ["Efectivo","Transferencia","Mercado Pago"]
+  priceHint    String? // precios orientativos (opcional)
+  verified     Boolean   @default(false)
+  visible      Boolean   @default(true)
+  sponsoredUntil DateTime?
+  jobsDone     Int       @default(0)
+  ratingAvg    Float     @default(0)
+  ratingCount  Int       @default(0)
+  cancellations Int      @default(0)
+  createdAt    DateTime  @default(now())
+}
+
+model CompanyProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  description String   @default("")
+  industry    String   @default("")
+  city        String   @default("")
+  lat         Float?
+  lng         Float?
+  website     String?
+  verified    Boolean  @default(false)
+  planActiveUntil DateTime? // plan Premium: sin esto no publica ni aparece
+  sponsoredUntil  DateTime? // publicidad de la empresa (destacada)
+  createdAt   DateTime @default(now())
+  offers      JobOffer[]
+}
+
+model Category {
+  id      String @id @default(cuid())
+  name    String @unique
+  slug    String @unique
+  icon    String @default("🔧")
+  order   Int    @default(0)
+  active  Boolean @default(true)
+  workers WorkerProfile[]
+  offers  JobOffer[]
+}
+
+model Job {
+  id           String    @id @default(cuid())
+  clientId     String
+  client       User      @relation("ClientJobs", fields: [clientId], references: [id])
+  workerId     String
+  worker       User      @relation("WorkerJobs", fields: [workerId], references: [id])
+  title        String
+  description  String    @default("")
+  address      String    @default("")
+  lat          Float?
+  lng          Float?
+  scheduledFor DateTime?
+  price        Float?
+  payMethod    String    @default("DIRECT") // PLATFORM | DIRECT
+  commissionPct Float    @default(0)
+  status       String    @default("REQUESTED") // REQUESTED|ACCEPTED|EN_ROUTE|WORKING|COMPLETED|CANCELLED|REJECTED
+  startCode    String?
+  endCode      String?
+  requestedAt  DateTime  @default(now())
+  acceptedAt   DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  reviews      Review[]
+  payment      Payment?
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  jobId         String
+  job           Job      @relation(fields: [jobId], references: [id])
+  raterId       String
+  rater         User     @relation("Rater", fields: [raterId], references: [id])
+  ratedId       String
+  rated         User     @relation("Rated", fields: [ratedId], references: [id])
+  stars         Int
+  punctuality   Int      @default(0)
+  quality       Int      @default(0)
+  communication Int      @default(0)
+  compliance    Int      @default(0)
+  comment       String   @default("")
+  createdAt     DateTime @default(now())
+
+  @@unique([jobId, raterId])
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  aId       String
+  a         User      @relation("ConvA", fields: [aId], references: [id])
+  bId       String
+  b         User      @relation("ConvB", fields: [bId], references: [id])
+  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now())
+  messages  Message[]
+
+  @@unique([aId, bId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
+  type           String       @default("TEXT") // TEXT|IMAGE|LOCATION|FILE|BUDGET
+  content        String       @default("")
+  meta           String       @default("{}") // JSON: {url, lat, lng, amount, filename...}
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+}
+
+/**
+ * Pago intermediado: el cliente paga a Better Work, la plataforma retiene la
+ * comisión configurable y libera el neto al trabajador al finalizar el trabajo.
+ * HELD = cobrado y retenido · RELEASED = liberado al trabajador · REFUNDED = devuelto.
+ */
+model Payment {
+  id          String    @id @default(cuid())
+  jobId       String    @unique
+  job         Job       @relation(fields: [jobId], references: [id])
+  amount      Float
+  commission  Float
+  netAmount   Float
+  method      String    @default("PLATFORM")
+  providerRef String    @default("") // referencia de la transacción en el proveedor
+  status      String    @default("HELD") // HELD | RELEASED | REFUNDED
+  createdAt   DateTime  @default(now())
+  releasedAt  DateTime?
+}
+
+model JobOffer {
+  id          String         @id @default(cuid())
+  companyId   String
+  company     CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title       String
+  description String         @default("")
+  categoryId  String?
+  category    Category?      @relation(fields: [categoryId], references: [id])
+  city        String         @default("")
+  modality    String         @default("Presencial") // Presencial | Remoto | Híbrido
+  salary      String?
+  promotedUntil DateTime?
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  applications Application[]
+}
+
+model Application {
+  id        String   @id @default(cuid())
+  offerId   String
+  offer     JobOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  workerId  String
+  worker    User     @relation(fields: [workerId], references: [id])
+  message   String   @default("")
+  status    String   @default("PENDING") // PENDING | ACCEPTED | REJECTED
+  createdAt DateTime @default(now())
+
+  @@unique([offerId, workerId])
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  reporter   User     @relation("Reporter", fields: [reporterId], references: [id])
+  targetId   String
+  target     User     @relation("Target", fields: [targetId], references: [id])
+  reason     String
+  status     String   @default("OPEN") // OPEN | RESOLVED | DISMISSED
+  createdAt  DateTime @default(now())
+}
+
+/**
+ * Compra monetizada: plan de empresa o publicidad (perfil/oferta/publicación).
+ * Usada para la contabilidad de ingresos en el panel admin.
+ */
+model Promotion {
+  id        String   @id @default(cuid())
+  userId    String // quién paga
+  kind      String   // COMPANY_PLAN | PROFILE | OFFER | POST
+  refId     String   // id del recurso destacado/activado
+  days      Int
+  amount    Float
+  providerRef String @default("")
+  createdAt DateTime @default(now())
+}
+
+/**
+ * Feed social profesional. Cualquier usuario publica. Las imágenes se guardan
+ * como JSON de URLs (subidas reales a /uploads). `hidden` es para moderación.
+ */
+model Post {
+  id            String   @id @default(cuid())
+  authorId      String
+  author        User     @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  content       String   @default("")
+  kind          String   @default("GENERAL") // GENERAL|WORK_DONE|BEFORE_AFTER|PROMO|HIRING|JOB_SEEK|TIP|NEWS
+  images        String   @default("[]") // JSON string[] de URLs
+  lat           Float?
+  lng           Float?
+  locationLabel String   @default("")
+  sponsoredUntil DateTime?
+  hidden        Boolean  @default(false) // oculto por moderación
+  shareCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  likes    PostLike[]
+  comments PostComment[]
+  saves    PostSave[]
+  reports  PostReport[]
+
+  @@index([createdAt])
+  @@index([authorId])
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+}
+
+model PostSave {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model PostReport {
+  id         String   @id @default(cuid())
+  postId     String
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporterId String
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reason     String
+  status     String   @default("OPEN") // OPEN | RESOLVED | DISMISSED
+  createdAt  DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value String
+}
