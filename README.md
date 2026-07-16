@@ -66,10 +66,32 @@ La app usa **PostgreSQL (Supabase)** y **Supabase Storage** para las imágenes.
 Si más adelante cambiás el esquema: `npx prisma migrate dev` en local y
 `npm run db:deploy` (`prisma migrate deploy`) contra producción.
 
-### Pagos
-Hoy hay un proveedor **simulado** en `src/lib/payments/` (aprueba todo, no mueve dinero real).
-Para cobrar de verdad, implementá la interfaz `PaymentProvider` (p. ej. Mercado Pago) y
-activala en `src/lib/payments/index.ts`. El resto de la app no cambia.
+### Pagos (Mercado Pago)
+
+`src/lib/payments/` abstrae el proveedor detrás de la interfaz `PaymentProvider`:
+
+- **Sin `MP_ACCESS_TOKEN`** → proveedor **simulado** (aprueba todo, no mueve dinero real).
+- **Con `MP_ACCESS_TOKEN`** → **Mercado Pago Checkout Pro**, automáticamente.
+
+Flujo real: la app crea una preferencia → redirige al checkout de MP → el usuario paga →
+**el webhook** (`/api/webhooks/mercadopago`) confirma contra la API de MP y recién ahí
+impacta el cobro. El usuario vuelve por `/api/pagos/retorno`. Todo es idempotente
+(MP reintenta los avisos). El mismo flujo cubre trabajos, plan de empresa y publicidad.
+
+**Para activarlo:**
+1. Mercado Pago → *Tus integraciones* → creá una aplicación → **Credenciales**.
+2. Probá primero con las credenciales de **prueba** (`TEST-…`, usa el sandbox) y las
+   [tarjetas de test](https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/additional-content/test-cards).
+3. Cargá `MP_ACCESS_TOKEN` y `NEXT_PUBLIC_SITE_URL` en Vercel y redeployá.
+4. El `notification_url` se manda en cada preferencia, así que no hace falta configurar
+   el webhook a mano. Necesita que la app esté publicada (MP no llega a `localhost`).
+
+**Limitación conocida (v1):** el dinero entra a la cuenta de Mercado Pago de Better Work.
+MP no expone una API para transferir a terceros, así que **la transferencia al trabajador
+es manual**: al finalizar un trabajo, el pago pasa a `RELEASED` y aparece en
+*Admin → Ingresos → Transferencias a trabajadores*, con el alias/CVU de cada uno.
+Para automatizarlo hay que migrar a **split de pagos** (`marketplace_fee` + OAuth de la
+cuenta MP de cada trabajador), que reparte el dinero en el momento del cobro.
 
 ## Funcionalidades
 

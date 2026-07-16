@@ -27,6 +27,16 @@ export default async function AdminRevenuePage() {
     getCommissionPct(),
   ]);
 
+  // Con Mercado Pago el dinero entra a la cuenta de Better Work: estas son las
+  // transferencias que hay que hacerle a cada trabajador (neto de comisión).
+  const toTransfer = payments.filter((p) => p.status === "RELEASED" && p.method === "MERCADOPAGO");
+  const payoutAccounts = toTransfer.length
+    ? await db.paymentAccount.findMany({
+        where: { purpose: "PAYOUT", isDefault: true, userId: { in: toTransfer.map((p) => p.job.workerId) } },
+      })
+    : [];
+  const accountByUser = new Map(payoutAccounts.map((a) => [a.userId, a]));
+
   const released = payments.filter((p) => p.status === "RELEASED");
   const held = payments.filter((p) => p.status === "HELD");
   const commissionEarned = released.reduce((s, p) => s + p.commission, 0);
@@ -62,6 +72,36 @@ export default async function AdminRevenuePage() {
           <p className="text-xs text-faint">Publicidad</p>
         </div>
       </div>
+
+      {toTransfer.length > 0 && (
+        <section>
+          <h2 className="font-semibold mb-2">Transferencias a trabajadores ({toTransfer.length})</h2>
+          <p className="text-sm text-muted mb-2">
+            Mercado Pago no permite transferir a terceros por API: estos trabajos ya se liberaron y hay que
+            enviarles el neto desde la cuenta de Better Work.
+          </p>
+          <div className="card divide-y divide-line">
+            {toTransfer.map((p) => {
+              const acc = accountByUser.get(p.job.workerId);
+              return (
+                <div key={p.id} className="p-4 flex items-center gap-3 text-sm">
+                  <Avatar name={p.job.worker.name} url={p.job.worker.avatarUrl} size={36} />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{p.job.worker.name}</p>
+                    <p className="text-xs text-faint truncate">
+                      {acc ? `${acc.label} · ${acc.detail}${acc.holder ? ` · ${acc.holder}` : ""}` : "⚠️ Sin cuenta de cobro cargada"}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-semibold">{formatMoney(p.netAmount)}</p>
+                    <p className="text-xs text-faint">{p.releasedAt ? formatDateTime(p.releasedAt) : ""}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {promotions.length > 0 && (
         <section>

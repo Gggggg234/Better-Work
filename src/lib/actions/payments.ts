@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireUser, requireRole } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { getPaymentProvider } from "@/lib/payments";
-import { getCommissionPct, computeCommission } from "@/lib/commission";
+import { fulfillCharge } from "@/lib/payments/fulfill";
 
 const PAYMENT_PROVIDERS = ["CARD_CREDIT", "CARD_DEBIT", "MERCADO_PAGO", "WALLET"];
 const PAYOUT_PROVIDERS = ["MERCADO_PAGO", "BANK", "WALLET"];
@@ -73,6 +73,9 @@ export async function setDefaultPaymentAccount(accountId: string): Promise<void>
  * El cliente paga el trabajo a través de Better Work. La plataforma cobra,
  * retiene la comisión configurada y deja el pago en estado HELD hasta que el
  * trabajo finaliza (código de finalización) — recién ahí se libera el neto.
+ *
+ * Con Mercado Pago el cobro es por redirección: mandamos al checkout y el
+ * webhook confirma el pago. Con el proveedor simulado se acredita al instante.
  */
 export async function payJob(jobId: string, formData: FormData): Promise<void> {
   const user = await requireUser();
@@ -88,9 +91,8 @@ export async function payJob(jobId: string, formData: FormData): Promise<void> {
     if (!acc || acc.userId !== user.id || acc.purpose !== "PAYMENT") return;
   }
 
-  const provider = getPaymentProvider();
-  const result = await provider.charge({
-    jobId: job.id,
+  const result = await getPaymentProvider().charge({
+    subject: { type: "JOB", jobId: job.id },
     payerId: user.id,
     amount: job.price,
     description: job.title,
@@ -98,19 +100,8 @@ export async function payJob(jobId: string, formData: FormData): Promise<void> {
   });
   if (!result.ok) redirect(`/jobs/${jobId}?error=pago`);
 
-  const pct = await getCommissionPct();
-  const breakdown = computeCommission(job.price, pct);
-  await db.payment.create({
-    data: {
-      jobId: job.id,
-      amount: breakdown.amount,
-      commission: breakdown.commission,
-      netAmount: breakdown.net,
-      method: provider.name.toUpperCase(),
-      providerRef: result.providerRef,
-      status: "HELD",
-    },
-  });
+  if (result.kind === "redirect") redirect(result.redirectUrl);
 
+  await fulfillCharge({ type: "JOB", jobId: job.id }, result.providerRef, user.id, job.price);
   revalidatePath(`/jobs/${jobId}`);
 }
