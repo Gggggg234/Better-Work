@@ -1,17 +1,9 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { activateCompanyPlan } from "@/lib/actions/monetize";
-import { getCompanyPlanPrice } from "@/lib/pricing";
-import { isPlanActive, daysLeft } from "@/lib/company";
+import { activatePlan } from "@/lib/actions/monetize";
+import { listPlans, benefitList, isPlanActive } from "@/lib/plans";
 import { formatMoney, formatDate } from "@/lib/format";
-
-const BENEFITS = [
-  "Aparecés en el mapa y las búsquedas de Better Work",
-  "Publicás empleos ilimitados y recibís postulaciones",
-  "Contratás trabajadores desde tu perfil empresarial",
-  "Podés destacar tu empresa y tus ofertas con publicidad",
-];
 
 export default async function CompanyPlanPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const me = await getCurrentUser();
@@ -19,54 +11,73 @@ export default async function CompanyPlanPage({ searchParams }: { searchParams: 
   if (me.role !== "COMPANY" || !me.companyProfile) redirect("/app");
   const sp = await searchParams;
 
-  const [price, company] = await Promise.all([
-    getCompanyPlanPrice(),
+  const [plans, company] = await Promise.all([
+    listPlans(),
     db.companyProfile.findUnique({ where: { userId: me.id } }),
   ]);
   const active = isPlanActive(company?.planActiveUntil);
-  const left = daysLeft(company?.planActiveUntil);
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 animate-fade-up">
-      <h1 className="text-2xl font-bold">Plan Premium para empresas</h1>
+      <h1 className="text-2xl font-bold">Membresía</h1>
       <p className="text-sm text-muted mt-1">
-        Desbloqueá todas las funciones empresariales de Better Work.
+        Elegí el plan que necesita tu empresa. Los trabajadores usan Better Work gratis.
       </p>
 
-      {active && (
+      {active && company?.planKey && (
         <div className="card p-4 mt-5 border-fg bg-surface-2">
-          <p className="text-sm font-medium">Tu plan está activo</p>
+          <p className="text-sm font-medium">
+            Plan {plans.find((p) => p.key === company.planKey)?.name ?? company.planKey} activo
+          </p>
           <p className="text-xs text-muted mt-0.5">
-            Vence el {formatDate(company!.planActiveUntil!)}{left != null && ` · ${left} días restantes`}. Podés renovar
-            para sumar 30 días más.
+            Vence el {formatDate(company.planActiveUntil!)}. Renovalo o cambiá de plan cuando quieras.
           </p>
         </div>
       )}
+      {sp.error === "plan" && <p className="text-sm text-red-600 mt-3">Ese plan no está disponible.</p>}
 
-      <div className="card p-6 mt-5 text-center">
-        <p className="text-4xl font-bold">{formatMoney(price)}</p>
-        <p className="text-sm text-muted mt-1">por mes (30 días)</p>
+      <div className="space-y-3 mt-6">
+        {plans.map((p) => {
+          const current = active && company?.planKey === p.key;
+          return (
+            <form key={p.key} action={activatePlan} className={`card p-5 ${current ? "border-fg" : ""}`}>
+              <input type="hidden" name="planKey" value={p.key} />
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-bold text-lg">{p.name}</h2>
+                    {current && (
+                      <span className="rounded-full bg-fg text-bg px-2 py-0.5 text-[11px] font-medium">Tu plan</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted">{p.tagline}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="font-bold text-lg">{formatMoney(p.price)}</p>
+                  <p className="text-[11px] text-faint">por mes</p>
+                </div>
+              </div>
+
+              <ul className="mt-3 space-y-1.5">
+                {benefitList(p).map((b) => (
+                  <li key={b} className="flex items-start gap-2 text-sm">
+                    <span className="text-fg mt-0.5">✓</span>
+                    <span className="text-muted">{b}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button className={`w-full mt-4 ${current ? "btn-secondary" : "btn-primary"}`}>
+                {current ? "Renovar 30 días" : active ? `Cambiar a ${p.name}` : `Activar ${p.name}`}
+              </button>
+            </form>
+          );
+        })}
       </div>
 
-      <ul className="mt-5 space-y-2">
-        {BENEFITS.map((b) => (
-          <li key={b} className="flex items-start gap-2.5 text-sm">
-            <span className="text-fg mt-0.5">✓</span>
-            <span className="text-muted">{b}</span>
-          </li>
-        ))}
-      </ul>
-
-      <form action={activateCompanyPlan} className="mt-6">
-        <button className="btn-primary w-full !py-3.5">
-          {active ? `Renovar por ${formatMoney(price)}` : `Activar plan por ${formatMoney(price)}`}
-        </button>
-      </form>
-      {sp.error === "pago" && (
-        <p className="text-sm text-red-600 mt-3 text-center">No pudimos procesar el pago. Probá de nuevo.</p>
-      )}
-      <p className="text-xs text-faint mt-3 text-center">
-        El cobro se procesa a través de Better Work. El plan se renueva manualmente (no hay débito automático).
+      <p className="text-xs text-faint mt-4 text-center">
+        Todavía no cobramos online: activás el plan y coordinamos el pago por chat. Podés cambiarlo o darlo de baja
+        cuando quieras.
       </p>
     </main>
   );

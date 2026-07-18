@@ -37,12 +37,39 @@ const WORKERS = [
 async function main() {
   const pass = await bcrypt.hash("demo1234", 10);
 
-  // Comisión de la plataforma (preparada para el futuro; hoy el pago es externo).
-  await db.setting.upsert({
-    where: { key: "commissionPct" },
-    create: { key: "commissionPct", value: "5" },
-    update: {},
-  });
+  // Reglas del estimador de publicidad (editables desde el panel Super Admin).
+  for (const [key, value] of [
+    ["ad_impressions_per_1000", "140"],
+    ["ad_view_rate", "8"],
+    ["ad_min_budget", "3000"],
+  ]) {
+    await db.setting.upsert({ where: { key }, create: { key, value }, update: {} });
+  }
+
+  // Planes de empresa. Los trabajadores no pagan membresía.
+  const PLANS = [
+    {
+      key: "STARTER", name: "Starter", order: 1, price: 15000,
+      tagline: "Para empezar a contratar",
+      jobPostLimit: 3, applicantLimit: 10, searchBoost: 0,
+      analytics: false, verifiedBadge: false, featuredHome: false, prioritySupport: false,
+    },
+    {
+      key: "BUSINESS", name: "Business", order: 2, price: 35000,
+      tagline: "Para empresas que contratan seguido",
+      jobPostLimit: 10, applicantLimit: 50, searchBoost: 0.15,
+      analytics: true, verifiedBadge: true, featuredHome: false, prioritySupport: false,
+    },
+    {
+      key: "ENTERPRISE", name: "Enterprise", order: 3, price: 75000,
+      tagline: "Máxima visibilidad y sin límites",
+      jobPostLimit: -1, applicantLimit: -1, searchBoost: 0.3,
+      analytics: true, verifiedBadge: true, featuredHome: true, prioritySupport: true,
+    },
+  ];
+  for (const plan of PLANS) {
+    await db.plan.upsert({ where: { key: plan.key }, create: plan, update: {} });
+  }
 
   const catByName = {};
   for (let i = 0; i < CATEGORIES.length; i++) {
@@ -67,22 +94,6 @@ async function main() {
     create: { email: "cliente@demo.com", name: "María Pérez", role: "CLIENT", passwordHash: pass, phone: "+54 11 5555-1234" },
     update: {},
   });
-  // Método de pago demo de la clienta (tarjeta enmascarada: solo últimos 4).
-  const clientHasAccount = await db.paymentAccount.findFirst({ where: { userId: client.id, purpose: "PAYMENT" } });
-  if (!clientHasAccount) {
-    await db.paymentAccount.create({
-      data: {
-        userId: client.id,
-        purpose: "PAYMENT",
-        provider: "CARD_CREDIT",
-        label: "Visa personal",
-        holder: "María Pérez",
-        detail: "4242",
-        isDefault: true,
-      },
-    });
-  }
-
   const companyUser = await db.user.upsert({
     where: { email: "empresa@demo.com" },
     create: { email: "empresa@demo.com", name: "Constructora Delta", role: "COMPANY", passwordHash: pass },
@@ -100,10 +111,11 @@ async function main() {
       lat: -34.598,
       lng: -58.42,
       verified: true,
+      planKey: "BUSINESS",
       planActiveUntil: planUntil,
     },
-    // La empresa demo tiene el plan Premium activo (para que aparezca y publique).
-    update: { planActiveUntil: planUntil },
+    // La empresa demo tiene el plan Business activo (para que aparezca y publique).
+    update: { planKey: "BUSINESS", planActiveUntil: planUntil },
   });
 
   const workerUsers = [];
@@ -132,8 +144,6 @@ async function main() {
         availableDays: JSON.stringify(["Lun", "Mar", "Mie", "Jue", "Vie", "Sab"]),
         workMode: "AMBOS",
         whatsapp: "+54 9 11 4444-0000",
-        mpAlias: name.split(" ")[0].toLowerCase() + ".mp",
-        mpHolder: name,
         payMethods: JSON.stringify(["Efectivo", "Transferencia", "Mercado Pago"]),
         priceHint: `Desde $${price.toLocaleString("es-AR")} por visita`,
         verified: jobs > 60,
@@ -147,24 +157,8 @@ async function main() {
         schedule: "08:00-19:00",
         availableDays: JSON.stringify(["Lun", "Mar", "Mie", "Jue", "Vie", "Sab"]),
         workMode: "AMBOS",
-        mpHolder: name,
       },
     });
-    // Cuenta de cobro (payout) demo: Mercado Pago con su alias.
-    const hasPayout = await db.paymentAccount.findFirst({ where: { userId: u.id, purpose: "PAYOUT" } });
-    if (!hasPayout) {
-      await db.paymentAccount.create({
-        data: {
-          userId: u.id,
-          purpose: "PAYOUT",
-          provider: "MERCADO_PAGO",
-          label: "Mercado Pago",
-          holder: name,
-          detail: name.split(" ")[0].toLowerCase() + ".mp",
-          isDefault: true,
-        },
-      });
-    }
     workerUsers.push(u);
   }
 
@@ -181,7 +175,6 @@ async function main() {
         lat: -34.618,
         lng: -58.437,
         price: 45000,
-        payMethod: "DIRECT",
         status: "COMPLETED",
         startCode: "1111",
         endCode: "2222",
@@ -240,7 +233,7 @@ async function main() {
   });
   await db.companyProfile.update({
     where: { id: company.id },
-    data: { sponsoredUntil: new Date(Date.now() + 15 * 86400000) },
+    data: { sponsoredUntil: new Date(Date.now() + 15 * 86400000), sponsorBoost: 0.25 },
   });
 
   // Publicaciones de ejemplo en el feed.

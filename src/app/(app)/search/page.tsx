@@ -3,7 +3,9 @@ import { db } from "@/lib/db";
 import { WorkerCard } from "@/components/WorkerCard";
 import { LocationAutoUpdate } from "@/components/LocationAutoUpdate";
 import { distanceKm } from "@/lib/geo";
-import { workerScore } from "@/lib/ranking";
+import { workerScore, isSponsored, activeBoost } from "@/lib/ranking";
+import { computeRank } from "@/lib/rank";
+import { trackSearchAppearances } from "@/lib/track";
 
 const BA_CENTER = { lat: -34.6037, lng: -58.3816 };
 
@@ -22,7 +24,6 @@ type Search = {
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
-  const now = new Date();
   const q = (sp.q ?? "").trim().toLowerCase();
 
   const categories = await db.category.findMany({ where: { active: true }, orderBy: { order: "asc" } });
@@ -46,7 +47,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     .map((w) => ({
       ...w,
       distance: w.lat != null && w.lng != null ? distanceKm(origin.lat, origin.lng, w.lat, w.lng) : null,
-      sponsored: !!(w.sponsoredUntil && w.sponsoredUntil > now),
+      sponsored: isSponsored(w.sponsoredUntil),
     }))
     .filter((w) => {
       if (q) {
@@ -72,11 +73,17 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         return b.experience - a.experience;
       default:
         return (
-          workerScore({ sponsored: b.sponsored, ratingAvg: b.ratingAvg, ratingCount: b.ratingCount, jobsDone: b.jobsDone, verified: b.verified, distanceKm: b.distance }) -
-          workerScore({ sponsored: a.sponsored, ratingAvg: a.ratingAvg, ratingCount: a.ratingCount, jobsDone: a.jobsDone, verified: a.verified, distanceKm: a.distance })
+          workerScore({ boost: activeBoost(b.sponsoredUntil, b.sponsorBoost), ratingAvg: b.ratingAvg, ratingCount: b.ratingCount, jobsDone: b.jobsDone, verified: b.verified, distanceKm: b.distance }) -
+          workerScore({ boost: activeBoost(a.sponsoredUntil, a.sponsorBoost), ratingAvg: a.ratingAvg, ratingCount: a.ratingCount, jobsDone: a.jobsDone, verified: a.verified, distanceKm: a.distance })
         );
     }
   });
+
+  // Métrica: estos perfiles aparecieron en la búsqueda.
+  await trackSearchAppearances(
+    results.slice(0, 20).map((w) => w.id),
+    results.filter((w) => w.sponsored).map((w) => w.userId)
+  );
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6">
@@ -156,6 +163,16 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               sponsored: w.sponsored,
               distanceKm: w.distance,
               priceHint: w.priceHint,
+              rank: computeRank({
+                ratingAvg: w.ratingAvg,
+                ratingCount: w.ratingCount,
+                jobsDone: w.jobsDone,
+                createdAt: w.createdAt,
+                cancellations: w.cancellations,
+                claims: w.claims,
+                avgResponseMins: w.avgResponseMins,
+                punctualityAvg: w.punctualityAvg,
+              }),
             }}
           />
         ))}

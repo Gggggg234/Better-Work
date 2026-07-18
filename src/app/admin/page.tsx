@@ -1,34 +1,46 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { getCommissionPct } from "@/lib/commission";
 import { formatMoney } from "@/lib/format";
 
 export default async function AdminDashboard() {
-  const [users, workers, companies, jobs, activeJobs, completedCount, released, held, reports, pct] =
-    await Promise.all([
-      db.user.count(),
-      db.workerProfile.count(),
-      db.companyProfile.count(),
-      db.job.count(),
-      db.job.count({ where: { status: { in: ["REQUESTED", "ACCEPTED", "EN_ROUTE", "WORKING"] } } }),
-      db.job.count({ where: { status: "COMPLETED" } }),
-      db.payment.aggregate({ where: { status: "RELEASED" }, _sum: { commission: true, amount: true } }),
-      db.payment.aggregate({ where: { status: "HELD" }, _sum: { amount: true }, _count: true }),
-      db.report.count({ where: { status: "OPEN" } }),
-      getCommissionPct(),
-    ]);
+  const now = new Date();
+  const [
+    users,
+    workers,
+    companies,
+    payingCompanies,
+    jobs,
+    activeJobs,
+    completedCount,
+    reports,
+    promotions,
+    activeCampaigns,
+  ] = await Promise.all([
+    db.user.count(),
+    db.workerProfile.count(),
+    db.companyProfile.count(),
+    db.companyProfile.count({ where: { planActiveUntil: { gt: now } } }),
+    db.job.count(),
+    db.job.count({ where: { status: { in: ["REQUESTED", "ACCEPTED", "EN_ROUTE", "WORKING"] } } }),
+    db.job.count({ where: { status: "COMPLETED" } }),
+    db.report.count({ where: { status: "OPEN" } }),
+    db.promotion.groupBy({ by: ["kind"], _sum: { amount: true } }),
+    db.campaign.count({ where: { status: "ACTIVE" } }),
+  ]);
 
-  const commissionEarned = released._sum.commission ?? 0;
+  const income = (kind: string) => promotions.find((p) => p.kind === kind)?._sum.amount ?? 0;
+  const planIncome = income("COMPANY_PLAN");
+  const adsIncome = income("CAMPAIGN");
 
   const stats: [string, string][] = [
     [String(users), "Usuarios"],
     [String(workers), "Trabajadores"],
     [String(companies), "Empresas"],
+    [String(payingCompanies), "Empresas con plan"],
     [String(jobs), "Trabajos totales"],
     [String(activeJobs), "Trabajos activos"],
     [String(completedCount), "Trabajos finalizados"],
     [String(reports), "Denuncias abiertas"],
-    [formatMoney(commissionEarned), "Comisiones cobradas"],
   ];
 
   return (
@@ -46,22 +58,23 @@ export default async function AdminDashboard() {
 
       <div className="grid sm:grid-cols-2 gap-3">
         <div className="card p-5">
-          <h2 className="font-semibold text-sm">Comisión configurada</h2>
-          <p className="text-2xl font-bold mt-1">{pct}%</p>
+          <h2 className="font-semibold text-sm">Membresías de empresa</h2>
+          <p className="text-2xl font-bold mt-1">{formatMoney(planIncome)}</p>
           <p className="text-xs text-faint mt-1">
-            Se descuenta automáticamente de cada pago cuando se libera al trabajador.
+            {payingCompanies} {payingCompanies === 1 ? "empresa" : "empresas"} con plan activo. Los trabajadores
+            usan Better Work gratis.
           </p>
-          <Link href="/admin/settings" className="btn-secondary w-full mt-4 !py-2 !text-xs">Editar comisión</Link>
+          <Link href="/admin/plans" className="btn-secondary w-full mt-4 !py-2 !text-xs">Editar planes</Link>
         </div>
 
         <div className="card p-5">
-          <h2 className="font-semibold text-sm">Dinero en custodia</h2>
-          <p className="text-2xl font-bold mt-1">{formatMoney(held._sum.amount ?? 0)}</p>
+          <h2 className="font-semibold text-sm">Publicidad</h2>
+          <p className="text-2xl font-bold mt-1">{formatMoney(adsIncome)}</p>
           <p className="text-xs text-faint mt-1">
-            {held._count} {held._count === 1 ? "pago retenido" : "pagos retenidos"} a la espera del código de finalización
-            · volumen liberado {formatMoney(released._sum.amount ?? 0)}.
+            {activeCampaigns} {activeCampaigns === 1 ? "campaña activa" : "campañas activas"} de trabajadores y
+            empresas.
           </p>
-          <Link href="/admin/revenue" className="btn-secondary w-full mt-4 !py-2 !text-xs">Ver movimientos</Link>
+          <Link href="/admin/revenue" className="btn-secondary w-full mt-4 !py-2 !text-xs">Ver ingresos</Link>
         </div>
       </div>
     </div>

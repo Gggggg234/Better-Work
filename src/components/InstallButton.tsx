@@ -1,8 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 type BIPEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+
+function isStandalone(): boolean {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    // iOS Safari
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
+function subscribeToInstall(onChange: () => void) {
+  const mq = window.matchMedia("(display-mode: standalone)");
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
 
 /**
  * Botón "Descargar aplicación" para instalar la PWA. Sólo se muestra cuando el
@@ -10,21 +24,18 @@ type BIPEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ out
  */
 export function InstallButton({ className = "" }: { className?: string }) {
   const [prompt, setPrompt] = useState<BIPEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
+  // Que la app ya esté instalada es estado del navegador, no de React.
+  const standalone = useSyncExternalStore(subscribeToInstall, isStandalone, () => false);
+  const [installedNow, setInstalledNow] = useState(false);
+  const installed = standalone || installedNow;
 
   useEffect(() => {
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      // iOS Safari
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-    if (standalone) setInstalled(true);
-
     const onPrompt = (e: Event) => {
       e.preventDefault();
       setPrompt(e as BIPEvent);
     };
     const onInstalled = () => {
-      setInstalled(true);
+      setInstalledNow(true);
       setPrompt(null);
     };
     window.addEventListener("beforeinstallprompt", onPrompt);

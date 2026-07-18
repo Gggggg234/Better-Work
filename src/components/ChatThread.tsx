@@ -83,6 +83,9 @@ export function ChatThread({ conversationId, meId }: { conversationId: string; m
   }, [conversationId]);
 
   useEffect(() => {
+    // Suscripción a un sistema externo (la API): la primera carga es inmediata
+    // y el resto por intervalo. El setState ocurre recién al resolver el fetch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     const t = setInterval(load, 3000);
     return () => clearInterval(t);

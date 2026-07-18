@@ -7,7 +7,10 @@ import { Avatar } from "@/components/Avatar";
 import { Stars } from "@/components/Stars";
 import { VerifiedBadge, SponsoredBadge } from "@/components/Badges";
 import { MapView } from "@/components/map/MapView";
-import { computeRank } from "@/lib/rank";
+import { rankBreakdown } from "@/lib/rank";
+import { isSponsored } from "@/lib/ranking";
+import { trackWorkerProfileView } from "@/lib/track";
+import { ProgressBar } from "@/components/charts/Charts";
 import { experienceLabel, radiusLabel, workModeLabel } from "@/lib/worker";
 import { formatDate } from "@/lib/format";
 
@@ -32,10 +35,21 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
   const gallery: string[] = JSON.parse(profile.gallery || "[]");
   const payMethods: string[] = JSON.parse(profile.payMethods || "[]");
   const availableDays: string[] = JSON.parse(profile.availableDays || "[]");
-  const now = new Date();
-  const sponsored = !!(profile.sponsoredUntil && profile.sponsoredUntil > now);
-  const rank = computeRank(profile.jobsDone, profile.ratingAvg, profile.cancellations);
+  const sponsored = isSponsored(profile.sponsoredUntil);
+  const r = rankBreakdown({
+    ratingAvg: profile.ratingAvg,
+    ratingCount: profile.ratingCount,
+    jobsDone: profile.jobsDone,
+    createdAt: profile.createdAt,
+    cancellations: profile.cancellations,
+    claims: profile.claims,
+    avgResponseMins: profile.avgResponseMins,
+    punctualityAvg: profile.punctualityAvg,
+  });
   const isMe = me?.id === id;
+
+  // Métrica: visita al perfil (no cuenta las propias).
+  await trackWorkerProfileView(id, me?.id ?? null);
 
   const openChat = openConversation.bind(null, id);
 
@@ -64,7 +78,7 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
         {[
           [String(profile.jobsDone), "Trabajos"],
           [experienceLabel(profile.experience), "Experiencia"],
-          [rank, "Rango"],
+          [r.rank, "Rango"],
         ].map(([v, l]) => (
           <div key={l} className="card p-3 text-center">
             <p className="font-bold text-sm">{v}</p>
@@ -72,6 +86,23 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
           </div>
         ))}
       </div>
+
+      {/* Cómo se calcula el rango */}
+      <details className="card p-4 mt-3 group">
+        <summary className="flex items-center justify-between cursor-pointer list-none">
+          <span className="text-sm font-medium">Rango {r.rank} · {r.score}/100</span>
+          <span className="text-faint text-xs group-open:rotate-180 transition">▾</span>
+        </summary>
+        <div className="mt-4 space-y-2.5">
+          {r.parts.map((p) => (
+            <ProgressBar key={p.label} label={p.label} value={p.value} max={p.max} />
+          ))}
+        </div>
+        <p className="text-[11px] text-faint mt-3">
+          El rango combina calificación, trabajos realizados, puntualidad, tiempo de respuesta y antigüedad.
+          Las cancelaciones y los reclamos lo bajan.
+        </p>
+      </details>
 
       {/* Acciones */}
       {!isMe && me?.role !== "WORKER" && (

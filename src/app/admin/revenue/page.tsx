@@ -1,56 +1,55 @@
 import { db } from "@/lib/db";
-import { getCommissionPct } from "@/lib/commission";
 import { Avatar } from "@/components/Avatar";
+import { BarChart } from "@/components/charts/Charts";
 import { formatMoney, formatDateTime } from "@/lib/format";
 
-const STATUS_LABEL: Record<string, string> = {
-  HELD: "Retenido",
-  RELEASED: "Liberado",
-  REFUNDED: "Devuelto",
+const KIND_LABEL: Record<string, string> = {
+  COMPANY_PLAN: "Plan de empresa",
+  CAMPAIGN: "Campaña de publicidad",
 };
 
-const PROMO_LABEL: Record<string, string> = {
-  COMPANY_PLAN: "Plan empresa",
-  PROFILE: "Perfil destacado",
-  OFFER: "Oferta destacada",
-  POST: "Publicación destacada",
-};
+/** Últimos n meses, del más viejo al más nuevo. */
+function lastMonths(n: number): { label: string; start: Date; end: Date }[] {
+  const out: { label: string; start: Date; end: Date }[] = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+    out.push({ label: start.toLocaleDateString("es-AR", { month: "short" }), start, end });
+  }
+  return out;
+}
 
 export default async function AdminRevenuePage() {
-  const [payments, promotions, pct] = await Promise.all([
-    db.payment.findMany({
-      include: { job: { include: { worker: true, client: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    }),
-    db.promotion.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
-    getCommissionPct(),
+  const promotions = await db.promotion.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
+
+  // Promotion guarda el userId sin relación (es un registro contable, no depende del usuario).
+  const buyers = await db.user.findMany({
+    where: { id: { in: [...new Set(promotions.map((p) => p.userId))] } },
+    select: { id: true, name: true, avatarUrl: true },
+  });
+  const buyerById = new Map(buyers.map((u) => [u.id, u]));
+
+  const planIncome = promotions.filter((p) => p.kind === "COMPANY_PLAN").reduce((s, p) => s + p.amount, 0);
+  const adsIncome = promotions.filter((p) => p.kind === "CAMPAIGN").reduce((s, p) => s + p.amount, 0);
+  const total = planIncome + adsIncome;
+
+  const [activeCompanies, activeCampaigns] = await Promise.all([
+    db.companyProfile.count({ where: { planActiveUntil: { gt: new Date() } } }),
+    db.campaign.count({ where: { status: "ACTIVE" } }),
   ]);
 
-  // Con Mercado Pago el dinero entra a la cuenta de Better Work: estas son las
-  // transferencias que hay que hacerle a cada trabajador (neto de comisión).
-  const toTransfer = payments.filter((p) => p.status === "RELEASED" && p.method === "MERCADOPAGO");
-  const payoutAccounts = toTransfer.length
-    ? await db.paymentAccount.findMany({
-        where: { purpose: "PAYOUT", isDefault: true, userId: { in: toTransfer.map((p) => p.job.workerId) } },
-      })
-    : [];
-  const accountByUser = new Map(payoutAccounts.map((a) => [a.userId, a]));
-
-  const released = payments.filter((p) => p.status === "RELEASED");
-  const held = payments.filter((p) => p.status === "HELD");
-  const commissionEarned = released.reduce((s, p) => s + p.commission, 0);
-  const heldAmount = held.reduce((s, p) => s + p.amount, 0);
-  const planIncome = promotions.filter((p) => p.kind === "COMPANY_PLAN").reduce((s, p) => s + p.amount, 0);
-  const adsIncome = promotions.filter((p) => p.kind !== "COMPANY_PLAN").reduce((s, p) => s + p.amount, 0);
-  const total = commissionEarned + planIncome + adsIncome;
+  const byMonth = lastMonths(6).map((m) => ({
+    label: m.label,
+    value: promotions.filter((p) => p.createdAt >= m.start && p.createdAt < m.end).reduce((s, p) => s + p.amount, 0),
+  }));
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold">Ingresos</h1>
         <p className="text-sm text-muted mt-0.5">
-          Comisiones de trabajos ({pct}%), planes de empresa y publicidad.
+          Membresías de empresa y campañas de publicidad. Better Work no cobra comisión por trabajo.
         </p>
       </div>
 
@@ -60,104 +59,53 @@ export default async function AdminRevenuePage() {
           <p className="text-xs text-faint">Ingresos totales</p>
         </div>
         <div className="card p-4">
-          <p className="text-lg font-bold">{formatMoney(commissionEarned)}</p>
-          <p className="text-xs text-faint">Comisiones</p>
-        </div>
-        <div className="card p-4">
           <p className="text-lg font-bold">{formatMoney(planIncome)}</p>
-          <p className="text-xs text-faint">Planes empresa</p>
+          <p className="text-xs text-faint">Membresías</p>
         </div>
         <div className="card p-4">
           <p className="text-lg font-bold">{formatMoney(adsIncome)}</p>
           <p className="text-xs text-faint">Publicidad</p>
         </div>
+        <div className="card p-4">
+          <p className="text-lg font-bold">{activeCompanies}</p>
+          <p className="text-xs text-faint">Empresas con plan activo</p>
+        </div>
       </div>
 
-      {toTransfer.length > 0 && (
-        <section>
-          <h2 className="font-semibold mb-2">Transferencias a trabajadores ({toTransfer.length})</h2>
-          <p className="text-sm text-muted mb-2">
-            Mercado Pago no permite transferir a terceros por API: estos trabajos ya se liberaron y hay que
-            enviarles el neto desde la cuenta de Better Work.
-          </p>
-          <div className="card divide-y divide-line">
-            {toTransfer.map((p) => {
-              const acc = accountByUser.get(p.job.workerId);
-              return (
-                <div key={p.id} className="p-4 flex items-center gap-3 text-sm">
-                  <Avatar name={p.job.worker.name} url={p.job.worker.avatarUrl} size={36} />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate">{p.job.worker.name}</p>
-                    <p className="text-xs text-faint truncate">
-                      {acc ? `${acc.label} · ${acc.detail}${acc.holder ? ` · ${acc.holder}` : ""}` : "⚠️ Sin cuenta de cobro cargada"}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-semibold">{formatMoney(p.netAmount)}</p>
-                    <p className="text-xs text-faint">{p.releasedAt ? formatDateTime(p.releasedAt) : ""}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+      {total > 0 && (
+        <div className="card p-5 max-w-lg">
+          <h2 className="font-semibold text-sm mb-3">Ingresos por mes</h2>
+          <BarChart data={byMonth} />
+        </div>
       )}
 
-      {promotions.length > 0 && (
-        <section>
-          <h2 className="font-semibold mb-2">Planes y publicidad</h2>
-          <div className="card divide-y divide-line">
-            {promotions.slice(0, 30).map((p) => (
-              <div key={p.id} className="p-4 flex items-center justify-between text-sm">
-                <div>
-                  <p className="font-medium">{PROMO_LABEL[p.kind] ?? p.kind}</p>
-                  <p className="text-xs text-faint">{p.days} días · {formatDateTime(p.createdAt)}</p>
-                </div>
-                <p className="font-semibold">{formatMoney(p.amount)}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <div className="grid grid-cols-2 gap-3 max-w-md">
-        <div className="card p-4">
-          <p className="text-lg font-bold">{formatMoney(heldAmount)}</p>
-          <p className="text-xs text-faint">Retenido en custodia</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-lg font-bold">{formatMoney(released.reduce((s, p) => s + p.amount, 0))}</p>
-          <p className="text-xs text-faint">Volumen liberado</p>
-        </div>
+      <div className="card p-4 max-w-xs">
+        <p className="text-lg font-bold">{activeCampaigns}</p>
+        <p className="text-xs text-faint">
+          {activeCampaigns === 1 ? "campaña activa" : "campañas activas"} en este momento
+        </p>
       </div>
 
       <section>
         <h2 className="font-semibold mb-2">Movimientos</h2>
         <div className="card divide-y divide-line">
-          {payments.map((p) => (
-            <div key={p.id} className="p-4 flex items-center gap-3 text-sm">
-              <Avatar name={p.job.worker.name} url={p.job.worker.avatarUrl} size={36} />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium truncate">{p.job.title}</p>
-                <p className="text-xs text-faint">
-                  {p.job.client.name} → {p.job.worker.name} · {formatDateTime(p.createdAt)} · ref {p.providerRef.slice(0, 18)}…
-                </p>
+          {promotions.map((p) => {
+            const buyer = buyerById.get(p.userId);
+            return (
+              <div key={p.id} className="p-4 flex items-center gap-3 text-sm">
+                <Avatar name={buyer?.name ?? "?"} url={buyer?.avatarUrl} size={36} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium truncate">{KIND_LABEL[p.kind] ?? p.kind}</p>
+                  <p className="text-xs text-faint truncate">
+                    {buyer?.name ?? "Usuario eliminado"} · {p.days} días · {formatDateTime(p.createdAt)}
+                  </p>
+                </div>
+                <p className="font-semibold shrink-0">{formatMoney(p.amount)}</p>
               </div>
-              <div className="text-right shrink-0">
-                <p className="font-semibold">{formatMoney(p.amount)}</p>
-                <p className="text-xs text-faint">comisión {formatMoney(p.commission)}</p>
-              </div>
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium shrink-0 ${
-                  p.status === "RELEASED" ? "bg-fg text-bg" : p.status === "HELD" ? "border border-line" : "bg-surface-2 text-muted"
-                }`}
-              >
-                {STATUS_LABEL[p.status]}
-              </span>
-            </div>
-          ))}
-          {payments.length === 0 && (
-            <p className="p-6 text-center text-sm text-faint">Todavía no se procesaron pagos.</p>
+            );
+          })}
+          {promotions.length === 0 && (
+            <p className="p-6 text-center text-sm text-faint">Todavía no hay membresías ni campañas.</p>
           )}
         </div>
       </section>

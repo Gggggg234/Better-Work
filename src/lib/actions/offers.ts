@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { benefitsFor, isUnlimited } from "@/lib/plans";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 
@@ -9,8 +10,13 @@ export async function createOffer(formData: FormData) {
   const user = await requireRole("COMPANY");
   const profile = await db.companyProfile.findUnique({ where: { userId: user.id } });
   if (!profile) return;
-  // Función premium: publicar requiere plan activo.
-  if (!profile.planActiveUntil || profile.planActiveUntil < new Date()) redirect("/company/plan");
+  // Publicar requiere plan activo, y cada plan tiene su tope de empleos activos.
+  const plan = await benefitsFor(profile);
+  if (plan.key === "NONE") redirect("/company/plan");
+  if (!isUnlimited(plan.jobPostLimit)) {
+    const activeOffers = await db.jobOffer.count({ where: { companyId: profile.id, active: true } });
+    if (activeOffers >= plan.jobPostLimit) redirect("/company?error=limite");
+  }
 
   await db.jobOffer.create({
     data: {

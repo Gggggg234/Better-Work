@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { OptionPills } from "@/components/ui/OptionPills";
@@ -108,11 +107,15 @@ export function WorkerProfileForm({
   // Borrador en sessionStorage: mantiene el progreso al navegar a "Cuenta de
   // cobro" y volver (o al usar atrás del navegador). Se limpia al guardar.
   const [ready, setReady] = useState(false);
+  // Restaura el borrador guardado. No puede ser un inicializador lazy de
+  // useState: sessionStorage no existe en el render del servidor y rompería la
+  // hidratación. Por eso se lee al montar y `ready` evita persistir hasta ahí.
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(DRAFT_KEY);
       if (raw) {
         const d = JSON.parse(raw);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (typeof d.profession === "string") { setProfession(d.profession); setQuery(d.profession); }
         if (typeof d.categoryId === "string") setCategoryId(d.categoryId);
         if (Array.isArray(d.services)) setServices(d.services);
@@ -138,7 +141,6 @@ export function WorkerProfileForm({
       /* borrador inválido: se ignora */
     }
     setReady(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -395,13 +397,6 @@ export function WorkerProfileForm({
             </button>
           ))}
         </div>
-        <Link href="/payments?from=worker" className="card p-4 flex items-center justify-between hover:bg-surface-2 transition">
-          <div>
-            <p className="text-sm font-medium">Cuenta de cobro</p>
-            <p className="text-xs text-muted">Vinculá tu Mercado Pago, banco o billetera para recibir los pagos.</p>
-          </div>
-          <span className="text-faint">→</span>
-        </Link>
         <p className="text-xs text-faint -mt-1">Tu progreso se guarda: podés ir y volver sin perder los datos cargados.</p>
         <div>
           <label className="label">Precios orientativos (opcional)</label>

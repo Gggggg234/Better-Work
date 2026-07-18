@@ -5,6 +5,7 @@ import { applyToOffer } from "@/lib/actions/offers";
 import { openConversation } from "@/lib/actions/chat";
 import { SponsoredBadge, VerifiedBadge } from "@/components/Badges";
 import { formatDate } from "@/lib/format";
+import { trackOfferView, trackCompanyProfileView } from "@/lib/track";
 
 export default async function OfferDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,6 +17,12 @@ export default async function OfferDetailPage({ params }: { params: Promise<{ id
     include: { company: true, category: true, applications: { where: { workerId: me.id } } },
   });
   if (!offer) notFound();
+
+  // Métricas: la visita a la oferta cuenta también como visita a la empresa.
+  if (offer.company.userId !== me.id) {
+    await trackOfferView(offer.id);
+    await trackCompanyProfileView(offer.company.id, offer.company.userId, me.id);
+  }
 
   const applied = offer.applications.length > 0;
   const apply = applyToOffer.bind(null, offer.id);

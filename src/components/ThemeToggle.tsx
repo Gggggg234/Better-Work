@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark" | "system";
 
@@ -10,29 +10,49 @@ const OPTIONS: { value: Theme; label: string; icon: string }[] = [
   { value: "system", label: "Auto", icon: "🖥️" },
 ];
 
+const STORAGE_KEY = "bw-theme";
+// Evento propio: localStorage no avisa los cambios de la misma pestaña.
+const THEME_EVENT = "bw-theme-change";
+
 function apply(theme: Theme) {
   const root = document.documentElement;
   if (theme === "system") root.removeAttribute("data-theme");
   else root.setAttribute("data-theme", theme);
 }
 
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("system");
+/**
+ * La preferencia vive en localStorage (fuera de React), así que la leemos con
+ * useSyncExternalStore en vez de copiarla a estado en un efecto.
+ */
+function subscribe(onChange: () => void) {
+  window.addEventListener(THEME_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(THEME_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
 
-  useEffect(() => {
-    const saved = (localStorage.getItem("bw-theme") as Theme) || "system";
-    setTheme(saved);
-  }, []);
+function getSnapshot(): Theme {
+  try {
+    return (localStorage.getItem(STORAGE_KEY) as Theme) || "system";
+  } catch {
+    return "system";
+  }
+}
+
+export function ThemeToggle() {
+  const theme = useSyncExternalStore(subscribe, getSnapshot, () => "system" as Theme);
 
   function choose(next: Theme) {
-    setTheme(next);
     try {
-      if (next === "system") localStorage.removeItem("bw-theme");
-      else localStorage.setItem("bw-theme", next);
+      if (next === "system") localStorage.removeItem(STORAGE_KEY);
+      else localStorage.setItem(STORAGE_KEY, next);
     } catch {
       /* almacenamiento no disponible */
     }
     apply(next);
+    window.dispatchEvent(new Event(THEME_EVENT));
   }
 
   return (

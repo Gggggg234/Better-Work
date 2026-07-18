@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { addComment } from "@/lib/actions/feed";
-import { promotePost } from "@/lib/actions/monetize";
 import { PostCard } from "@/components/feed/PostCard";
 import { Avatar } from "@/components/Avatar";
 import { postInclude, mapPost } from "@/lib/feed";
@@ -33,16 +32,15 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
 
       <PostCard post={post} />
 
-      {/* Promocionar (solo el autor) */}
-      {post.canManage && post.authorId === me.id && !post.sponsored && (
-        <form action={promotePost.bind(null, id)} className="card p-3.5 mt-3 flex items-center justify-between">
-          <input type="hidden" name="days" value="7" />
+      {/* El autor promociona su perfil, no la publicación suelta */}
+      {post.authorId === me.id && (me.role === "WORKER" || me.role === "COMPANY") && (
+        <Link href="/ads/new" className="card p-3.5 mt-3 flex items-center justify-between hover:bg-surface-2 transition">
           <div>
-            <p className="text-sm font-medium">★ Promocionar esta publicación</p>
-            <p className="text-xs text-muted">Aparece como “Patrocinado” y llega a más gente.</p>
+            <p className="text-sm font-medium">★ Llegá a más gente</p>
+            <p className="text-xs text-muted">Creá una campaña y aparecé primero en búsquedas y mapa.</p>
           </div>
-          <button className="btn-primary !py-1.5 !px-3 !text-xs">Destacar</button>
-        </form>
+          <span className="text-faint">→</span>
+        </Link>
       )}
 
       {/* Comentarios */}

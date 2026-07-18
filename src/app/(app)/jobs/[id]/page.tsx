@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -11,15 +10,12 @@ import {
   cancelJob,
   rateJob,
 } from "@/lib/actions/jobs";
-import { payJob } from "@/lib/actions/payments";
 import { openConversation } from "@/lib/actions/chat";
 import { Avatar } from "@/components/Avatar";
 import { StatusTimeline } from "@/components/StatusTimeline";
 import { RatingForm } from "@/components/RatingForm";
 import { Stars } from "@/components/Stars";
 import { MapView } from "@/components/map/MapView";
-import { getCommissionPct, computeCommission } from "@/lib/commission";
-import { accountSummary } from "@/lib/payments/accounts";
 import { formatMoney, formatDateTime } from "@/lib/format";
 
 function CodeCard({ code, title, hint }: { code: string; title: string; hint: string }) {
@@ -74,7 +70,7 @@ export default async function JobDetailPage({
 
   const job = await db.job.findUnique({
     where: { id },
-    include: { client: true, worker: { include: { workerProfile: true } }, reviews: true, payment: true },
+    include: { client: true, worker: { include: { workerProfile: true } }, reviews: true },
   });
   if (!job) notFound();
   const isClient = job.clientId === me.id;
@@ -85,21 +81,6 @@ export default async function JobDetailPage({
   const myReview = job.reviews.find((r) => r.raterId === me.id);
   const theirReview = job.reviews.find((r) => r.ratedId === me.id);
   const codeError = sp.error === "codigo";
-
-  // Datos para el pago intermediado (cliente).
-  const canPay =
-    isClient && !job.payment && job.price != null && job.price > 0 &&
-    ["ACCEPTED", "EN_ROUTE", "WORKING", "COMPLETED"].includes(job.status);
-  const [payAccounts, pct] = await Promise.all([
-    canPay
-      ? db.paymentAccount.findMany({
-          where: { userId: me.id, purpose: "PAYMENT" },
-          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-        })
-      : Promise.resolve([]),
-    getCommissionPct(),
-  ]);
-  const breakdown = job.price != null ? computeCommission(job.price, pct) : null;
 
   const scheduledLabel = (() => {
     if (!job.scheduledFor) return null;
@@ -122,7 +103,6 @@ export default async function JobDetailPage({
   const cancel = cancelJob.bind(null, job.id);
   const rate = rateJob.bind(null, job.id);
   const chat = openConversation.bind(null, other.id);
-  const pay = payJob.bind(null, job.id);
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 space-y-5 animate-fade-up">
@@ -173,74 +153,9 @@ export default async function JobDetailPage({
         )}
         <div className="p-4 flex justify-between text-sm">
           <span className="text-muted">Pago</span>
-          <span className="font-medium">A través de Better Work</span>
+          <span className="font-medium text-right">Se acuerda entre las partes</span>
         </div>
       </div>
-
-      {/* Pago intermediado: el cliente paga a Better Work */}
-      {canPay && breakdown && (
-        <form action={pay} className="card p-5 space-y-3">
-          <p className="text-xs uppercase tracking-wide text-faint">Pagar por Better Work</p>
-          <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between"><span className="text-muted">Trabajo</span><span className="font-medium">{formatMoney(breakdown.amount)}</span></div>
-            <div className="flex justify-between border-t border-line pt-1.5"><span className="font-semibold">Pagás</span><span className="font-bold">{formatMoney(breakdown.amount)}</span></div>
-          </div>
-          {payAccounts.length > 0 ? (
-            <div>
-              <label className="label">Pagar con</label>
-              <select name="accountId" defaultValue={payAccounts[0].id} className="input">
-                {payAccounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {accountSummary(a)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <Link href="/payments" className="btn-secondary w-full">+ Vincular un método de pago</Link>
-          )}
-          <button disabled={payAccounts.length === 0} className="btn-primary w-full !py-3">
-            Pagar {formatMoney(breakdown.amount)}
-          </button>
-          {sp.error === "pago" && <p className="text-sm text-red-600">No pudimos procesar el pago. Probá de nuevo.</p>}
-          <p className="text-xs text-faint">
-            El dinero queda retenido por Better Work y se libera a {job.worker.name} al finalizar el trabajo
-            (se descuenta la comisión de servicio del {pct}%). Si se cancela antes de empezar, se te devuelve.
-          </p>
-        </form>
-      )}
-
-      {/* Estado del pago */}
-      {job.payment && (
-        <div className="card p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-wide text-faint">Pago</p>
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
-                job.payment.status === "RELEASED"
-                  ? "bg-fg text-bg"
-                  : job.payment.status === "REFUNDED"
-                    ? "bg-surface-2 text-muted"
-                    : "bg-surface-2 text-fg border border-line"
-              }`}
-            >
-              {job.payment.status === "HELD" ? "Retenido por Better Work" : job.payment.status === "RELEASED" ? "Liberado al trabajador" : "Devuelto"}
-            </span>
-          </div>
-          <div className="mt-3 space-y-1.5 text-sm">
-            <div className="flex justify-between"><span className="text-muted">{isWorker ? "El cliente pagó" : "Pagaste"}</span><span className="font-medium">{formatMoney(job.payment.amount)}</span></div>
-            <div className="flex justify-between"><span className="text-muted">Comisión Better Work ({pct}%)</span><span className="font-medium">−{formatMoney(job.payment.commission)}</span></div>
-            <div className="flex justify-between border-t border-line pt-1.5"><span className="font-semibold">{isWorker ? "Recibís" : "El trabajador recibe"}</span><span className="font-bold">{formatMoney(job.payment.netAmount)}</span></div>
-          </div>
-          <p className="text-xs text-faint mt-2">
-            {job.payment.status === "HELD"
-              ? "Se libera automáticamente al confirmar el código de finalización."
-              : job.payment.status === "RELEASED"
-                ? `✓ Liberado${job.payment.releasedAt ? ` el ${formatDateTime(job.payment.releasedAt)}` : ""}.`
-                : "El trabajo se canceló y el pago fue devuelto al cliente."}
-          </p>
-        </div>
-      )}
 
       {job.lat != null && job.lng != null && (
         <div className="h-44 rounded-2xl overflow-hidden border border-line">

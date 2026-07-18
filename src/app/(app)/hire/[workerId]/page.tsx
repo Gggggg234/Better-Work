@@ -4,7 +4,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { requestJob } from "@/lib/actions/jobs";
 import { Avatar } from "@/components/Avatar";
 import { GeoField } from "@/components/GeoField";
-import { getCommissionPct } from "@/lib/commission";
 import { HOURS } from "@/lib/worker";
 
 export default async function HirePage({ params }: { params: Promise<{ workerId: string }> }) {
@@ -19,7 +18,6 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
   });
   if (!profile) notFound();
 
-  const pct = await getCommissionPct();
   const today = new Date().toISOString().slice(0, 10);
   const timeOptions = HOURS.slice(6, 24); // 06:00 a 23:00
 
@@ -87,15 +85,15 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
           <input name="price" type="number" min="0" step="100" className="input" placeholder="$" />
           <p className="text-xs text-faint mt-1">
             {profile.priceHint ? `Referencia del trabajador: ${profile.priceHint}. ` : ""}
-            Podés ajustarlo después por chat; habilita el pago protegido.
+            Podés ajustarlo después por chat con el profesional.
           </p>
         </div>
 
         <div className="card p-3.5 bg-surface-2 !border-line">
-          <p className="text-sm font-medium">Pago protegido por Better Work</p>
+          <p className="text-sm font-medium">Cómo sigue</p>
           <p className="text-xs text-muted mt-0.5">
-            Cuando el trabajador acepte, pagás a través de Better Work. El dinero queda retenido y se libera al
-            finalizar el trabajo con el código de confirmación. Comisión de servicio al trabajador: {pct}%.
+            Cuando el profesional acepte, coordinan por chat. El trabajo se inicia y se finaliza con códigos de
+            confirmación de 4 dígitos. El pago lo arreglan entre ustedes; Better Work no cobra comisión.
           </p>
         </div>
 

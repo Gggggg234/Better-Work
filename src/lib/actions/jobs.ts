@@ -5,10 +5,10 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
 import { genCode } from "@/lib/format";
-import { getPaymentProvider } from "@/lib/payments";
+import { isPlanActive } from "@/lib/plans";
 
 /** Cliente crea una solicitud de trabajo para un trabajador, con fecha y
- *  horario propuestos. El pago se procesa a través de Better Work. */
+ *  horario propuestos. El pago se arregla directo entre las partes. */
 export async function requestJob(formData: FormData) {
   const user = await requireUser();
   const workerId = String(formData.get("workerId"));
@@ -19,7 +19,7 @@ export async function requestJob(formData: FormData) {
   // Empresa sin plan activo no puede contratar desde su perfil empresarial.
   if (user.role === "COMPANY") {
     const cp = await db.companyProfile.findUnique({ where: { userId: user.id } });
-    if (!cp || !cp.planActiveUntil || cp.planActiveUntil < new Date()) redirect("/company/plan");
+    if (!cp || !isPlanActive(cp.planActiveUntil)) redirect("/company/plan");
   }
 
   const worker = await db.user.findUnique({ where: { id: workerId } });
@@ -45,28 +45,49 @@ export async function requestJob(formData: FormData) {
       lat: Number.isFinite(lat) ? lat : null,
       lng: Number.isFinite(lng) ? lng : null,
       price: Number.isFinite(price) ? price : null,
-      payMethod: "PLATFORM",
     },
   });
   redirect(`/jobs/${job.id}`);
 }
 
+/** Registra cuánto tardó el trabajador en responder (señal del rango). */
+async function trackResponseTime(workerId: string, requestedAt: Date) {
+  const mins = Math.max(0, Math.round((Date.now() - requestedAt.getTime()) / 60000));
+  const profile = await db.workerProfile.findUnique({
+    where: { userId: workerId },
+    select: { id: true, avgResponseMins: true, jobsDone: true },
+  });
+  if (!profile) return;
+  // Media móvil simple: suaviza sin guardar el historial completo.
+  const prev = profile.avgResponseMins;
+  const next = prev == null ? mins : Math.round(prev * 0.7 + mins * 0.3);
+  await db.workerProfile.update({ where: { id: profile.id }, data: { avgResponseMins: next } });
+}
+
 /** Trabajador acepta: se generan los códigos de inicio y finalización. */
 export async function acceptJob(jobId: string) {
   const user = await requireRole("WORKER");
+  const job = await db.job.findUnique({ where: { id: jobId }, select: { requestedAt: true, status: true, workerId: true } });
   await db.job.updateMany({
     where: { id: jobId, workerId: user.id, status: "REQUESTED" },
     data: { status: "ACCEPTED", acceptedAt: new Date(), startCode: genCode(), endCode: genCode() },
   });
+  if (job && job.workerId === user.id && job.status === "REQUESTED") {
+    await trackResponseTime(user.id, job.requestedAt);
+  }
   revalidatePath(`/jobs/${jobId}`);
 }
 
 export async function rejectJob(jobId: string) {
   const user = await requireRole("WORKER");
+  const job = await db.job.findUnique({ where: { id: jobId }, select: { requestedAt: true, status: true, workerId: true } });
   await db.job.updateMany({
     where: { id: jobId, workerId: user.id, status: "REQUESTED" },
     data: { status: "REJECTED" },
   });
+  if (job && job.workerId === user.id && job.status === "REQUESTED") {
+    await trackResponseTime(user.id, job.requestedAt);
+  }
   revalidatePath(`/jobs/${jobId}`);
 }
 
@@ -96,13 +117,12 @@ export async function enterStartCode(jobId: string, formData: FormData): Promise
   revalidatePath(`/jobs/${jobId}`);
 }
 
-/** El trabajador ingresa el código de finalización: cierra el trabajo, libera
- *  el pago retenido por Better Work (neto de comisión) y habilita las
- *  calificaciones. */
+/** El trabajador ingresa el código de finalización: cierra el trabajo y
+ *  habilita las calificaciones. */
 export async function enterEndCode(jobId: string, formData: FormData): Promise<void> {
   const user = await requireRole("WORKER");
   const code = String(formData.get("code") ?? "").trim();
-  const job = await db.job.findUnique({ where: { id: jobId }, include: { payment: true } });
+  const job = await db.job.findUnique({ where: { id: jobId } });
   if (!job || job.workerId !== user.id || job.status !== "WORKING") return;
   if (job.endCode !== code) {
     redirect(`/jobs/${jobId}?error=codigo`);
@@ -112,27 +132,6 @@ export async function enterEndCode(jobId: string, formData: FormData): Promise<v
     where: { id: jobId },
     data: { status: "COMPLETED", completedAt: new Date() },
   });
-
-  // Liberar el pago retenido: transferir el neto al trabajador.
-  if (job.payment && job.payment.status === "HELD") {
-    const payout = await db.paymentAccount.findFirst({
-      where: { userId: user.id, purpose: "PAYOUT", isDefault: true },
-    });
-    const result = await getPaymentProvider().payout({
-      jobId: job.id,
-      payeeId: user.id,
-      amount: job.payment.netAmount,
-      accountId: payout?.id ?? null,
-      chargeRef: job.payment.providerRef,
-    });
-    if (result.ok) {
-      await db.payment.update({
-        where: { id: job.payment.id },
-        data: { status: "RELEASED", releasedAt: new Date() },
-      });
-    }
-  }
-
   await db.workerProfile.update({
     where: { userId: user.id },
     data: { jobsDone: { increment: 1 } },
@@ -143,21 +142,12 @@ export async function enterEndCode(jobId: string, formData: FormData): Promise<v
 
 export async function cancelJob(jobId: string) {
   const user = await requireUser();
-  const job = await db.job.findUnique({ where: { id: jobId }, include: { payment: true } });
+  const job = await db.job.findUnique({ where: { id: jobId } });
   if (!job) return;
   const isParty = job.clientId === user.id || job.workerId === user.id;
   if (!isParty || !["REQUESTED", "ACCEPTED", "EN_ROUTE"].includes(job.status)) return;
 
   await db.job.update({ where: { id: jobId }, data: { status: "CANCELLED" } });
-
-  // Si el cliente ya había pagado, se devuelve el cobro retenido.
-  if (job.payment && job.payment.status === "HELD") {
-    const result = await getPaymentProvider().refund(job.payment.providerRef, job.payment.amount);
-    if (result.ok) {
-      await db.payment.update({ where: { id: job.payment.id }, data: { status: "REFUNDED" } });
-    }
-  }
-
   if (job.workerId === user.id) {
     await db.workerProfile.update({
       where: { userId: user.id },
@@ -196,17 +186,21 @@ export async function rateJob(jobId: string, formData: FormData) {
     update: {},
   });
 
-  // Si el calificado es trabajador, recalcular su promedio.
+  // Si el calificado es trabajador, recalcular promedios (rating y puntualidad).
   const ratedUser = await db.user.findUnique({ where: { id: ratedId }, include: { workerProfile: true } });
   if (ratedUser?.workerProfile) {
     const agg = await db.review.aggregate({
       where: { ratedId },
-      _avg: { stars: true },
+      _avg: { stars: true, punctuality: true },
       _count: { stars: true },
     });
     await db.workerProfile.update({
       where: { userId: ratedId },
-      data: { ratingAvg: agg._avg.stars ?? 0, ratingCount: agg._count.stars },
+      data: {
+        ratingAvg: agg._avg.stars ?? 0,
+        ratingCount: agg._count.stars,
+        punctualityAvg: agg._avg.punctuality ?? 0,
+      },
     });
   }
 

@@ -2,11 +2,11 @@ import Link from "next/link";
 import { Avatar } from "./Avatar";
 import { Stars } from "./Stars";
 import { RankBadge, VerifiedBadge, SponsoredBadge } from "./Badges";
-import { computeRank } from "@/lib/rank";
 import { formatKm } from "@/lib/geo";
 
 export type WorkerCardData = {
   userId: string;
+  rank: string;
   name: string;
   avatarUrl?: string | null;
   profession: string;
@@ -43,7 +43,7 @@ export function WorkerCard({ w }: { w: WorkerCardData }) {
           </span>
           <span>·</span>
           <span>{w.jobsDone} trabajos</span>
-          <RankBadge rank={computeRank(w.jobsDone, w.ratingAvg, w.cancellations ?? 0)} />
+          <RankBadge rank={w.rank} />
         </div>
       </div>
       <div className="text-right shrink-0">

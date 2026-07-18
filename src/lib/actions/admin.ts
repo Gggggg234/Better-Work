@@ -3,30 +3,67 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole, requireUser } from "@/lib/auth";
-import { setCommissionPct } from "@/lib/commission";
-import { savePricing, type PricingKey } from "@/lib/pricing";
-
-/** Guarda el porcentaje de comisión de la plataforma (Super Admin). */
-export async function saveCommission(formData: FormData) {
+/**
+ * Guarda un plan de empresa (Super Admin).
+ *
+ * Cada beneficio es una columna de `Plan`: para sumar uno nuevo basta con
+ * agregar la columna, un campo en este form y su chequeo donde corresponda.
+ */
+export async function savePlan(formData: FormData) {
   await requireRole("ADMIN");
-  const pct = parseFloat(String(formData.get("commissionPct") ?? ""));
-  if (!Number.isFinite(pct) || pct < 0 || pct > 50) return;
-  await setCommissionPct(pct);
-  revalidatePath("/admin/settings");
-  revalidatePath("/admin");
+  const key = String(formData.get("key") ?? "");
+  if (!key) return;
+
+  const num = (n: string, min: number, max: number, fallback: number) => {
+    const v = parseFloat(String(formData.get(n) ?? ""));
+    return Number.isFinite(v) && v >= min && v <= max ? v : fallback;
+  };
+  const bool = (n: string) => formData.get(n) === "on";
+
+  const current = await db.plan.findUnique({ where: { key } });
+  if (!current) return;
+
+  await db.plan.update({
+    where: { key },
+    data: {
+      name: String(formData.get("name") ?? current.name).trim() || current.name,
+      tagline: String(formData.get("tagline") ?? "").trim(),
+      price: num("price", 0, 10_000_000, current.price),
+      jobPostLimit: Math.round(num("jobPostLimit", -1, 999, current.jobPostLimit)),
+      applicantLimit: Math.round(num("applicantLimit", -1, 9999, current.applicantLimit)),
+      searchBoost: num("searchBoost", 0, 1, current.searchBoost),
+      analytics: bool("analytics"),
+      verifiedBadge: bool("verifiedBadge"),
+      featuredHome: bool("featuredHome"),
+      prioritySupport: bool("prioritySupport"),
+      active: bool("active"),
+    },
+  });
+
+  revalidatePath("/admin/plans");
+  revalidatePath("/company/plan");
+  revalidatePath("/app");
 }
 
-/** Guarda precios del plan de empresa y de la publicidad (Super Admin). */
-export async function savePlanAndAdPricing(formData: FormData) {
+/** Guarda las reglas con las que se estiman los resultados de una campaña. */
+export async function saveAdRules(formData: FormData) {
   await requireRole("ADMIN");
-  const keys: PricingKey[] = ["company_plan_price", "promo_price_7", "promo_price_15", "promo_price_30"];
-  const entries: Partial<Record<PricingKey, number>> = {};
-  for (const k of keys) {
+  const keys: Record<string, [number, number]> = {
+    ad_impressions_per_1000: [1, 10_000],
+    ad_view_rate: [0.1, 100],
+    ad_min_budget: [0, 1_000_000],
+  };
+  for (const [k, [min, max]] of Object.entries(keys)) {
     const v = parseFloat(String(formData.get(k) ?? ""));
-    if (Number.isFinite(v) && v >= 0) entries[k] = v;
+    if (!Number.isFinite(v) || v < min || v > max) continue;
+    await db.setting.upsert({
+      where: { key: k },
+      create: { key: k, value: String(v) },
+      update: { value: String(v) },
+    });
   }
-  await savePricing(entries);
   revalidatePath("/admin/settings");
+  revalidatePath("/ads/new");
 }
 
 /** Moderación: oculta o vuelve a mostrar una publicación. */

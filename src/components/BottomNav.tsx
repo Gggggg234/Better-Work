@@ -56,7 +56,7 @@ export type NavItem = { href: string; label: string; icon: keyof typeof ICONS };
 
 // Rutas de creación/configuración de perfil: la barra se oculta acá mientras
 // el perfil todavía no está completo, para que el usuario termine el registro.
-const ONBOARDING_ROUTES = ["/worker/profile", "/payments"];
+const ONBOARDING_ROUTES = ["/worker/profile"];
 
 export function BottomNav({ items, onboarding = false }: { items: NavItem[]; onboarding?: boolean }) {
   const pathname = usePathname();

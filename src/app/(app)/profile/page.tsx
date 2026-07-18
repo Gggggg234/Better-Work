@@ -8,7 +8,8 @@ import { RankBadge } from "@/components/Badges";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { InstallButton } from "@/components/InstallButton";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
-import { computeRank, rankProgress } from "@/lib/rank";
+import { rankBreakdown } from "@/lib/rank";
+import { ProgressBar } from "@/components/charts/Charts";
 
 const ROLE_LABEL: Record<string, string> = {
   CLIENT: "Cliente",
@@ -25,17 +26,15 @@ export default async function ProfilePage() {
   if (me.role === "WORKER") {
     links.push(["/worker/profile", "Editar perfil profesional"]);
     links.push([`/w/${me.id}`, "Ver mi perfil público"]);
-    links.push(["/promote", "★ Destacar mi perfil"]);
-    links.push(["/payments", "Cuenta de cobro"]);
+    links.push(["/dashboard", "Mi rendimiento"]);
+    links.push(["/ads", "★ Publicidad"]);
     links.push(["/offers", "Ofertas de empleo"]);
-  }
-  if (me.role === "CLIENT") {
-    links.push(["/payments", "Métodos de pago"]);
   }
   if (me.role === "COMPANY") {
     links.push(["/company", "Panel de empresa"]);
-    links.push(["/company/plan", "Plan Premium"]);
-    links.push(["/payments", "Métodos de pago"]);
+    links.push(["/company/dashboard", "Métricas"]);
+    links.push(["/company/plan", "Mi plan"]);
+    links.push(["/ads", "★ Publicidad"]);
   }
   if (me.role === "ADMIN") {
     links.push(["/admin", "Panel administrativo"]);
@@ -59,29 +58,40 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      {wp && (
-        <div className="card p-5 mt-6">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">Tu rango</p>
-            <RankBadge rank={computeRank(wp.jobsDone, wp.ratingAvg, wp.cancellations)} />
+      {wp && (() => {
+        const r = rankBreakdown({
+          ratingAvg: wp.ratingAvg,
+          ratingCount: wp.ratingCount,
+          jobsDone: wp.jobsDone,
+          createdAt: wp.createdAt,
+          cancellations: wp.cancellations,
+          claims: wp.claims,
+          avgResponseMins: wp.avgResponseMins,
+          punctualityAvg: wp.punctualityAvg,
+        });
+        return (
+          <div className="card p-5 mt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Tu rango</p>
+                <p className="text-xs text-faint">{r.score}/100 puntos</p>
+              </div>
+              <RankBadge rank={r.rank} />
+            </div>
+            <div className="mt-4 space-y-2.5">
+              {r.parts.map((p) => (
+                <ProgressBar key={p.label} label={p.label} value={p.value} max={p.max} />
+              ))}
+            </div>
+            <p className="text-xs text-faint mt-3">
+              {r.next
+                ? `Faltan ${r.toNext} puntos para el rango ${r.next}.`
+                : "¡Alcanzaste el rango máximo!"}
+            </p>
+            <Link href="/dashboard" className="btn-secondary w-full mt-4 !py-2 !text-xs">Ver mi rendimiento</Link>
           </div>
-          {(() => {
-            const prog = rankProgress(wp.jobsDone);
-            return (
-              <>
-                <div className="h-1.5 rounded-full bg-surface-2 mt-3 overflow-hidden">
-                  <div className="h-full bg-fg rounded-full transition-all" style={{ width: `${prog.pct}%` }} />
-                </div>
-                <p className="text-xs text-faint mt-2">
-                  {prog.next
-                    ? `${wp.jobsDone} trabajos completados — siguiente rango: ${prog.next}`
-                    : "¡Alcanzaste el rango máximo!"}
-                </p>
-              </>
-            );
-          })()}
-        </div>
-      )}
+        );
+      })()}
 
       <div className="card divide-y divide-line mt-6">
         {links.map(([href, label]) => (

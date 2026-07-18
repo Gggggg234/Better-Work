@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // Zonas privadas: no indexar.
-      disallow: ["/admin", "/api", "/chat", "/jobs", "/payments", "/worker/profile"],
+      disallow: ["/admin", "/api", "/chat", "/jobs", "/ads", "/dashboard", "/worker/profile"],
     },
     sitemap: `${base}/sitemap.xml`,
   };

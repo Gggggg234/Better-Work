@@ -1,33 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Link from "next/link";
 
-/** Detecta el tema activo (explícito o del sistema) y reacciona a cambios. */
+/**
+ * Detecta el tema activo (explícito o del sistema) y reacciona a cambios.
+ *
+ * El tema vive fuera de React (atributo del <html> + preferencia del sistema),
+ * así que lo leemos con useSyncExternalStore en lugar de copiarlo a estado.
+ */
+function subscribeToTheme(onChange: () => void) {
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  mq.addEventListener("change", onChange);
+  const obs = new MutationObserver(onChange);
+  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => {
+    mq.removeEventListener("change", onChange);
+    obs.disconnect();
+  };
+}
+
 function useIsDark() {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    const compute = () => {
-      const attr = document.documentElement.getAttribute("data-theme");
-      if (attr === "dark") return true;
-      if (attr === "light") return false;
-      return window.matchMedia("(prefers-color-scheme: dark)").matches;
-    };
-    setDark(compute());
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onMq = () => setDark(compute());
-    mq.addEventListener("change", onMq);
-    const obs = new MutationObserver(() => setDark(compute()));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => {
-      mq.removeEventListener("change", onMq);
-      obs.disconnect();
-    };
+  const getSnapshot = useCallback(() => {
+    const attr = document.documentElement.getAttribute("data-theme");
+    if (attr === "dark") return true;
+    if (attr === "light") return false;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
   }, []);
-  return dark;
+  // En el servidor asumimos claro; el cliente corrige al hidratar.
+  return useSyncExternalStore(subscribeToTheme, getSnapshot, () => false);
 }
 
 export type MapMarker = {

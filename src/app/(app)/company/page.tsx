@@ -8,7 +8,8 @@ import { openConversation } from "@/lib/actions/chat";
 import { Avatar } from "@/components/Avatar";
 import { GeoField } from "@/components/GeoField";
 import { formatDate } from "@/lib/format";
-import { isPlanActive, isSponsored, daysLeft } from "@/lib/company";
+import { isSponsored, daysLeft } from "@/lib/company";
+import { benefitsFor, isUnlimited, benefitList } from "@/lib/plans";
 
 const APP_STATUS: Record<string, string> = {
   PENDING: "Pendiente",
@@ -16,7 +17,7 @@ const APP_STATUS: Record<string, string> = {
   REJECTED: "Rechazada",
 };
 
-export default async function CompanyDashboard({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
+export default async function CompanyDashboard({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const me = await getCurrentUser();
   if (!me) redirect("/login");
   if (me.role !== "COMPANY" || !me.companyProfile) redirect("/app");
@@ -33,8 +34,11 @@ export default async function CompanyDashboard({ searchParams }: { searchParams:
   });
   if (!company) redirect("/app");
   const pending = company.offers.flatMap((o) => o.applications).filter((a) => a.status === "PENDING").length;
-  const planActive = isPlanActive(company.planActiveUntil);
+  const plan = await benefitsFor(company);
+  const planActive = plan.key !== "NONE";
   const planDays = daysLeft(company.planActiveUntil);
+  const activeOffers = company.offers.filter((o) => o.active).length;
+  const atLimit = planActive && !isUnlimited(plan.jobPostLimit) && activeOffers >= plan.jobPostLimit;
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 space-y-8">
@@ -49,32 +53,52 @@ export default async function CompanyDashboard({ searchParams }: { searchParams:
         </div>
       )}
 
-      {/* Estado del plan Premium */}
+      {sp.error === "limite" && (
+        <div className="card p-4 border-fg">
+          <p className="text-sm font-medium">
+            Llegaste al tope de {plan.jobPostLimit} {plan.jobPostLimit === 1 ? "empleo activo" : "empleos activos"} del
+            plan {plan.name}.
+          </p>
+          <p className="text-xs text-muted mt-0.5">Pausá alguno o pasá a un plan con más lugar.</p>
+          <Link href="/company/plan" className="btn-primary w-full mt-3 !py-2 !text-xs">Mejorar mi plan</Link>
+        </div>
+      )}
+
+      {/* Estado de la membresía */}
       {planActive ? (
-        <div className="card p-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold">Plan Premium activo</p>
-            <p className="text-xs text-muted">
-              Vence el {formatDate(company.planActiveUntil!)}{planDays != null && ` · ${planDays} días`}.
-              {isSponsored(company.sponsoredUntil) && " · Empresa destacada ★"}
-            </p>
+        <div className="card p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Plan {plan.name} activo</p>
+              <p className="text-xs text-muted">
+                Vence el {formatDate(company.planActiveUntil!)}{planDays != null && ` · ${planDays} días`}.
+                {isSponsored(company.sponsoredUntil) && " · Empresa destacada ★"}
+              </p>
+            </div>
+            <Link href="/company/plan" className="btn-secondary shrink-0 !py-1.5 !px-3 !text-xs">Cambiar</Link>
           </div>
-          <Link href="/company/plan" className="btn-secondary shrink-0 !py-1.5 !px-3 !text-xs">Renovar</Link>
+          <ul className="mt-3 pt-3 border-t border-line space-y-1">
+            {benefitList(plan).map((b) => (
+              <li key={b} className="text-xs text-muted flex gap-1.5">
+                <span className="text-fg">✓</span> {b}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : (
         <div className="card p-5 bg-fg text-bg">
-          <p className="font-semibold">Activá tu plan para usar las funciones empresariales</p>
+          <p className="font-semibold">Activá un plan para usar las funciones empresariales</p>
           <p className="text-sm text-bg/70 mt-1">
             Sin un plan activo tu empresa no aparece en Better Work, no podés publicar empleos ni contratar
             trabajadores. Tu cuenta queda guardada: se reactiva todo al activar el plan.
           </p>
-          <Link href="/company/plan" className="btn-secondary w-full mt-4 !bg-bg !text-fg">Activar plan Premium</Link>
+          <Link href="/company/plan" className="btn-secondary w-full mt-4 !bg-bg !text-fg">Ver planes</Link>
         </div>
       )}
 
       <div className="grid grid-cols-3 gap-2">
         {[
-          [String(company.offers.filter((o) => o.active).length), "Ofertas activas"],
+          [isUnlimited(plan.jobPostLimit) ? String(activeOffers) : `${activeOffers}/${plan.jobPostLimit}`, "Ofertas activas"],
           [String(pending), "Postulaciones nuevas"],
           [company.verified ? "Sí" : "No", "Verificada"],
         ].map(([v, l]) => (
@@ -90,25 +114,33 @@ export default async function CompanyDashboard({ searchParams }: { searchParams:
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-lg">Mis ofertas</h2>
           <Link
-            href={planActive ? "/company/offers/new" : "/company/plan"}
+            href={!planActive || atLimit ? "/company/plan" : "/company/offers/new"}
             className="btn-primary !py-2 !px-3 !text-xs"
           >
             + Publicar oferta
           </Link>
         </div>
         {planActive && (
-          <Link href="/promote" className="card p-3.5 flex items-center justify-between hover:bg-surface-2 transition mb-3">
-            <div>
-              <p className="text-sm font-medium">★ Destacar mi empresa</p>
-              <p className="text-xs text-muted">Aparecé primero en el mapa y los listados.</p>
-            </div>
-            <span className="text-faint">→</span>
-          </Link>
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <Link href="/ads/new" className="card p-3.5 hover:bg-surface-2 transition">
+              <p className="text-sm font-medium">★ Publicidad</p>
+              <p className="text-xs text-muted mt-0.5">Aparecé primero en el mapa y los listados.</p>
+            </Link>
+            <Link href="/company/dashboard" className="card p-3.5 hover:bg-surface-2 transition">
+              <p className="text-sm font-medium">📊 Métricas</p>
+              <p className="text-xs text-muted mt-0.5">Postulaciones, contrataciones y visitas.</p>
+            </Link>
+          </div>
         )}
 
         <div className="space-y-3">
           {company.offers.map((o) => {
             const toggle = toggleOffer.bind(null, o.id);
+            // Cada plan define cuántas postulaciones se ven por oferta.
+            const visibleApps = isUnlimited(plan.applicantLimit)
+              ? o.applications
+              : o.applications.slice(0, plan.applicantLimit);
+            const hiddenApps = o.applications.length - visibleApps.length;
             return (
               <div key={o.id} className={`card p-4 ${o.active ? "" : "opacity-60"}`}>
                 <div className="flex items-center justify-between gap-2">
@@ -125,9 +157,9 @@ export default async function CompanyDashboard({ searchParams }: { searchParams:
                   </div>
                 </div>
 
-                {o.applications.length > 0 && (
+                {visibleApps.length > 0 && (
                   <div className="mt-3 space-y-2 border-t border-line pt-3">
-                    {o.applications.map((a) => {
+                    {visibleApps.map((a) => {
                       const acceptApp = setApplicationStatus.bind(null, a.id, "ACCEPTED" as const);
                       const rejectApp = setApplicationStatus.bind(null, a.id, "REJECTED" as const);
                       const chat = openConversation.bind(null, a.workerId);
@@ -156,6 +188,11 @@ export default async function CompanyDashboard({ searchParams }: { searchParams:
                         </div>
                       );
                     })}
+                    {hiddenApps > 0 && (
+                      <Link href="/company/plan" className="block text-center text-xs text-muted hover:text-fg transition pt-1">
+                        +{hiddenApps} {hiddenApps === 1 ? "postulación oculta" : "postulaciones ocultas"} · mejorá tu plan para verlas →
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>

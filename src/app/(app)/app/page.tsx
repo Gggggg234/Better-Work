@@ -5,8 +5,9 @@ import { MapView } from "@/components/map/MapView";
 import type { MapMarker } from "@/components/map/Map";
 import { WorkerCard } from "@/components/WorkerCard";
 import { SponsoredBadge } from "@/components/Badges";
-import { workerScore } from "@/lib/ranking";
-import { isSponsored } from "@/lib/company";
+import { workerScore, isSponsored, activeBoost } from "@/lib/ranking";
+import { computeRank } from "@/lib/rank";
+import { trackSearchAppearances } from "@/lib/track";
 
 const BA_CENTER: [number, number] = [-34.6037, -58.3816];
 
@@ -21,21 +22,34 @@ export default async function AppHome() {
       include: { user: { select: { id: true, name: true, avatarUrl: true } } },
       take: 80,
     }),
-    // Empresas Premium: solo aparecen con plan activo.
+    // Sólo empresas con membresía activa.
     db.companyProfile.findMany({
       where: { lat: { not: null }, user: { suspended: false }, planActiveUntil: { gt: now } },
-      orderBy: [{ sponsoredUntil: "desc" }],
+      include: { plan: { select: { featuredHome: true, searchBoost: true } } },
       take: 30,
     }),
   ]);
 
-  // Ranking combinado: patrocinio + calificación + reputación (sin cercanía en
-  // el home porque no tenemos la ubicación del usuario del lado del servidor).
+  // Ranking combinado: calidad + reputación + empuje de la campaña activa.
   const sorted = [...workers].sort(
     (a, b) =>
-      workerScore({ sponsored: isSponsored(b.sponsoredUntil), ratingAvg: b.ratingAvg, ratingCount: b.ratingCount, jobsDone: b.jobsDone, verified: b.verified, distanceKm: null }) -
-      workerScore({ sponsored: isSponsored(a.sponsoredUntil), ratingAvg: a.ratingAvg, ratingCount: a.ratingCount, jobsDone: a.jobsDone, verified: a.verified, distanceKm: null })
+      workerScore({ boost: activeBoost(b.sponsoredUntil, b.sponsorBoost), ratingAvg: b.ratingAvg, ratingCount: b.ratingCount, jobsDone: b.jobsDone, verified: b.verified, distanceKm: null }) -
+      workerScore({ boost: activeBoost(a.sponsoredUntil, a.sponsorBoost), ratingAvg: a.ratingAvg, ratingCount: a.ratingCount, jobsDone: a.jobsDone, verified: a.verified, distanceKm: null })
   );
+  const shown = sorted.slice(0, 6);
+
+  // Métrica: estos perfiles aparecieron en un listado.
+  await trackSearchAppearances(
+    shown.map((w) => w.id),
+    shown.filter((w) => isSponsored(w.sponsoredUntil)).map((w) => w.userId)
+  );
+
+  // Empresas: las del plan con destaque primero, después las patrocinadas.
+  const sortedCompanies = [...companies].sort((a, b) => {
+    const s = (c: (typeof companies)[number]) =>
+      (c.plan?.featuredHome ? 2 : 0) + (isSponsored(c.sponsoredUntil) ? 1 + c.sponsorBoost : 0);
+    return s(b) - s(a);
+  });
 
   const markers: MapMarker[] = [
     ...sorted.map((w) => ({
@@ -45,9 +59,9 @@ export default async function AppHome() {
       label: w.user.name,
       sublabel: w.profession,
       href: `/w/${w.userId}`,
-      kind: (w.sponsoredUntil && w.sponsoredUntil > now ? "sponsored" : "worker") as MapMarker["kind"],
+      kind: (isSponsored(w.sponsoredUntil) ? "sponsored" : "worker") as MapMarker["kind"],
     })),
-    ...companies.map((c) => ({
+    ...sortedCompanies.map((c) => ({
       id: c.id,
       lat: c.lat!,
       lng: c.lng!,
@@ -101,7 +115,7 @@ export default async function AppHome() {
               <Link href="/search" className="text-sm text-muted hover:text-fg transition">Ver todos →</Link>
             </div>
             <div className="space-y-2.5">
-              {sorted.slice(0, 6).map((w) => (
+              {shown.map((w) => (
                 <WorkerCard
                   key={w.id}
                   w={{
@@ -113,21 +127,35 @@ export default async function AppHome() {
                     ratingAvg: w.ratingAvg,
                     ratingCount: w.ratingCount,
                     jobsDone: w.jobsDone,
-                    cancellations: w.cancellations,
                     verified: w.verified,
-                    sponsored: !!(w.sponsoredUntil && w.sponsoredUntil > now),
+                    sponsored: isSponsored(w.sponsoredUntil),
                     priceHint: w.priceHint,
+                    rank: computeRank({
+                      ratingAvg: w.ratingAvg,
+                      ratingCount: w.ratingCount,
+                      jobsDone: w.jobsDone,
+                      createdAt: w.createdAt,
+                      cancellations: w.cancellations,
+                      claims: w.claims,
+                      avgResponseMins: w.avgResponseMins,
+                      punctualityAvg: w.punctualityAvg,
+                    }),
                   }}
                 />
               ))}
+              {shown.length === 0 && (
+                <div className="card p-6 text-center text-sm text-faint">
+                  Todavía no hay profesionales en el mapa.
+                </div>
+              )}
             </div>
           </div>
 
-          {companies.length > 0 && (
+          {sortedCompanies.length > 0 && (
             <div>
               <h2 className="font-bold text-lg mb-3">Empresas en tu zona</h2>
               <div className="space-y-2.5">
-                {companies.map((c) => (
+                {sortedCompanies.map((c) => (
                   <div key={c.id} className="card p-4 flex items-center gap-3.5">
                     <div className="w-[52px] h-[52px] rounded-xl bg-surface-2 flex items-center justify-center text-xl shrink-0">🏢</div>
                     <div className="min-w-0 flex-1">
@@ -147,10 +175,10 @@ export default async function AppHome() {
           )}
 
           {user?.role === "WORKER" && (
-            <Link href="/worker/profile" className="card p-4 flex items-center justify-between hover:shadow-md transition">
+            <Link href="/dashboard" className="card p-4 flex items-center justify-between hover:bg-surface-2 transition">
               <div>
-                <p className="font-semibold text-sm">Completá tu perfil profesional</p>
-                <p className="text-xs text-muted">Aparecé en el mapa y recibí más trabajos.</p>
+                <p className="font-semibold text-sm">Mirá tu rendimiento</p>
+                <p className="text-xs text-muted">Calificación, rango, visitas y evolución de tus trabajos.</p>
               </div>
               <span className="text-lg">→</span>
             </Link>
