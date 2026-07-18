@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole, requireUser } from "@/lib/auth";
+import { setSetting } from "@/lib/settings";
 /**
  * Guarda un plan de empresa (Super Admin).
  *
@@ -43,6 +44,27 @@ export async function savePlan(formData: FormData) {
   revalidatePath("/admin/plans");
   revalidatePath("/company/plan");
   revalidatePath("/app");
+}
+
+/**
+ * Datos bancarios para las transferencias de membresías.
+ *
+ * El alias se muestra tal cual a las empresas en la pantalla de pago, así que
+ * cambiarlo acá cambia el circuito completo sin tocar código.
+ */
+export async function saveTransferInfo(formData: FormData) {
+  await requireRole("ADMIN");
+
+  const alias = String(formData.get("transfer_alias") ?? "").trim();
+  // El alias es obligatorio: sin él la empresa no sabe adónde transferir.
+  if (!alias) return;
+
+  await setSetting("transfer_alias", alias);
+  await setSetting("transfer_holder", String(formData.get("transfer_holder") ?? "").trim());
+  await setSetting("transfer_bank", String(formData.get("transfer_bank") ?? "").trim());
+
+  revalidatePath("/admin/settings");
+  revalidatePath("/company/plan");
 }
 
 /** Guarda las reglas con las que se estiman los resultados de una campaña. */

@@ -10,12 +10,18 @@ datasource db {
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  passwordHash String
+  // Opcional: las cuentas creadas con Google no tienen contraseña propia.
+  passwordHash String?
   name         String
   phone        String?
   role         String   // CLIENT | WORKER | COMPANY | ADMIN
   avatarUrl    String?
   suspended    Boolean  @default(false)
+  // Verificación de email: hasta tener fecha, la cuenta no puede iniciar sesión.
+  emailVerified DateTime?
+  // Alta con Google (OAuth). `onboarded` marca si ya eligió rol y completó el perfil.
+  googleId      String?  @unique
+  onboarded     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
   workerProfile  WorkerProfile?
@@ -36,6 +42,47 @@ model User {
   postSaves      PostSave[]
   postReports    PostReport[]
   campaigns      Campaign[]
+  authTokens     AuthToken[]
+}
+
+/**
+ * Token de un solo uso para verificar el email (y, más adelante, para
+ * restablecer la contraseña). Se borra al usarse o al vencer.
+ */
+model AuthToken {
+  token     String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String   // EMAIL_VERIFY
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/**
+ * Solicitud de membresía pagada por transferencia.
+ *
+ * La empresa elige el plan, transfiere y sube el comprobante; queda PENDING
+ * hasta que el Super Admin la aprueba (recién ahí se activa el plan) o la
+ * rechaza. Guarda el precio del momento para que un cambio de tarifa no
+ * altere una solicitud ya enviada.
+ */
+model PlanRequest {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  planKey    String
+  amount     Float
+  days       Int      @default(30)
+  receiptUrl String
+  status     String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  note       String   @default("")
+  createdAt  DateTime @default(now())
+  reviewedAt DateTime?
+
+  @@index([status, createdAt])
+  @@index([companyId])
 }
 
 /**
@@ -152,6 +199,7 @@ model CompanyProfile {
   profileViews    Int      @default(0)
   createdAt   DateTime @default(now())
   offers      JobOffer[]
+  planRequests PlanRequest[]
 }
 
 model Category {

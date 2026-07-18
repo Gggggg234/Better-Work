@@ -85,18 +85,18 @@ async function main() {
 
   await db.user.upsert({
     where: { email: "admin@betterwork.app" },
-    create: { email: "admin@betterwork.app", name: "Administración", role: "ADMIN", passwordHash: pass },
+    create: { email: "admin@betterwork.app", name: "Administración", role: "ADMIN", passwordHash: pass, emailVerified: new Date() },
     update: {},
   });
 
   const client = await db.user.upsert({
     where: { email: "cliente@demo.com" },
-    create: { email: "cliente@demo.com", name: "María Pérez", role: "CLIENT", passwordHash: pass, phone: "+54 11 5555-1234" },
+    create: { email: "cliente@demo.com", name: "María Pérez", role: "CLIENT", passwordHash: pass, phone: "+54 11 5555-1234", emailVerified: new Date() },
     update: {},
   });
   const companyUser = await db.user.upsert({
     where: { email: "empresa@demo.com" },
-    create: { email: "empresa@demo.com", name: "Constructora Delta", role: "COMPANY", passwordHash: pass },
+    create: { email: "empresa@demo.com", name: "Constructora Delta", role: "COMPANY", passwordHash: pass, emailVerified: new Date() },
     update: {},
   });
   const planUntil = new Date(Date.now() + 30 * 86400000);
@@ -123,7 +123,7 @@ async function main() {
     const email = name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, ".") + "@demo.com";
     const u = await db.user.upsert({
       where: { email },
-      create: { email, name, role: "WORKER", passwordHash: pass, phone: "+54 11 4444-0000" },
+      create: { email, name, role: "WORKER", passwordHash: pass, phone: "+54 11 4444-0000", emailVerified: new Date() },
       update: {},
     });
     await db.workerProfile.upsert({

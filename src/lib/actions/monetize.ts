@@ -6,53 +6,56 @@ import { db } from "@/lib/db";
 import { requireRole, requireUser } from "@/lib/auth";
 import { isPlanActive } from "@/lib/plans";
 import { getAdRules, estimateCampaign, OBJECTIVES, REACHES } from "@/lib/ads";
+import { trySaveImage } from "@/lib/upload";
 
 const PLAN_DAYS = 30;
 
-function extend(current: Date | null | undefined, days: number): Date {
-  const base = current && current > new Date() ? current : new Date();
-  return new Date(base.getTime() + days * 86_400_000);
-}
-
 /**
- * La empresa activa o cambia su membresía.
+ * La empresa envía el comprobante de la transferencia para activar un plan.
  *
- * Todavía no hay pasarela de pagos: la membresía se activa y el cobro se
- * arregla fuera de la app. La compra queda registrada para la contabilidad
- * (panel Super Admin → Ingresos).
+ * El pago es manual: no se activa nada acá. Queda una solicitud PENDING que el
+ * Super Admin aprueba o rechaza; recién con la aprobación empieza a correr la
+ * membresía. Se guarda el precio del momento para que un cambio de tarifa no
+ * altere una solicitud ya enviada.
  */
-export async function activatePlan(formData: FormData): Promise<void> {
+export async function requestPlan(formData: FormData): Promise<void> {
   const user = await requireRole("COMPANY");
   const key = String(formData.get("planKey") ?? "");
+
   const plan = await db.plan.findUnique({ where: { key } });
   if (!plan || !plan.active) redirect("/company/plan?error=plan");
 
   const profile = await db.companyProfile.findUnique({ where: { userId: user.id } });
-  if (!profile) return;
+  if (!profile) redirect("/app");
 
-  // Cambiar de plan reinicia el período; renovar el mismo suma días.
-  const samePlan = profile.planKey === plan.key;
-  const until = samePlan
-    ? extend(profile.planActiveUntil, PLAN_DAYS)
-    : new Date(Date.now() + PLAN_DAYS * 86_400_000);
+  // Una sola solicitud en revisión por vez: evita comprobantes duplicados.
+  const pending = await db.planRequest.findFirst({
+    where: { companyId: profile.id, status: "PENDING" },
+  });
+  if (pending) redirect("/company/plan?error=pendiente");
 
-  await db.$transaction([
-    db.companyProfile.update({
-      where: { id: profile.id },
-      data: {
-        planKey: plan.key,
-        planActiveUntil: until,
-        // La insignia verificada es un beneficio del plan.
-        verified: plan.verifiedBadge ? true : profile.verified,
-      },
-    }),
-    db.promotion.create({
-      data: { userId: user.id, kind: "COMPANY_PLAN", refId: plan.key, days: PLAN_DAYS, amount: plan.price },
-    }),
-  ]);
+  const file = formData.get("receipt");
+  if (!(file instanceof File) || file.size === 0) {
+    redirect("/company/plan?error=comprobante");
+  }
 
+  const receiptUrl = await trySaveImage(file as File);
+  if (!receiptUrl) redirect("/company/plan?error=archivo");
+
+  await db.planRequest.create({
+    data: {
+      companyId: profile.id,
+      planKey: plan.key,
+      amount: plan.price,
+      days: PLAN_DAYS,
+      receiptUrl,
+    },
+  });
+
+  // El panel de administración muestra el contador de pendientes.
+  revalidatePath("/admin", "layout");
   revalidatePath("/company");
-  redirect("/company?ok=plan");
+  redirect("/company/plan?ok=enviado");
 }
 
 /**

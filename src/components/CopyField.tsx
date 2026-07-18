@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 
-/** Fila etiqueta/valor con botón para copiar el valor al portapapeles. */
+/**
+ * Dato para copiar de un toque (alias, titular, banco).
+ *
+ * Todo el campo es el botón: copiar un alias a mano en el celular es
+ * justamente donde se pierde la gente.
+ */
 export function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -10,21 +15,26 @@ export function CopyField({ label, value }: { label: string; value: string }) {
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setTimeout(() => setCopied(false), 1800);
     } catch {
-      /* clipboard no disponible: el valor sigue visible para copiar a mano */
+      /* sin permiso de portapapeles: el valor sigue visible para copiar a mano */
     }
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 py-2.5">
-      <div className="min-w-0">
-        <p className="text-xs text-muted">{label}</p>
-        <p className="font-medium text-sm break-all select-all">{value}</p>
-      </div>
-      <button type="button" onClick={copy} className="btn-secondary shrink-0 !py-1.5 !px-3 !text-xs">
-        {copied ? "Copiado ✓" : "Copiar"}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={`Copiar ${label}: ${value}`}
+      className="w-full rounded-xl border border-line bg-surface-2 px-3.5 py-3 flex items-center justify-between gap-3 text-left hover:border-fg/40 transition"
+    >
+      <span className="min-w-0">
+        <span className="block text-[11px] uppercase tracking-wide text-faint">{label}</span>
+        <span className="block font-semibold text-sm truncate select-all">{value}</span>
+      </span>
+      <span className={`text-xs font-medium shrink-0 ${copied ? "text-fg" : "text-muted"}`}>
+        {copied ? "✓ Copiado" : "Copiar"}
+      </span>
+    </button>
   );
 }

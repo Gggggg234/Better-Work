@@ -1,21 +1,50 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { activatePlan } from "@/lib/actions/monetize";
 import { listPlans, benefitList, isPlanActive } from "@/lib/plans";
-import { formatMoney, formatDate } from "@/lib/format";
+import { getTransferInfo } from "@/lib/settings";
+import { formatMoney, formatDate, formatDateTime } from "@/lib/format";
+import { PlanCheckout } from "@/components/company/PlanCheckout";
+import { CopyField } from "@/components/CopyField";
 
-export default async function CompanyPlanPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+const ERRORS: Record<string, string> = {
+  plan: "Ese plan no está disponible.",
+  pendiente: "Ya tenés un comprobante en revisión. Esperá la respuesta antes de enviar otro.",
+  comprobante: "Adjuntá el comprobante de la transferencia.",
+  archivo: "No pudimos leer ese archivo. Subí una imagen (JPG, PNG o WEBP) de hasta 8 MB.",
+};
+
+export default async function CompanyPlanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; ok?: string }>;
+}) {
   const me = await getCurrentUser();
   if (!me) redirect("/login");
   if (me.role !== "COMPANY" || !me.companyProfile) redirect("/app");
   const sp = await searchParams;
 
-  const [plans, company] = await Promise.all([
+  const [plans, company, transfer] = await Promise.all([
     listPlans(),
     db.companyProfile.findUnique({ where: { userId: me.id } }),
+    getTransferInfo(),
   ]);
-  const active = isPlanActive(company?.planActiveUntil);
+  if (!company) redirect("/app");
+
+  const active = isPlanActive(company.planActiveUntil);
+
+  const [pending, lastRejected] = await Promise.all([
+    db.planRequest.findFirst({
+      where: { companyId: company.id, status: "PENDING" },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.planRequest.findFirst({
+      where: { companyId: company.id, status: "REJECTED" },
+      orderBy: { reviewedAt: "desc" },
+    }),
+  ]);
+
+  const planName = (key: string | null) => plans.find((p) => p.key === key)?.name ?? key ?? "";
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 animate-fade-up">
@@ -24,24 +53,73 @@ export default async function CompanyPlanPage({ searchParams }: { searchParams: 
         Elegí el plan que necesita tu empresa. Los trabajadores usan Better Work gratis.
       </p>
 
-      {active && company?.planKey && (
-        <div className="card p-4 mt-5 border-fg bg-surface-2">
-          <p className="text-sm font-medium">
-            Plan {plans.find((p) => p.key === company.planKey)?.name ?? company.planKey} activo
+      {sp.ok === "enviado" && (
+        <div className="card p-4 mt-5 bg-fg text-bg">
+          <p className="text-sm font-medium">✓ Recibimos tu comprobante</p>
+          <p className="text-xs text-bg/70 mt-0.5">
+            Lo revisamos a la brevedad. Te avisamos por email apenas se apruebe.
           </p>
+        </div>
+      )}
+      {sp.error && ERRORS[sp.error] && (
+        <div className="card p-4 mt-5 border-red-300" role="alert">
+          <p className="text-sm text-red-600">⚠ {ERRORS[sp.error]}</p>
+        </div>
+      )}
+
+      {/* Estado actual */}
+      {active && (
+        <div className="card p-4 mt-5 border-fg bg-surface-2">
+          <p className="text-sm font-medium">Plan {planName(company.planKey)} activo</p>
           <p className="text-xs text-muted mt-0.5">
             Vence el {formatDate(company.planActiveUntil!)}. Renovalo o cambiá de plan cuando quieras.
           </p>
         </div>
       )}
-      {sp.error === "plan" && <p className="text-sm text-red-600 mt-3">Ese plan no está disponible.</p>}
 
+      {/* Comprobante en revisión */}
+      {pending && (
+        <div className="card p-4 mt-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-fg animate-pulse" aria-hidden />
+            <p className="text-sm font-medium">Pendiente de aprobación</p>
+          </div>
+          <p className="text-xs text-muted mt-1">
+            Enviaste el comprobante del plan {planName(pending.planKey)} por {formatMoney(pending.amount)} el{" "}
+            {formatDateTime(pending.createdAt)}. Un administrador lo va a revisar.
+          </p>
+        </div>
+      )}
+
+      {/* Último rechazo, con el motivo */}
+      {!pending && lastRejected && (
+        <div className="card p-4 mt-3 border-red-300">
+          <p className="text-sm font-medium text-red-600">Tu último comprobante fue rechazado</p>
+          {lastRejected.note && <p className="text-xs text-muted mt-1">Motivo: {lastRejected.note}</p>}
+          <p className="text-xs text-muted mt-1">Podés volver a enviarlo desde acá.</p>
+        </div>
+      )}
+
+      {/* Datos para transferir */}
+      <section className="card p-5 mt-6">
+        <h2 className="font-semibold">Cómo se paga</h2>
+        <p className="text-sm text-muted mt-1">
+          El pago es por transferencia bancaria. Transferí el importe del plan y subí el comprobante: activamos la
+          membresía apenas lo validemos.
+        </p>
+        <div className="mt-4 space-y-2">
+          <CopyField label="Alias" value={transfer.alias} />
+          {transfer.holder && <CopyField label="Titular" value={transfer.holder} />}
+          {transfer.bank && <CopyField label="Banco" value={transfer.bank} />}
+        </div>
+      </section>
+
+      {/* Planes */}
       <div className="space-y-3 mt-6">
         {plans.map((p) => {
-          const current = active && company?.planKey === p.key;
+          const current = active && company.planKey === p.key;
           return (
-            <form key={p.key} action={activatePlan} className={`card p-5 ${current ? "border-fg" : ""}`}>
-              <input type="hidden" name="planKey" value={p.key} />
+            <div key={p.key} className={`card p-5 ${current ? "border-fg" : ""}`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
@@ -67,17 +145,22 @@ export default async function CompanyPlanPage({ searchParams }: { searchParams: 
                 ))}
               </ul>
 
-              <button className={`w-full mt-4 ${current ? "btn-secondary" : "btn-primary"}`}>
-                {current ? "Renovar 30 días" : active ? `Cambiar a ${p.name}` : `Activar ${p.name}`}
-              </button>
-            </form>
+              <PlanCheckout
+                planKey={p.key}
+                planName={p.name}
+                price={p.price}
+                alias={transfer.alias}
+                blocked={!!pending}
+                label={current ? "Renovar 30 días" : active ? `Cambiar a ${p.name}` : `Activar ${p.name}`}
+              />
+            </div>
           );
         })}
       </div>
 
       <p className="text-xs text-faint mt-4 text-center">
-        Todavía no cobramos online: activás el plan y coordinamos el pago por chat. Podés cambiarlo o darlo de baja
-        cuando quieras.
+        La membresía dura 30 días desde la aprobación. Si renovás el mismo plan antes del vencimiento, los días se
+        suman.
       </p>
     </main>
   );

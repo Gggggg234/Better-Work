@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
+import { countPendingPlanRequests } from "@/lib/planRequests";
 
 export default async function AdminDashboard() {
   const now = new Date();
@@ -28,6 +29,8 @@ export default async function AdminDashboard() {
     db.campaign.count({ where: { status: "ACTIVE" } }),
   ]);
 
+  const pendingPayments = await countPendingPlanRequests();
+
   const income = (kind: string) => promotions.find((p) => p.kind === kind)?._sum.amount ?? 0;
   const planIncome = income("COMPANY_PLAN");
   const adsIncome = income("CAMPAIGN");
@@ -46,6 +49,26 @@ export default async function AdminDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-bold">Resumen</h1>
+
+      {/* Lo primero que se ve: pagos esperando aprobación. */}
+      {pendingPayments > 0 && (
+        <Link
+          href="/admin/payments"
+          className="card p-5 bg-fg text-bg flex items-center justify-between gap-4 hover:opacity-95 transition"
+        >
+          <div>
+            <p className="font-semibold">
+              🔔 {pendingPayments} {pendingPayments === 1 ? "pago pendiente de revisión" : "pagos pendientes de revisión"}
+            </p>
+            <p className="text-sm text-bg/70 mt-0.5">
+              {pendingPayments === 1
+                ? "Una empresa envió un comprobante y espera la activación de su plan."
+                : "Hay empresas esperando que valides sus comprobantes para activar su plan."}
+            </p>
+          </div>
+          <span className="text-xl shrink-0">→</span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {stats.map(([v, l]) => (

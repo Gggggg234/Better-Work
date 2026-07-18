@@ -38,6 +38,8 @@ const NAV: Record<string, NavItem[]> = {
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  // Cuenta creada con Google que todavía no eligió rol: termina el alta primero.
+  if (!user.onboarded) redirect("/onboarding");
 
   // Un trabajador todavía está creando su perfil mientras no cargó una profesión
   // real. Durante ese onboarding se oculta la barra inferior (ver BottomNav).

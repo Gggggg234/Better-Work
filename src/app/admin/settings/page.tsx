@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { getAdRules, estimateCampaign } from "@/lib/ads";
-import { saveAdRules } from "@/lib/actions/admin";
+import { saveAdRules, saveTransferInfo } from "@/lib/actions/admin";
+import { getTransferInfo } from "@/lib/settings";
 import { formatMoney } from "@/lib/format";
 
 export default async function AdminSettingsPage() {
-  const rules = await getAdRules();
+  const [rules, transfer] = await Promise.all([getAdRules(), getTransferInfo()]);
 
   // Ejemplo de referencia con las reglas actuales, para ver el efecto de un cambio.
   const sample = estimateCampaign(10_000, 15, "REPUTATION", "CITY", rules);
@@ -13,8 +14,37 @@ export default async function AdminSettingsPage() {
     <div className="space-y-8 max-w-lg">
       <div>
         <h1 className="text-xl font-bold">Ajustes</h1>
-        <p className="text-sm text-muted mt-0.5">Reglas de estimación de la publicidad.</p>
+        <p className="text-sm text-muted mt-0.5">Datos de cobro y reglas de la publicidad.</p>
       </div>
+
+      {/* Datos de transferencia para las membresías */}
+      <form action={saveTransferInfo} className="card p-5 space-y-4">
+        <div>
+          <h2 className="font-semibold text-sm">Cobro de membresías</h2>
+          <p className="text-xs text-muted mt-0.5">
+            Estos datos se le muestran a la empresa cuando elige un plan. El pago es por transferencia y se aprueba a
+            mano desde <strong>Pagos</strong>.
+          </p>
+        </div>
+
+        <div>
+          <label className="label">Alias para transferencias</label>
+          <input name="transfer_alias" required defaultValue={transfer.alias} className="input" />
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className="label">Titular de la cuenta</label>
+            <input name="transfer_holder" defaultValue={transfer.holder} placeholder="Better Work" className="input" />
+          </div>
+          <div>
+            <label className="label">Banco (opcional)</label>
+            <input name="transfer_bank" defaultValue={transfer.bank} placeholder="Ej: Banco Nación" className="input" />
+          </div>
+        </div>
+
+        <button className="btn-primary">Guardar datos de cobro</button>
+      </form>
 
       <form action={saveAdRules} className="card p-5 space-y-4">
         <div>
