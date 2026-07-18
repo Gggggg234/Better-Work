@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { workerMetrics } from "@/lib/metrics";
 import { Stat, BarChart, LineChart, ProgressBar } from "@/components/charts/Charts";
 import { Stars } from "@/components/Stars";
+import { BackButton } from "@/components/BackButton";
 
 function responseLabel(mins: number | null): string {
   if (mins == null) return "—";
@@ -23,6 +24,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6">
+      <BackButton fallback="/app" />
       <h1 className="text-2xl font-bold">Mi rendimiento</h1>
       <p className="text-sm text-muted mt-1">Cómo viene tu actividad en Better Work.</p>
 

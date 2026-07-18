@@ -21,9 +21,12 @@ function LaunchButton({ disabled }: { disabled: boolean }) {
 export function CampaignBuilder({
   rules,
   action,
+  balance,
 }: {
   rules: AdRules;
   action: (fd: FormData) => void | Promise<void>;
+  /** Saldo de la billetera: el presupuesto no puede superarlo. */
+  balance: number;
 }) {
   const [budget, setBudget] = useState(BUDGET_PRESETS[1]);
   const [days, setDays] = useState<number>(DURATION_PRESETS[1]);
@@ -35,6 +38,7 @@ export function CampaignBuilder({
     [budget, days, objective, reach, rules]
   );
   const tooLow = budget < rules.minBudget;
+  const tooHigh = budget > balance;
 
   return (
     <form action={action} className="space-y-7">
@@ -176,7 +180,21 @@ export function CampaignBuilder({
         </p>
       </section>
 
-      <LaunchButton disabled={tooLow} />
+      {tooHigh && (
+        <div className="card p-3.5 border-red-300" role="alert">
+          <p className="text-sm text-red-600">
+            ⚠ Te faltan {formatMoney(budget - balance)} de saldo.
+          </p>
+          <p className="text-xs text-muted mt-0.5">
+            Tenés {formatMoney(balance)} disponibles. Bajá el presupuesto o cargá saldo.
+          </p>
+        </div>
+      )}
+
+      <LaunchButton disabled={tooLow || tooHigh} />
+      <p className="text-[11px] text-faint text-center -mt-2">
+        Se descuentan {formatMoney(budget)} de tu presupuesto publicitario.
+      </p>
     </form>
   );
 }

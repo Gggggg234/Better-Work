@@ -43,12 +43,72 @@ model User {
   postReports    PostReport[]
   campaigns      Campaign[]
   authTokens     AuthToken[]
+  adWallet       AdWallet?
+}
+
+/**
+ * Billetera de publicidad de un trabajador o empresa.
+ *
+ * El saldo se carga por transferencia (WalletTopUp, aprobada por el Super
+ * Admin) y se descuenta al lanzar una campaña. `spent` es el acumulado
+ * histórico invertido: no se recalcula sumando campañas para que un borrado
+ * futuro no altere la contabilidad.
+ */
+model AdWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Float    @default(0)
+  spent     Float    @default(0)
+  createdAt DateTime @default(now())
+  topUps    WalletTopUp[]
+}
+
+/** Carga de saldo por transferencia, pendiente de aprobación manual. */
+model WalletTopUp {
+  id         String   @id @default(cuid())
+  walletId   String
+  wallet     AdWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amount     Float
+  receiptUrl String
+  status     String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  note       String   @default("")
+  createdAt  DateTime @default(now())
+  reviewedAt DateTime?
+
+  @@index([status, createdAt])
+  @@index([walletId])
 }
 
 /**
  * Token de un solo uso para verificar el email (y, más adelante, para
  * restablecer la contraseña). Se borra al usarse o al vencer.
  */
+/**
+ * Pago del trabajo, retenido por Better Work hasta que se confirma el final.
+ *
+ * Todavía NO hay pasarela: `method` es MANUAL y el dinero se mueve fuera de la
+ * app. La máquina de estados ya es la definitiva (PENDING → HELD → RELEASED /
+ * REFUNDED), así que integrar un proveedor es completar `providerRef` y
+ * disparar las mismas transiciones desde su webhook.
+ */
+model Payment {
+  id          String   @id @default(cuid())
+  jobId       String   @unique
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  amount      Float
+  status      String   @default("PENDING") // PENDING | HELD | RELEASED | REFUNDED
+  method      String   @default("MANUAL")  // MANUAL | (futuro) MERCADOPAGO...
+  providerRef String? // id de la operación en el proveedor, cuando exista
+  receiptUrl  String? // comprobante de transferencia del cliente
+  createdAt   DateTime @default(now())
+  heldAt      DateTime?
+  releasedAt  DateTime?
+  refundedAt  DateTime?
+
+  @@index([status])
+}
+
 model AuthToken {
   token     String   @id
   userId    String
@@ -130,6 +190,7 @@ model Campaign {
   // Métricas medidas (las solicitudes y trabajos se derivan por fecha)
   impressions Int      @default(0) // veces que apareció en listados
   views       Int      @default(0) // veces que abrieron el perfil
+  clicks      Int      @default(0) // clics en la tarjeta patrocinada
   createdAt   DateTime @default(now())
 
   @@index([userId])
@@ -234,6 +295,7 @@ model Job {
   startedAt    DateTime?
   completedAt  DateTime?
   reviews      Review[]
+  payment      Payment?
 
   @@index([workerId, requestedAt])
   @@index([clientId])

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { createOffer } from "@/lib/actions/offers";
+import { BackButton } from "@/components/BackButton";
 
 export default async function NewOfferPage() {
   const me = await getCurrentUser();
@@ -12,6 +13,7 @@ export default async function NewOfferPage() {
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 animate-fade-up">
+      <BackButton fallback="/company" />
       <h1 className="text-2xl font-bold">Publicar oferta laboral</h1>
       <p className="text-sm text-muted mt-1">Los trabajadores de la categoría van a poder postularse.</p>
 

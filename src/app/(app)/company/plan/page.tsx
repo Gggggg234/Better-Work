@@ -6,6 +6,7 @@ import { getTransferInfo } from "@/lib/settings";
 import { formatMoney, formatDate, formatDateTime } from "@/lib/format";
 import { PlanCheckout } from "@/components/company/PlanCheckout";
 import { CopyField } from "@/components/CopyField";
+import { BackButton } from "@/components/BackButton";
 
 const ERRORS: Record<string, string> = {
   plan: "Ese plan no está disponible.",
@@ -48,6 +49,7 @@ export default async function CompanyPlanPage({
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 animate-fade-up">
+      <BackButton fallback="/company" />
       <h1 className="text-2xl font-bold">Membresía</h1>
       <p className="text-sm text-muted mt-1">
         Elegí el plan que necesita tu empresa. Los trabajadores usan Better Work gratis.

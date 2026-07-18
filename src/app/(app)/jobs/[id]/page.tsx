@@ -17,6 +17,10 @@ import { RatingForm } from "@/components/RatingForm";
 import { Stars } from "@/components/Stars";
 import { MapView } from "@/components/map/MapView";
 import { formatMoney, formatDateTime } from "@/lib/format";
+import { PAYMENT_LABEL, PAYMENT_HINT, needsPayment } from "@/lib/payments";
+import { BackButton } from "@/components/BackButton";
+import { JobPaymentForm } from "@/components/jobs/JobPaymentForm";
+import { getTransferInfo } from "@/lib/settings";
 
 function CodeCard({ code, title, hint }: { code: string; title: string; hint: string }) {
   return (
@@ -70,7 +74,7 @@ export default async function JobDetailPage({
 
   const job = await db.job.findUnique({
     where: { id },
-    include: { client: true, worker: { include: { workerProfile: true } }, reviews: true },
+    include: { client: true, worker: { include: { workerProfile: true } }, reviews: true, payment: true },
   });
   if (!job) notFound();
   const isClient = job.clientId === me.id;
@@ -81,6 +85,10 @@ export default async function JobDetailPage({
   const myReview = job.reviews.find((r) => r.raterId === me.id);
   const theirReview = job.reviews.find((r) => r.ratedId === me.id);
   const codeError = sp.error === "codigo";
+
+  // Escrow: el trabajo no arranca hasta que el dinero está retenido.
+  const pendingPayment = needsPayment(job.price, job.payment?.status);
+  const transfer = pendingPayment && isClient ? await getTransferInfo() : null;
 
   const scheduledLabel = (() => {
     if (!job.scheduledFor) return null;
@@ -106,6 +114,7 @@ export default async function JobDetailPage({
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 space-y-5 animate-fade-up">
+      <BackButton fallback="/jobs" />
       <div>
         <h1 className="text-xl font-bold">{job.title}</h1>
         <p className="text-sm text-muted">Solicitado el {formatDateTime(job.requestedAt)}</p>
@@ -153,9 +162,56 @@ export default async function JobDetailPage({
         )}
         <div className="p-4 flex justify-between text-sm">
           <span className="text-muted">Pago</span>
-          <span className="font-medium text-right">Se acuerda entre las partes</span>
+          <span className="font-medium text-right">
+            {job.payment ? PAYMENT_LABEL[job.payment.status] : "A través de Better Work"}
+          </span>
         </div>
       </div>
+
+      {/* Estado del pago retenido */}
+      {job.payment && (
+        <div className="card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-faint">Pago del trabajo</p>
+              <p className="text-2xl font-bold mt-0.5">{formatMoney(job.payment.amount)}</p>
+            </div>
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium shrink-0 ${
+                job.payment.status === "RELEASED"
+                  ? "bg-fg text-bg"
+                  : job.payment.status === "HELD"
+                    ? "border border-fg text-fg"
+                    : "bg-surface-2 text-muted"
+              }`}
+            >
+              {PAYMENT_LABEL[job.payment.status]}
+            </span>
+          </div>
+          <p className="text-xs text-muted mt-2">{PAYMENT_HINT[job.payment.status]}</p>
+        </div>
+      )}
+
+      {/* El cliente paga antes de que empiece el trabajo */}
+      {isClient && pendingPayment && ["ACCEPTED", "EN_ROUTE"].includes(job.status) && transfer && (
+        <JobPaymentForm
+          jobId={job.id}
+          amount={job.price ?? 0}
+          alias={transfer.alias}
+          holder={transfer.holder}
+          workerName={other.name}
+          error={sp.error}
+        />
+      )}
+      {isWorker && pendingPayment && ["ACCEPTED", "EN_ROUTE"].includes(job.status) && (
+        <div className="card p-4">
+          <p className="text-sm font-medium">Esperando el pago del cliente</p>
+          <p className="text-xs text-muted mt-0.5">
+            Vas a poder iniciar el trabajo cuando el dinero esté retenido por Better Work. Así cobrás seguro al
+            terminar.
+          </p>
+        </div>
+      )}
 
       {job.lat != null && job.lng != null && (
         <div className="h-44 rounded-2xl overflow-hidden border border-line">
@@ -182,13 +238,15 @@ export default async function JobDetailPage({
       {job.status === "ACCEPTED" && isWorker && (
         <>
           <form action={enRoute}><button className="btn-primary w-full !py-3">🚗 Estoy en camino</button></form>
-          <CodeForm action={startCode} label="Cuando llegues, pedile al cliente el código de inicio:" error={codeError} />
+          {!pendingPayment && (
+            <CodeForm action={startCode} label="Cuando llegues, pedile al cliente el código de inicio:" error={codeError} />
+          )}
         </>
       )}
-      {job.status === "EN_ROUTE" && isWorker && (
+      {job.status === "EN_ROUTE" && isWorker && !pendingPayment && (
         <CodeForm action={startCode} label="Pedile al cliente el código de inicio para confirmar que llegaste:" error={codeError} />
       )}
-      {["ACCEPTED", "EN_ROUTE"].includes(job.status) && isClient && job.startCode && (
+      {["ACCEPTED", "EN_ROUTE"].includes(job.status) && isClient && !pendingPayment && job.startCode && (
         <CodeCard
           code={job.startCode}
           title="Código de inicio"

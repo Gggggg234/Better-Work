@@ -5,6 +5,7 @@ import { requestJob } from "@/lib/actions/jobs";
 import { Avatar } from "@/components/Avatar";
 import { GeoField } from "@/components/GeoField";
 import { HOURS } from "@/lib/worker";
+import { BackButton } from "@/components/BackButton";
 
 export default async function HirePage({ params }: { params: Promise<{ workerId: string }> }) {
   const { workerId } = await params;
@@ -23,6 +24,7 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 animate-fade-up">
+      <BackButton fallback="/app" />
       <h1 className="text-2xl font-bold">Contratar</h1>
 
       <div className="card p-4 flex items-center gap-3 mt-4">

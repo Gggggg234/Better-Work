@@ -7,6 +7,7 @@ import { benefitsFor } from "@/lib/plans";
 import { conversionPct } from "@/lib/ads";
 import { Stat, BarChart } from "@/components/charts/Charts";
 import { formatMoney } from "@/lib/format";
+import { BackButton } from "@/components/BackButton";
 
 export default async function CompanyDashboardPage() {
   const me = await getCurrentUser();
@@ -51,6 +52,7 @@ export default async function CompanyDashboardPage() {
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6">
+      <BackButton fallback="/company" />
       <h1 className="text-2xl font-bold">Métricas</h1>
       <p className="text-sm text-muted mt-1">Cómo viene tu búsqueda de talento en Better Work.</p>
 

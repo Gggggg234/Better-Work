@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { updateWorkerProfile } from "@/lib/actions/profile";
 import { WorkerProfileForm, type WorkerFormInitial } from "@/components/worker/WorkerProfileForm";
+import { BackButton } from "@/components/BackButton";
 
 function parseArr(json: string): string[] {
   try {
@@ -51,6 +52,7 @@ export default async function WorkerProfileEditPage() {
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6">
+      <BackButton fallback="/profile" />
       <h1 className="text-2xl font-bold">Mi perfil profesional</h1>
       <p className="text-sm text-muted mt-1">
         Elegí de las opciones: cuanto más completo, mejor aparecés y más confianza generás.

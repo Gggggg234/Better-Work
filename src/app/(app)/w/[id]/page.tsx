@@ -13,6 +13,7 @@ import { trackWorkerProfileView } from "@/lib/track";
 import { ProgressBar } from "@/components/charts/Charts";
 import { experienceLabel, radiusLabel, workModeLabel } from "@/lib/worker";
 import { formatDate } from "@/lib/format";
+import { BackButton } from "@/components/BackButton";
 
 export default async function WorkerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -55,6 +56,7 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 animate-fade-up">
+      <BackButton fallback="/search" />
       {/* Encabezado */}
       <div className="flex items-start gap-4">
         <Avatar name={profile.user.name} url={profile.user.avatarUrl} size={72} />

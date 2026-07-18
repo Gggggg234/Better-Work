@@ -5,7 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { cancelCampaign } from "@/lib/actions/monetize";
 import { campaignPerformance } from "@/lib/metrics";
 import { closeExpiredCampaigns } from "@/lib/track";
-import { objectiveLabel, reachLabel, conversionPct } from "@/lib/ads";
+import { objectiveLabel, reachLabel, conversionPct, getAdRules, estimateCampaign } from "@/lib/ads";
+import { getWallet } from "@/lib/wallet";
 import { Stat, BarChart } from "@/components/charts/Charts";
 import { formatMoney, formatDate } from "@/lib/format";
 
@@ -23,11 +24,11 @@ export default async function AdsDashboardPage({ searchParams }: { searchParams:
 
   await closeExpiredCampaigns(me.id);
 
-  const campaigns = await db.campaign.findMany({
-    where: { userId: me.id },
-    orderBy: { createdAt: "desc" },
-    take: 30,
-  });
+  const [campaigns, wallet, rules] = await Promise.all([
+    db.campaign.findMany({ where: { userId: me.id }, orderBy: { createdAt: "desc" }, take: 30 }),
+    getWallet(me.id),
+    getAdRules(),
+  ]);
 
   // Los días restantes se calculan acá (el render debe ser puro).
   const now = new Date().getTime();
@@ -47,11 +48,18 @@ export default async function AdsDashboardPage({ searchParams }: { searchParams:
       invested: acc.invested + campaign.budget,
       impressions: acc.impressions + campaign.impressions,
       views: acc.views + campaign.views,
+      clicks: acc.clicks + campaign.clicks,
       requests: acc.requests + perf.requests,
       jobs: acc.jobs + perf.jobs,
     }),
-    { invested: 0, impressions: 0, views: 0, requests: 0, jobs: 0 }
+    { invested: 0, impressions: 0, views: 0, clicks: 0, requests: 0, jobs: 0 }
   );
+
+  // Alcance estimado que queda por delante en las campañas todavía activas.
+  const pendingReach = active.reduce((sum, { campaign: c }) => {
+    const est = estimateCampaign(c.budget, c.days, c.objective, c.reach, rules);
+    return sum + est.maxImpressions;
+  }, 0);
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6">
@@ -67,37 +75,60 @@ export default async function AdsDashboardPage({ searchParams }: { searchParams:
         </div>
       )}
 
+      {/* Billetera */}
+      <Link
+        href="/ads/wallet"
+        className="card p-5 mt-5 bg-fg text-bg flex items-center justify-between gap-4 hover:opacity-95 transition"
+      >
+        <div>
+          <p className="text-xs uppercase tracking-wide text-bg/60">Saldo disponible</p>
+          <p className="text-3xl font-bold mt-0.5">{formatMoney(wallet.balance)}</p>
+          <p className="text-xs text-bg/60 mt-1">Tocá para cargar más saldo</p>
+        </div>
+        <span className="text-xl shrink-0">→</span>
+      </Link>
+
       {campaigns.length === 0 ? (
-        <div className="card p-8 text-center mt-6">
+        <div className="card p-8 text-center mt-4">
           <p className="text-2xl">📣</p>
           <p className="font-semibold mt-2">Todavía no hiciste publicidad</p>
           <p className="text-sm text-muted mt-1">
             Con una campaña aparecés antes en los listados y el mapa, con insignia de patrocinado.
           </p>
-          <Link href="/ads/new" className="btn-primary w-full mt-4">Crear mi primera campaña</Link>
+          <Link href={wallet.balance > 0 ? "/ads/new" : "/ads/wallet"} className="btn-primary w-full mt-4">
+            {wallet.balance > 0 ? "Crear mi primera campaña" : "Cargar saldo para empezar"}
+          </Link>
         </div>
       ) : (
         <>
-          {/* Totales */}
-          <div className="grid grid-cols-2 gap-3 mt-5">
+          {/* Resumen */}
+          <div className="grid grid-cols-2 gap-3 mt-3">
             <Stat label="Invertido" value={formatMoney(totals.invested)} />
-            <Stat label="Veces que apareciste" value={totals.impressions.toLocaleString("es-AR")} />
-            <Stat label="Abrieron tu perfil" value={totals.views.toLocaleString("es-AR")} />
+            <Stat label="Campañas activas" value={active.length} hint={`${past.length} finalizadas`} />
+            <Stat label="Visualizaciones" value={totals.impressions.toLocaleString("es-AR")} hint="Veces que apareciste" />
+            <Stat label="Clics" value={totals.clicks.toLocaleString("es-AR")} hint="Abrieron tu perfil" />
             <Stat
-              label={me.role === "WORKER" ? "Solicitudes recibidas" : "Postulaciones recibidas"}
+              label={me.role === "WORKER" ? "Solicitudes obtenidas" : "Postulaciones obtenidas"}
               value={totals.requests}
             />
             <Stat
-              label={me.role === "WORKER" ? "Trabajos obtenidos" : "Contrataciones"}
-              value={totals.jobs}
-              hint="Durante las campañas"
-            />
-            <Stat
               label="Conversión aprox."
-              value={`${conversionPct(totals.requests, totals.views)}%`}
-              hint="Solicitudes / visitas"
+              value={`${conversionPct(totals.requests, totals.clicks || totals.views)}%`}
+              hint="Solicitudes / clics"
             />
           </div>
+
+          {active.length > 0 && (
+            <div className="card p-4 mt-3">
+              <p className="text-xs uppercase tracking-wide text-faint">Alcance estimado por delante</p>
+              <p className="text-2xl font-bold mt-0.5">
+                hasta {pendingReach.toLocaleString("es-AR")} apariciones
+              </p>
+              <p className="text-[11px] text-faint mt-1">
+                Proyección de las campañas activas según su presupuesto y alcance.
+              </p>
+            </div>
+          )}
 
           {totals.impressions > 0 && (
             <div className="card p-5 mt-3">
@@ -105,7 +136,7 @@ export default async function AdsDashboardPage({ searchParams }: { searchParams:
               <BarChart
                 data={[
                   { label: "Apariciones", value: totals.impressions },
-                  { label: "Visitas", value: totals.views },
+                  { label: "Clics", value: totals.clicks },
                   { label: "Solicitudes", value: totals.requests },
                   { label: "Trabajos", value: totals.jobs },
                 ]}
@@ -113,7 +144,6 @@ export default async function AdsDashboardPage({ searchParams }: { searchParams:
             </div>
           )}
 
-          {/* Campañas activas */}
           {active.length > 0 && (
             <section className="mt-6">
               <h2 className="font-semibold mb-2">Campañas activas ({active.length})</h2>
@@ -125,10 +155,9 @@ export default async function AdsDashboardPage({ searchParams }: { searchParams:
             </section>
           )}
 
-          {/* Historial */}
           {past.length > 0 && (
             <section className="mt-6">
-              <h2 className="font-semibold mb-2">Finalizadas</h2>
+              <h2 className="font-semibold mb-2">Finalizadas ({past.length})</h2>
               <div className="space-y-3">
                 {past.map(({ campaign: c, perf, daysLeft }) => (
                   <CampaignCard key={c.id} c={c} perf={perf} daysLeft={daysLeft} role={me.role} />
@@ -155,6 +184,7 @@ type CampaignRow = {
   endsAt: Date;
   impressions: number;
   views: number;
+  clicks: number;
 };
 
 function CampaignCard({
@@ -191,11 +221,11 @@ function CampaignCard({
       <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-line text-center">
         <div>
           <p className="font-bold text-sm">{c.impressions.toLocaleString("es-AR")}</p>
-          <p className="text-[10px] text-faint">Apariciones</p>
+          <p className="text-[10px] text-faint">Vistas</p>
         </div>
         <div>
-          <p className="font-bold text-sm">{c.views.toLocaleString("es-AR")}</p>
-          <p className="text-[10px] text-faint">Visitas</p>
+          <p className="font-bold text-sm">{c.clicks.toLocaleString("es-AR")}</p>
+          <p className="text-[10px] text-faint">Clics</p>
         </div>
         <div>
           <p className="font-bold text-sm">{perf.requests}</p>

@@ -7,6 +7,7 @@ import { requireRole, requireUser } from "@/lib/auth";
 import { isPlanActive } from "@/lib/plans";
 import { getAdRules, estimateCampaign, OBJECTIVES, REACHES } from "@/lib/ads";
 import { trySaveImage } from "@/lib/upload";
+import { getOrCreateWallet } from "@/lib/wallet";
 
 const PLAN_DAYS = 30;
 
@@ -113,31 +114,47 @@ export async function createCampaign(formData: FormData): Promise<void> {
     redirect("/company/plan");
   }
 
+  // La campaña se paga con el saldo de la billetera de publicidad.
+  const wallet = await getOrCreateWallet(user.id);
+  if (wallet.balance < budget) redirect("/ads/new?error=saldo");
+
   const est = estimateCampaign(budget, days, objective, reach, rules);
   const endsAt = new Date(Date.now() + days * 86_400_000);
-
   const target = isWorker ? "WORKER" : "COMPANY";
-  const campaign = await db.campaign.create({
-    data: {
-      userId: user.id,
-      target,
-      objective,
-      reach,
-      budget,
-      days,
-      dailyBudget: est.dailyBudget,
-      boost: est.boost,
-      endsAt,
-    },
+
+  // Todo en una transacción interactiva: nunca queda una campaña sin cobrar ni
+  // un cobro sin campaña. El descuento condicionado a `balance >= budget` evita
+  // que dos envíos simultáneos dejen el saldo en negativo.
+  await db.$transaction(async (tx) => {
+    const charged = await tx.adWallet.updateMany({
+      where: { id: wallet.id, balance: { gte: budget } },
+      data: { balance: { decrement: budget }, spent: { increment: budget } },
+    });
+    if (charged.count === 0) throw new Error("SALDO_INSUFICIENTE");
+
+    const campaign = await tx.campaign.create({
+      data: {
+        userId: user.id,
+        target,
+        objective,
+        reach,
+        budget,
+        days,
+        dailyBudget: est.dailyBudget,
+        boost: est.boost,
+        endsAt,
+      },
+    });
+
+    await tx.promotion.create({
+      data: { userId: user.id, kind: "CAMPAIGN", refId: campaign.id, days, amount: budget },
+    });
   });
 
   await syncSponsorship(user.id, target);
 
-  await db.promotion.create({
-    data: { userId: user.id, kind: "CAMPAIGN", refId: campaign.id, days, amount: budget },
-  });
-
   revalidatePath("/ads");
+  revalidatePath("/ads/wallet");
   redirect("/ads?ok=1");
 }
 

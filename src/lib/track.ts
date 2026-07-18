@@ -13,7 +13,8 @@ export async function trackWorkerProfileView(userId: string, viewerId: string | 
       where: { userId },
       data: { profileViews: { increment: 1 } },
     });
-    await bumpActiveCampaign(userId, "WORKER", { views: { increment: 1 } });
+    // Abrir el perfil desde un listado patrocinado cuenta como clic.
+    await bumpActiveCampaign(userId, "WORKER", { views: { increment: 1 }, clicks: { increment: 1 } });
   } catch {
     /* métrica best-effort */
   }
@@ -27,7 +28,7 @@ export async function trackCompanyProfileView(companyProfileId: string, userId: 
       where: { id: companyProfileId },
       data: { profileViews: { increment: 1 } },
     });
-    await bumpActiveCampaign(userId, "COMPANY", { views: { increment: 1 } });
+    await bumpActiveCampaign(userId, "COMPANY", { views: { increment: 1 }, clicks: { increment: 1 } });
   } catch {
     /* métrica best-effort */
   }
@@ -64,7 +65,11 @@ export async function trackSearchAppearances(workerProfileIds: string[], sponsor
   }
 }
 
-async function bumpActiveCampaign(userId: string, target: string, data: { views: { increment: number } }) {
+async function bumpActiveCampaign(
+  userId: string,
+  target: string,
+  data: { views?: { increment: number }; clicks?: { increment: number } }
+) {
   await db.campaign.updateMany({
     where: { userId, target, status: "ACTIVE", endsAt: { gt: new Date() } },
     data,

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { logout } from "@/lib/actions/auth";
-import { countPendingPlanRequests } from "@/lib/planRequests";
+import { countPendingApprovals } from "@/lib/planRequests";
 
 const TABS: [string, string][] = [
   ["/admin", "Resumen"],
@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // Contador de comprobantes esperando revisión: viaja en la barra de
   // navegación para que no se pueda pasar por alto un pago.
-  const pendingPayments = await countPendingPlanRequests();
+  const { total: pendingPayments } = await countPendingApprovals();
 
   return (
     <div className="min-h-screen bg-surface-2">

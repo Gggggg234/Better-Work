@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
-import { countPendingPlanRequests } from "@/lib/planRequests";
+import { countPendingApprovals } from "@/lib/planRequests";
 
 export default async function AdminDashboard() {
   const now = new Date();
@@ -29,7 +29,7 @@ export default async function AdminDashboard() {
     db.campaign.count({ where: { status: "ACTIVE" } }),
   ]);
 
-  const pendingPayments = await countPendingPlanRequests();
+  const { total: pendingPayments } = await countPendingApprovals();
 
   const income = (kind: string) => promotions.find((p) => p.kind === kind)?._sum.amount ?? 0;
   const planIncome = income("COMPANY_PLAN");

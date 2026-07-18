@@ -8,13 +8,26 @@ import { db } from "./db";
  * se lee no tiene por qué serlo.
  */
 
-/** Pagos esperando revisión. Alimenta el contador del panel Super Admin. */
-export async function countPendingPlanRequests(): Promise<number> {
+/**
+ * Todo lo que espera aprobación manual del Super Admin: membresías, cargas de
+ * saldo publicitario y pagos de trabajos. Un solo número para el aviso.
+ */
+export async function countPendingApprovals(): Promise<{
+  plans: number;
+  topUps: number;
+  payments: number;
+  total: number;
+}> {
   try {
-    return await db.planRequest.count({ where: { status: "PENDING" } });
+    const [plans, topUps, payments] = await Promise.all([
+      db.planRequest.count({ where: { status: "PENDING" } }),
+      db.walletTopUp.count({ where: { status: "PENDING" } }),
+      db.payment.count({ where: { status: "PENDING" } }),
+    ]);
+    return { plans, topUps, payments, total: plans + topUps + payments };
   } catch {
     // El contador nunca debe romper el layout del panel.
-    return 0;
+    return { plans: 0, topUps: 0, payments: 0, total: 0 };
   }
 }
 

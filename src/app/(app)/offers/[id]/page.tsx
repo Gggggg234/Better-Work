@@ -6,6 +6,7 @@ import { openConversation } from "@/lib/actions/chat";
 import { SponsoredBadge, VerifiedBadge } from "@/components/Badges";
 import { formatDate } from "@/lib/format";
 import { trackOfferView, trackCompanyProfileView } from "@/lib/track";
+import { BackButton } from "@/components/BackButton";
 
 export default async function OfferDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,6 +32,7 @@ export default async function OfferDetailPage({ params }: { params: Promise<{ id
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 animate-fade-up">
+      <BackButton fallback="/offers" />
       <div className="flex items-center gap-2 flex-wrap">
         <h1 className="text-xl font-bold">{offer.title}</h1>
         {offer.promotedUntil && offer.promotedUntil > now && <SponsoredBadge />}
