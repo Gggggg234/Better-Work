@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { db } from "@/lib/db";
 import { approvePlanRequest, rejectPlanRequest } from "@/lib/actions/planRequests";
 import { approveTopUp, rejectTopUp } from "@/lib/actions/wallet";
-import { confirmPayment, rejectPayment } from "@/lib/actions/escrow";
 import { PLAN_REQUEST_STATUS } from "@/lib/planRequests";
 import { formatMoney, formatDateTime } from "@/lib/format";
 import { RejectRequest } from "@/components/admin/RejectRequest";
@@ -24,7 +22,7 @@ function Receipt({ url, alt }: { url: string; alt: string }) {
 }
 
 export default async function AdminPaymentsPage() {
-  const [planReqs, topUps, jobPayments, reviewed, plans] = await Promise.all([
+  const [planReqs, topUps, reviewed, plans] = await Promise.all([
     db.planRequest.findMany({
       where: { status: "PENDING" },
       include: { company: { include: { user: { select: { name: true, email: true } } } } },
@@ -33,11 +31,6 @@ export default async function AdminPaymentsPage() {
     db.walletTopUp.findMany({
       where: { status: "PENDING" },
       include: { wallet: { include: { user: { select: { name: true, email: true, role: true } } } } },
-      orderBy: { createdAt: "asc" },
-    }),
-    db.payment.findMany({
-      where: { status: "PENDING" },
-      include: { job: { include: { client: { select: { name: true } }, worker: { select: { name: true } } } } },
       orderBy: { createdAt: "asc" },
     }),
     db.planRequest.findMany({
@@ -50,15 +43,15 @@ export default async function AdminPaymentsPage() {
   ]);
 
   const planName = (key: string) => plans.find((p) => p.key === key)?.name ?? key;
-  const total = planReqs.length + topUps.length + jobPayments.length;
+  const total = planReqs.length + topUps.length;
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-xl font-bold">Pagos pendientes</h1>
         <p className="text-sm text-muted mt-0.5">
-          Todo lo que espera tu aprobación: membresías de empresa, cargas de presupuesto publicitario y pagos de
-          trabajos retenidos.
+          Membresías de empresa y cargas de presupuesto publicitario. El pago de los trabajos es directo entre
+          cliente y profesional: Better Work no interviene.
         </p>
       </div>
 
@@ -73,50 +66,6 @@ export default async function AdminPaymentsPage() {
           <strong className="text-fg">{total}</strong> {total === 1 ? "comprobante" : "comprobantes"} esperando
           revisión.
         </p>
-      )}
-
-      {/* ── Pagos de trabajos (escrow) ── */}
-      {jobPayments.length > 0 && (
-        <section>
-          <h2 className="font-semibold mb-3">
-            Pagos de trabajos{" "}
-            <span className="rounded-full bg-fg text-bg px-2 py-0.5 text-xs">{jobPayments.length}</span>
-          </h2>
-          <p className="text-xs text-muted mb-3">
-            Al confirmar, el dinero queda <strong>retenido</strong> y el profesional puede empezar. Se libera solo
-            cuando el cliente confirma el código de finalización.
-          </p>
-          <div className="space-y-3">
-            {jobPayments.map((p) => (
-              <div key={p.id} className="card p-5">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="min-w-0">
-                    <p className="font-semibold">{p.job.title}</p>
-                    <p className="text-xs text-muted">
-                      {p.job.client.name} → {p.job.worker.name}
-                    </p>
-                  </div>
-                  <p className="font-bold shrink-0">{formatMoney(p.amount)}</p>
-                </div>
-                <p className="text-xs text-faint mt-2">Enviado el {formatDateTime(p.createdAt)}</p>
-
-                {p.receiptUrl && <Receipt url={p.receiptUrl} alt={`Comprobante de ${p.job.client.name}`} />}
-
-                <div className="flex gap-2 mt-4">
-                  <form action={confirmPayment.bind(null, p.id)} className="flex-1">
-                    <button className="btn-primary w-full !py-2.5 !text-sm">Confirmar y retener</button>
-                  </form>
-                  <form action={rejectPayment.bind(null, p.id)} className="flex-1">
-                    <button className="btn-secondary w-full !py-2.5 !text-sm text-red-600">Rechazar</button>
-                  </form>
-                </div>
-                <Link href={`/jobs/${p.jobId}`} className="block text-center text-xs text-muted hover:text-fg mt-2">
-                  Ver el trabajo →
-                </Link>
-              </div>
-            ))}
-          </div>
-        </section>
       )}
 
       {/* ── Cargas de presupuesto publicitario ── */}

@@ -89,6 +89,8 @@ export async function updateWorkerProfile(formData: FormData) {
       workMode,
       whatsapp: String(formData.get("whatsapp") ?? "").trim() || null,
       payMethods: JSON.stringify(payMethods),
+      payAlias: String(formData.get("payAlias") ?? "").trim() || null,
+      payHolder: String(formData.get("payHolder") ?? "").trim() || null,
       priceHint: String(formData.get("priceHint") ?? "").trim() || null,
       visible: formData.get("visible") === "on",
     },

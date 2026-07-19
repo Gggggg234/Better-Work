@@ -85,27 +85,33 @@ model WalletTopUp {
  * restablecer la contraseña). Se borra al usarse o al vencer.
  */
 /**
- * Pago del trabajo, retenido por Better Work hasta que se confirma el final.
+ * Registro de un pago entre cliente y trabajador.
  *
- * Todavía NO hay pasarela: `method` es MANUAL y el dinero se mueve fuera de la
- * app. La máquina de estados ya es la definitiva (PENDING → HELD → RELEASED /
- * REFUNDED), así que integrar un proveedor es completar `providerRef` y
- * disparar las mismas transiciones desde su webhook.
+ * Better Work NO recibe ni retiene este dinero: el cliente le transfiere
+ * directamente al profesional. La app sólo deja constancia de que el pago se
+ * hizo y de que la otra parte lo reconoció, para que quede un historial y para
+ * habilitar los pasos del trabajo.
+ *
+ * Son dos por trabajo:
+ *   - DEPOSIT: la seña, antes de empezar. Compromete a las dos partes.
+ *   - FINAL:   el saldo, cuando el trabajo terminó.
+ *
+ * Estados: SENT (el cliente dice que transfirió) → CONFIRMED (el trabajador
+ * confirma que lo recibió). Sin CONFIRMED de la seña el trabajo no arranca.
  */
 model Payment {
   id          String   @id @default(cuid())
-  jobId       String   @unique
+  jobId       String
   job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  kind        String   // DEPOSIT | FINAL
   amount      Float
-  status      String   @default("PENDING") // PENDING | HELD | RELEASED | REFUNDED
-  method      String   @default("MANUAL")  // MANUAL | (futuro) MERCADOPAGO...
-  providerRef String? // id de la operación en el proveedor, cuando exista
-  receiptUrl  String? // comprobante de transferencia del cliente
+  status      String   @default("SENT") // SENT | CONFIRMED
+  method      String   @default("TRANSFER")
+  note        String   @default("") // referencia que deja el cliente
   createdAt   DateTime @default(now())
-  heldAt      DateTime?
-  releasedAt  DateTime?
-  refundedAt  DateTime?
+  confirmedAt DateTime?
 
+  @@unique([jobId, kind])
   @@index([status])
 }
 
@@ -218,6 +224,9 @@ model WorkerProfile {
   workMode     String    @default("AMBOS") // ONSITE | REMOTE | AMBOS
   whatsapp     String?
   payMethods   String    @default("[]") // JSON string[] ej ["Efectivo","Transferencia","Mercado Pago"]
+  // Datos de cobro: el cliente le transfiere directamente a este alias.
+  payAlias     String?
+  payHolder    String?
   priceHint    String? // precios orientativos (opcional)
   verified     Boolean   @default(false)
   visible      Boolean   @default(true)
@@ -287,6 +296,7 @@ model Job {
   lng          Float?
   scheduledFor DateTime?
   price        Float? // acordado entre cliente y trabajador (el pago es directo)
+  deposit      Float? // seña que se paga antes de empezar
   status       String    @default("REQUESTED") // REQUESTED|ACCEPTED|EN_ROUTE|WORKING|COMPLETED|CANCELLED|REJECTED
   startCode    String?
   endCode      String?
@@ -295,7 +305,7 @@ model Job {
   startedAt    DateTime?
   completedAt  DateTime?
   reviews      Review[]
-  payment      Payment?
+  payments     Payment[]
 
   @@index([workerId, requestedAt])
   @@index([clientId])

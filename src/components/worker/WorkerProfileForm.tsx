@@ -30,6 +30,8 @@ export type WorkerFormInitial = {
   whatsapp: string;
   phone: string;
   payMethods: string[];
+  payAlias: string;
+  payHolder: string;
   priceHint: string;
   gallery: string[];
   avatarUrl: string;
@@ -82,6 +84,8 @@ export function WorkerProfileForm({
   const [days, setDays] = useState<string[]>(initial.availableDays);
   const [workMode, setWorkMode] = useState<string>(initial.workMode || "AMBOS");
   const [payMethods, setPayMethods] = useState<string[]>(initial.payMethods);
+  const [payAlias, setPayAlias] = useState(initial.payAlias);
+  const [payHolder, setPayHolder] = useState(initial.payHolder);
   const [lat, setLat] = useState<string>(initial.lat != null ? String(initial.lat) : "");
   const [lng, setLng] = useState<string>(initial.lng != null ? String(initial.lng) : "");
   const [geoMsg, setGeoMsg] = useState<string | null>(null);
@@ -124,6 +128,8 @@ export function WorkerProfileForm({
         if (Array.isArray(d.days)) setDays(d.days);
         if (typeof d.workMode === "string") setWorkMode(d.workMode);
         if (Array.isArray(d.payMethods)) setPayMethods(d.payMethods);
+        if (typeof d.payAlias === "string") setPayAlias(d.payAlias);
+        if (typeof d.payHolder === "string") setPayHolder(d.payHolder);
         if (typeof d.lat === "string") setLat(d.lat);
         if (typeof d.lng === "string") setLng(d.lng);
         if (typeof d.visible === "boolean") setVisible(d.visible);
@@ -147,7 +153,7 @@ export function WorkerProfileForm({
     if (!ready) return; // no persistir hasta haber restaurado el borrador
     const draft = {
       profession, categoryId, services, experience, radiusKm, days, workMode,
-      payMethods, lat, lng, visible, keptGallery, timeFrom, timeTo,
+      payMethods, payAlias, payHolder, lat, lng, visible, keptGallery, timeFrom, timeTo,
       bio, city, zone, phone, whatsapp, priceHint,
     };
     try {
@@ -155,7 +161,7 @@ export function WorkerProfileForm({
     } catch {
       /* almacenamiento no disponible */
     }
-  }, [ready, profession, categoryId, services, experience, radiusKm, days, workMode, payMethods, lat, lng, visible, keptGallery, timeFrom, timeTo, bio, city, zone, phone, whatsapp, priceHint]);
+  }, [ready, profession, categoryId, services, experience, radiusKm, days, workMode, payMethods, payAlias, payHolder, lat, lng, visible, keptGallery, timeFrom, timeTo, bio, city, zone, phone, whatsapp, priceHint]);
 
   // Envía el formulario y, si el guardado fue exitoso, limpia el borrador.
   async function handleAction(fd: FormData) {
@@ -382,7 +388,34 @@ export function WorkerProfileForm({
       </Section>
 
       {/* Cobro */}
-      <Section title="Cómo cobrás" hint="Los clientes pagan a través de Better Work y vos recibís el neto en tu cuenta.">
+      <Section
+        title="Cómo cobrás"
+        hint="El cliente te transfiere directamente: una seña para reservar y el saldo al terminar. Better Work no toca ese dinero."
+      >
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className="label">Alias para cobrar</label>
+            <input
+              name="payAlias"
+              value={payAlias}
+              onChange={(e) => setPayAlias(e.target.value)}
+              placeholder="mi.alias.mp"
+              className="input"
+            />
+            <p className="text-xs text-faint mt-1">Es lo que ve el cliente para transferirte.</p>
+          </div>
+          <div>
+            <label className="label">Titular de la cuenta</label>
+            <input
+              name="payHolder"
+              value={payHolder}
+              onChange={(e) => setPayHolder(e.target.value)}
+              placeholder="Tu nombre completo"
+              className="input"
+            />
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-2">
           {PAY_METHOD_OPTIONS.map((m) => (
             <button

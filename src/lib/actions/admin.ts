@@ -67,6 +67,22 @@ export async function saveTransferInfo(formData: FormData) {
   revalidatePath("/company/plan");
 }
 
+/**
+ * Porcentaje de seña sugerido al contratar.
+ *
+ * Sólo afecta a los trabajos nuevos: los ya creados conservan la seña que se
+ * les calculó, para no cambiarle las condiciones a un acuerdo en curso.
+ */
+export async function saveDepositPct(formData: FormData) {
+  await requireRole("ADMIN");
+
+  const pct = parseFloat(String(formData.get("deposit_pct") ?? ""));
+  if (!Number.isFinite(pct) || pct <= 0 || pct > 100) return;
+
+  await setSetting("deposit_pct", String(Math.round(pct)));
+  revalidatePath("/admin/settings");
+}
+
 /** Guarda las reglas con las que se estiman los resultados de una campaña. */
 export async function saveAdRules(formData: FormData) {
   await requireRole("ADMIN");

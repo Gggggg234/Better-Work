@@ -5,6 +5,7 @@ import { requestJob } from "@/lib/actions/jobs";
 import { Avatar } from "@/components/Avatar";
 import { GeoField } from "@/components/GeoField";
 import { HOURS } from "@/lib/worker";
+import { getDepositPct } from "@/lib/payments";
 import { BackButton } from "@/components/BackButton";
 
 export default async function HirePage({ params }: { params: Promise<{ workerId: string }> }) {
@@ -19,6 +20,7 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
   });
   if (!profile) notFound();
 
+  const depositPct = await getDepositPct();
   const today = new Date().toISOString().slice(0, 10);
   const timeOptions = HOURS.slice(6, 24); // 06:00 a 23:00
 
@@ -94,8 +96,12 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
         <div className="card p-3.5 bg-surface-2 !border-line">
           <p className="text-sm font-medium">Cómo sigue</p>
           <p className="text-xs text-muted mt-0.5">
-            Cuando el profesional acepte, coordinan por chat. El trabajo se inicia y se finaliza con códigos de
-            confirmación de 4 dígitos. El pago lo arreglan entre ustedes; Better Work no cobra comisión.
+            Cuando el profesional acepte, le transferís una seña del {depositPct}% para reservar el trabajo. El resto
+            se lo pagás al terminar. El trabajo se inicia y se finaliza con códigos de 4 dígitos.
+          </p>
+          <p className="text-xs text-muted mt-1.5">
+            El dinero va <strong className="text-fg">directo al profesional</strong>: Better Work no lo recibe ni
+            cobra comisión.
           </p>
         </div>
 

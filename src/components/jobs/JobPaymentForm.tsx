@@ -1,19 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { useFormStatus } from "react-dom";
-import { payJob } from "@/lib/actions/escrow";
+import { declarePayment, confirmReceived, rejectReceived } from "@/lib/actions/jobPayments";
 import { CopyField } from "@/components/CopyField";
 import { formatMoney } from "@/lib/format";
 
-const ERRORS: Record<string, string> = {
-  comprobante: "Adjuntá el comprobante de la transferencia.",
-  archivo: "No pudimos leer ese archivo. Subí una imagen (JPG, PNG o WEBP) de hasta 8 MB.",
-  estado: "El trabajo ya no está en una etapa donde se pueda pagar.",
-  sinprecio: "El trabajo todavía no tiene un precio acordado.",
-};
-
-function Submit() {
+function Submit({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
     <button disabled={pending} className="btn-primary w-full mt-3 !py-3">
@@ -24,90 +16,124 @@ function Submit() {
             className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin"
           />
         )}
-        {pending ? "Enviando comprobante…" : "Ya transferí, enviar comprobante"}
+        {pending ? pendingLabel : label}
       </span>
     </button>
   );
 }
 
 /**
- * Pago del trabajo con dinero retenido.
+ * El cliente avisa que transfirió (seña o saldo).
  *
- * Se le explica al cliente que el dinero NO va directo al profesional: queda
- * protegido hasta que él mismo confirme el código de finalización. Es la parte
- * que sostiene la confianza del circuito.
+ * El dinero va directo al alias del profesional: Better Work no lo recibe ni
+ * lo retiene, sólo deja constancia para habilitar el paso siguiente.
  */
-export function JobPaymentForm({
+export function DeclarePaymentForm({
   jobId,
+  kind,
   amount,
   alias,
   holder,
   workerName,
-  error,
+  isDeposit,
 }: {
   jobId: string;
+  kind: "DEPOSIT" | "FINAL";
   amount: number;
-  alias: string;
-  holder: string;
+  alias: string | null;
+  holder: string | null;
   workerName: string;
-  error?: string;
+  isDeposit: boolean;
 }) {
-  const [fileName, setFileName] = useState<string | null>(null);
-
   return (
-    <form action={payJob.bind(null, jobId)} className="card p-5 border-fg">
-      <p className="text-xs uppercase tracking-wide text-faint">Pago protegido</p>
+    <form action={declarePayment.bind(null, jobId, kind)} className="card p-5 border-fg">
+      <p className="text-xs uppercase tracking-wide text-faint">
+        {isDeposit ? "Seña para reservar el trabajo" : "Saldo final"}
+      </p>
       <p className="text-2xl font-bold mt-0.5">{formatMoney(amount)}</p>
       <p className="text-sm text-muted mt-2">
-        {workerName} aceptó el trabajo. Para que pueda empezar, el pago queda retenido por Better Work y se le
-        libera <strong className="text-fg">recién cuando vos confirmes</strong> que el trabajo terminó.
+        {isDeposit ? (
+          <>
+            Transferile la seña directamente a {workerName} para reservar el trabajo. Cuando la confirme, puede
+            arrancar.
+          </>
+        ) : (
+          <>El trabajo terminó. Pagale el saldo a {workerName} para cerrar.</>
+        )}
       </p>
 
-      {error && ERRORS[error] && (
-        <p className="text-sm text-red-600 mt-3" role="alert">⚠ {ERRORS[error]}</p>
+      {alias ? (
+        <div className="mt-4 space-y-2">
+          <CopyField label="Alias de destino" value={alias} />
+          {holder && <CopyField label="Titular" value={holder} />}
+        </div>
+      ) : (
+        <div className="card p-3.5 mt-4 bg-surface-2 !border-line">
+          <p className="text-sm text-muted">
+            {workerName} todavía no cargó su alias de cobro. Coordinen el pago por chat y después marcá que lo
+            hiciste.
+          </p>
+        </div>
       )}
 
-      <ol className="space-y-2 text-sm mt-4">
-        {[
-          `Transferí ${formatMoney(amount)} al alias de Better Work.`,
-          "Subí el comprobante acá.",
-          "Cuando lo validemos, el profesional puede arrancar.",
-          "Al terminar, le pasás el código de finalización y ahí cobra.",
-        ].map((step, i) => (
-          <li key={step} className="flex gap-2.5">
-            <span className="w-5 h-5 rounded-full bg-fg text-bg text-[11px] font-bold flex items-center justify-center shrink-0">
-              {i + 1}
-            </span>
-            <span className="text-muted">{step}</span>
-          </li>
-        ))}
-      </ol>
-
-      <div className="mt-4 space-y-2">
-        <CopyField label="Alias" value={alias} />
-        {holder && <CopyField label="Titular" value={holder} />}
-      </div>
-
       <label className="block mt-4">
-        <span className="label">Comprobante de la transferencia</span>
+        <span className="label">Referencia (opcional)</span>
         <input
-          type="file"
-          name="receipt"
-          required
-          accept="image/png,image/jpeg,image/webp"
-          onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
-          className="block w-full text-xs text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-fg file:px-3 file:py-2 file:text-xs file:font-medium file:text-bg hover:file:opacity-90"
+          name="note"
+          maxLength={120}
+          placeholder="Ej: transferencia desde Banco Nación"
+          className="input !py-2 !text-sm"
         />
-        <span className="block text-[11px] text-faint mt-1.5">
-          {fileName ? `Seleccionado: ${fileName}` : "Imagen JPG, PNG o WEBP de hasta 8 MB."}
-        </span>
       </label>
 
-      <Submit />
+      <Submit
+        label={isDeposit ? "Ya transferí la seña" : "Ya pagué el saldo"}
+        pendingLabel="Registrando…"
+      />
 
       <p className="text-[11px] text-faint mt-3">
-        Si el trabajo se cancela antes de empezar, te devolvemos el dinero.
+        Better Work no recibe este dinero: va directo a {workerName}. Sólo dejamos constancia.
       </p>
     </form>
+  );
+}
+
+/** El trabajador confirma (o niega) haber recibido el dinero. */
+export function ConfirmReceivedForm({
+  jobId,
+  kind,
+  amount,
+  isDeposit,
+  clientName,
+  note,
+}: {
+  jobId: string;
+  kind: "DEPOSIT" | "FINAL";
+  amount: number;
+  isDeposit: boolean;
+  clientName: string;
+  note?: string;
+}) {
+  return (
+    <div className="card p-5 border-fg">
+      <p className="text-xs uppercase tracking-wide text-faint">
+        {isDeposit ? "Seña declarada por el cliente" : "Saldo declarado por el cliente"}
+      </p>
+      <p className="text-2xl font-bold mt-0.5">{formatMoney(amount)}</p>
+      <p className="text-sm text-muted mt-2">
+        {clientName} marcó que ya te transfirió. Revisá tu cuenta y confirmá.
+        {isDeposit && " Al confirmar vas a poder iniciar el trabajo."}
+      </p>
+      {note && <p className="text-xs text-faint mt-2">Referencia: {note}</p>}
+
+      <div className="flex gap-2 mt-4">
+        <form action={confirmReceived.bind(null, jobId, kind)} className="flex-1">
+          <button className="btn-primary w-full !py-2.5 !text-sm">Sí, lo recibí</button>
+        </form>
+        <form action={rejectReceived.bind(null, jobId, kind)} className="flex-1">
+          <button className="btn-secondary w-full !py-2.5 !text-sm text-red-600">No me llegó</button>
+        </form>
+      </div>
+    </div>
   );
 }

@@ -43,6 +43,8 @@ export default async function WorkerProfileEditPage() {
     whatsapp: p.whatsapp ?? "",
     phone: me.phone ?? "",
     payMethods: parseArr(p.payMethods),
+    payAlias: p.payAlias ?? "",
+    payHolder: p.payHolder ?? "",
     priceHint: p.priceHint ?? "",
     gallery: parseArr(p.gallery),
     avatarUrl: me.avatarUrl ?? "",
