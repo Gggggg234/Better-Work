@@ -19,7 +19,29 @@ export default async function AppHome() {
     db.category.findMany({ where: { active: true }, orderBy: { order: "asc" } }),
     db.workerProfile.findMany({
       where: { visible: true, lat: { not: null }, user: { suspended: false } },
-      include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+      // Sólo los campos que usan el ranking, las tarjetas y el mapa: evita
+      // traer bio, galería, servicios y demás texto pesado de hasta 80 filas.
+      select: {
+        id: true,
+        userId: true,
+        lat: true,
+        lng: true,
+        profession: true,
+        zone: true,
+        ratingAvg: true,
+        ratingCount: true,
+        jobsDone: true,
+        verified: true,
+        priceHint: true,
+        sponsoredUntil: true,
+        sponsorBoost: true,
+        createdAt: true,
+        cancellations: true,
+        claims: true,
+        avgResponseMins: true,
+        punctualityAvg: true,
+        user: { select: { name: true, avatarUrl: true } },
+      },
       take: 80,
     }),
     // Sólo empresas con membresía activa.

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { db } from "./db";
@@ -44,7 +45,12 @@ export async function destroySession() {
   jar.delete(COOKIE);
 }
 
-export async function getSession(): Promise<Session | null> {
+/**
+ * Lee y verifica la sesión. Envuelto en `cache()` de React: dentro de un mismo
+ * request (layout + página + acciones) se resuelve una sola vez, sin repetir la
+ * verificación del JWT ni la lectura de la cookie.
+ */
+export const getSession = cache(async (): Promise<Session | null> => {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
@@ -58,10 +64,15 @@ export async function getSession(): Promise<Session | null> {
   } catch {
     return null;
   }
-}
+});
 
-/** Devuelve el usuario actual (con perfiles) o null. */
-export async function getCurrentUser() {
+/**
+ * Devuelve el usuario actual (con perfiles) o null.
+ *
+ * También cacheado por request: el layout y la página suelen pedirlo los dos,
+ * y sin esto serían dos `findUnique` idénticos a la base en cada carga.
+ */
+export const getCurrentUser = cache(async () => {
   const session = await getSession();
   if (!session) return null;
   const user = await db.user.findUnique({
@@ -70,7 +81,7 @@ export async function getCurrentUser() {
   });
   if (!user || user.suspended) return null;
   return user;
-}
+});
 
 export async function requireUser() {
   const user = await getCurrentUser();
