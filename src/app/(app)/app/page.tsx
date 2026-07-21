@@ -98,7 +98,7 @@ export default async function AppHome() {
       {/* Mapa protagonista */}
       <div className="relative h-[52vh] min-h-[320px]">
         <div className="absolute inset-0">
-          <MapView center={BA_CENTER} zoom={12} markers={markers} />
+          <MapView center={BA_CENTER} zoom={12} markers={markers} locate />
         </div>
 
         {/* Buscador flotante */}

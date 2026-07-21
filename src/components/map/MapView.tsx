@@ -13,6 +13,7 @@ export function MapView(props: {
   zoom?: number;
   markers?: MapMarker[];
   className?: string;
+  locate?: boolean;
 }) {
   return <Map {...props} />;
 }

@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requestJob } from "@/lib/actions/jobs";
 import { Avatar } from "@/components/Avatar";
-import { GeoField } from "@/components/GeoField";
+import { LocationPicker } from "@/components/map/LocationPicker";
 import { HOURS } from "@/lib/worker";
 import { getDepositPct } from "@/lib/payments";
 import { BackButton } from "@/components/BackButton";
@@ -80,8 +80,11 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
         </div>
 
         <div>
-          <label className="label">Ubicación en el mapa (opcional)</label>
-          <GeoField />
+          <label className="label">¿Dónde se hace el trabajo?</label>
+          <p className="text-xs text-muted mb-2">
+            Marcá el punto exacto en el mapa. El profesional lo va a ver para saber a dónde ir.
+          </p>
+          <LocationPicker />
         </div>
 
         <div>
