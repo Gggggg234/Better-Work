@@ -82,13 +82,6 @@ export function LoginForm({ google, urlError }: { google: boolean; urlError?: st
           ¿No tenés cuenta?{" "}
           <Link href="/register" className="font-medium text-fg underline">Registrate</Link>
         </p>
-
-        <div className="card p-4 mt-8 text-xs text-muted space-y-1">
-          <p className="font-medium text-fg">Cuentas de prueba (contraseña: demo1234)</p>
-          <p>Cliente: cliente@demo.com</p>
-          <p>Trabajador: jorge.paredes@demo.com</p>
-          <p>Empresa: empresa@demo.com</p>
-        </div>
       </div>
     </main>
   );
