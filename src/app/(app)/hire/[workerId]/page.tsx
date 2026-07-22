@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { requestJob } from "@/lib/actions/jobs";
 import { Avatar } from "@/components/Avatar";
 import { LocationPicker } from "@/components/map/LocationPicker";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { HOURS } from "@/lib/worker";
 import { getDepositPct } from "@/lib/payments";
 import { BackButton } from "@/components/BackButton";
@@ -108,7 +109,7 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
           </p>
         </div>
 
-        <button className="btn-primary w-full !py-3.5">Enviar solicitud</button>
+        <FormSubmitButton pendingLabel="Enviando solicitud…">Enviar solicitud</FormSubmitButton>
         <p className="text-xs text-faint text-center">
           El trabajador va a recibir tu solicitud y puede aceptarla o rechazarla.
         </p>

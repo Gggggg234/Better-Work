@@ -31,6 +31,15 @@ export async function setSetting(key: string, value: string): Promise<void> {
   await db.setting.upsert({ where: { key }, create: { key, value }, update: { value } });
 }
 
+/**
+ * Comisión que Better Work retiene de cada trabajo completado (escrow).
+ * Editable desde el panel Super Admin. Default 5%.
+ */
+export async function getCommissionPct(): Promise<number> {
+  const raw = parseFloat(await getSetting("commission_pct", "5"));
+  return Number.isFinite(raw) && raw >= 0 && raw <= 100 ? raw : 5;
+}
+
 /** Datos bancarios para las transferencias de membresías. */
 export type TransferInfo = { alias: string; holder: string; bank: string };
 

@@ -64,7 +64,7 @@ export default async function JobDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; creada?: string }>;
 }) {
   const { id } = await params;
   const sp = await searchParams;
@@ -117,6 +117,19 @@ export default async function JobDetailPage({
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 space-y-5 animate-fade-up">
       <BackButton fallback="/jobs" />
+
+      {sp.creada === "1" && isClient && (
+        <div className="card p-4 bg-fg text-bg flex items-start gap-2.5">
+          <span aria-hidden className="text-lg leading-none">✓</span>
+          <div>
+            <p className="text-sm font-medium">¡Solicitud enviada!</p>
+            <p className="text-xs text-bg/70 mt-0.5">
+              {other.name} va a recibirla y puede aceptarla, rechazarla o pasarte un presupuesto.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="text-xl font-bold">{job.title}</h1>
         <p className="text-sm text-muted">Solicitado el {formatDateTime(job.requestedAt)}</p>

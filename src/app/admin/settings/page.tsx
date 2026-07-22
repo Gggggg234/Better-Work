@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { getAdRules, estimateCampaign } from "@/lib/ads";
-import { saveAdRules, saveTransferInfo, saveDepositPct } from "@/lib/actions/admin";
+import { saveAdRules, saveTransferInfo, saveDepositPct, saveCommissionPct } from "@/lib/actions/admin";
 import { getDepositPct } from "@/lib/payments";
-import { getTransferInfo } from "@/lib/settings";
+import { getTransferInfo, getCommissionPct } from "@/lib/settings";
 import { formatMoney } from "@/lib/format";
 
 export default async function AdminSettingsPage() {
-  const [rules, transfer, depositPct] = await Promise.all([getAdRules(), getTransferInfo(), getDepositPct()]);
+  const [rules, transfer, depositPct, commissionPct] = await Promise.all([
+    getAdRules(),
+    getTransferInfo(),
+    getDepositPct(),
+    getCommissionPct(),
+  ]);
 
   // Ejemplo de referencia con las reglas actuales, para ver el efecto de un cambio.
   const sample = estimateCampaign(10_000, 15, "REPUTATION", "CITY", rules);
@@ -17,6 +22,30 @@ export default async function AdminSettingsPage() {
         <h1 className="text-xl font-bold">Ajustes</h1>
         <p className="text-sm text-muted mt-0.5">Datos de cobro y reglas de la publicidad.</p>
       </div>
+
+      {/* Comisión de Better Work (escrow) */}
+      <form action={saveCommissionPct} className="card p-5 space-y-4">
+        <div>
+          <h2 className="font-semibold text-sm">Comisión por trabajo</h2>
+          <p className="text-xs text-muted mt-0.5">
+            Porcentaje que Better Work retiene de cada trabajo completado. Se descuenta al liberar el pago retenido
+            (escrow); el resto va al profesional.
+          </p>
+        </div>
+        <div className="relative w-40">
+          <input
+            name="commission_pct"
+            type="number"
+            min="0"
+            max="100"
+            step="0.5"
+            defaultValue={commissionPct}
+            className="input pr-8"
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-faint">%</span>
+        </div>
+        <button className="btn-primary">Guardar comisión</button>
+      </form>
 
       {/* Seña de los trabajos */}
       <form action={saveDepositPct} className="card p-5 space-y-4">

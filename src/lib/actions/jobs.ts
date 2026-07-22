@@ -51,7 +51,8 @@ export async function requestJob(formData: FormData) {
       deposit: Number.isFinite(price) && price > 0 ? suggestedDeposit(price, await getDepositPct()) : null,
     },
   });
-  redirect(`/jobs/${job.id}`);
+  // La marca `creada=1` dispara el banner de confirmación en la página del trabajo.
+  redirect(`/jobs/${job.id}?creada=1`);
 }
 
 /** Registra cuánto tardó el trabajador en responder (señal del rango). */

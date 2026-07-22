@@ -83,6 +83,20 @@ export async function saveDepositPct(formData: FormData) {
   revalidatePath("/admin/settings");
 }
 
+/**
+ * Comisión que Better Work retiene de cada trabajo completado (escrow).
+ * Se aplica al liberar el pago; se admite 0 a 100 %.
+ */
+export async function saveCommissionPct(formData: FormData) {
+  await requireRole("ADMIN");
+
+  const pct = parseFloat(String(formData.get("commission_pct") ?? ""));
+  if (!Number.isFinite(pct) || pct < 0 || pct > 100) return;
+
+  await setSetting("commission_pct", String(pct));
+  revalidatePath("/admin/settings");
+}
+
 /** Guarda las reglas con las que se estiman los resultados de una campaña. */
 export async function saveAdRules(formData: FormData) {
   await requireRole("ADMIN");

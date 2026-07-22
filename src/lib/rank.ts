@@ -74,6 +74,16 @@ function penalty(cancellations: number, claims: number, jobsDone: number): numbe
   return clamp01(cancelRate * 0.6 + claimRate * 1.2);
 }
 
+/**
+ * Un trabajador es "Nuevo" hasta que tenga actividad real: los rangos se ganan
+ * completando trabajos y recibiendo calificaciones, no por registrarse.
+ */
+export function isNewWorker(s: Pick<RankSignals, "jobsDone" | "ratingCount">): boolean {
+  return s.jobsDone === 0 && s.ratingCount === 0;
+}
+
+export const NEW_RANK = "Nuevo";
+
 export function rankBreakdown(s: RankSignals): RankBreakdown {
   const parts = [
     { label: "Calificación", value: qualityScore(s.ratingAvg, s.ratingCount) * 35, max: 35 },
@@ -88,12 +98,17 @@ export function rankBreakdown(s: RankSignals): RankBreakdown {
 
   let rank: string = RANKS[0].name;
   for (const r of RANKS) if (score >= r.min) rank = r.name;
+
+  // Sin trabajos ni reseñas todavía no hay rango ganado.
+  const isNew = isNewWorker(s);
+  if (isNew) rank = NEW_RANK;
+
   const nextRank = RANKS.find((r) => r.min > score) ?? null;
 
   return {
     score,
     rank,
-    next: nextRank?.name ?? null,
+    next: isNew ? RANKS[0].name : (nextRank?.name ?? null),
     toNext: nextRank ? nextRank.min - score : 0,
     parts: parts.map((p) => ({ ...p, value: Math.round(p.value) })),
   };
