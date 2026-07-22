@@ -99,6 +99,27 @@ model WalletTopUp {
  * Estados: SENT (el cliente dice que transfirió) → CONFIRMED (el trabajador
  * confirma que lo recibió). Sin CONFIRMED de la seña el trabajo no arranca.
  */
+/**
+ * Presupuesto que el trabajador le envía al cliente antes del pago.
+ *
+ * El cliente lo acepta (fija el precio del trabajo y pasa a ACCEPTED), lo
+ * rechaza, o pide cambios (CHANGES) y el trabajador manda uno nuevo. El más
+ * reciente es el vigente; los anteriores quedan como historial.
+ */
+model Quote {
+  id            String   @id @default(cuid())
+  jobId         String
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  price         Float
+  estimatedTime String   @default("") // ej. "2 días", "1 semana"
+  note          String   @default("") // observaciones del trabajador
+  status        String   @default("PENDING") // PENDING | ACCEPTED | REJECTED | CHANGES
+  clientNote    String   @default("") // qué pidió cambiar el cliente
+  createdAt     DateTime @default(now())
+
+  @@index([jobId, createdAt])
+}
+
 model Payment {
   id          String   @id @default(cuid())
   jobId       String   @unique
@@ -306,6 +327,7 @@ model Job {
   completedAt  DateTime?
   reviews      Review[]
   payment      Payment?
+  quotes       Quote[]
 
   @@index([workerId, requestedAt])
   @@index([clientId])

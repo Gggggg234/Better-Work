@@ -21,6 +21,7 @@ import { needsPayment, PAYMENT_LABEL, PAYMENT_HINT } from "@/lib/payments";
 import { paymentsConfigured } from "@/lib/payments";
 import { BackButton } from "@/components/BackButton";
 import { PayButton } from "@/components/jobs/JobPaymentForm";
+import { SendQuoteForm, QuoteReview } from "@/components/jobs/QuoteForms";
 
 function CodeCard({ code, title, hint }: { code: string; title: string; hint: string }) {
   return (
@@ -74,7 +75,13 @@ export default async function JobDetailPage({
 
   const job = await db.job.findUnique({
     where: { id },
-    include: { client: true, worker: { include: { workerProfile: true } }, reviews: true, payment: true },
+    include: {
+      client: true,
+      worker: { include: { workerProfile: true } },
+      reviews: true,
+      payment: true,
+      quotes: { orderBy: { createdAt: "desc" } },
+    },
   });
   if (!job) notFound();
   const isClient = job.clientId === me.id;
@@ -90,6 +97,11 @@ export default async function JobDetailPage({
   const payment = job.payment;
   const pending = needsPayment(job.price, payment);
   const mpReady = paymentsConfigured();
+
+  // Negociación por presupuesto: el más reciente es el vigente.
+  const latestQuote = job.quotes[0];
+  const quotePending = latestQuote?.status === "PENDING";
+  const changesRequested = latestQuote?.status === "CHANGES";
 
   const scheduledLabel = (() => {
     if (!job.scheduledFor) return null;
@@ -238,14 +250,56 @@ export default async function JobDetailPage({
 
       {/* ===== Acciones según estado y rol ===== */}
 
+      {/* ── Solicitud pendiente: negociación por presupuesto ── */}
       {job.status === "REQUESTED" && isWorker && (
-        <div className="flex gap-2">
-          <form action={accept} className="flex-1 flex"><button className="btn-primary flex-1 !py-3">Aceptar</button></form>
-          <form action={reject} className="flex-1 flex"><button className="btn-secondary flex-1 !py-3">Rechazar</button></form>
-        </div>
+        <>
+          {quotePending ? (
+            <div className="card p-4">
+              <p className="text-sm font-medium">Presupuesto enviado</p>
+              <p className="text-xs text-muted mt-0.5">
+                Le pasaste {formatMoney(latestQuote.price)} a {other.name}. Esperá su respuesta.
+              </p>
+            </div>
+          ) : (
+            <SendQuoteForm jobId={job.id} changeNote={changesRequested ? latestQuote?.clientNote : undefined} />
+          )}
+          {!quotePending && (
+            <div className="flex gap-2">
+              {job.price != null && job.price > 0 && (
+                <form action={accept} className="flex-1 flex">
+                  <button className="btn-secondary flex-1 !py-3">Aceptar {formatMoney(job.price)}</button>
+                </form>
+              )}
+              <form action={reject} className="flex-1 flex">
+                <button className="btn-ghost flex-1 !py-3 text-red-600">Rechazar solicitud</button>
+              </form>
+            </div>
+          )}
+        </>
       )}
       {job.status === "REQUESTED" && isClient && (
-        <p className="text-sm text-muted text-center">Esperando que {other.name} acepte tu solicitud…</p>
+        <>
+          {quotePending && latestQuote ? (
+            <QuoteReview
+              jobId={job.id}
+              quote={{
+                id: latestQuote.id,
+                price: latestQuote.price,
+                estimatedTime: latestQuote.estimatedTime,
+                note: latestQuote.note,
+              }}
+              workerName={other.name}
+            />
+          ) : changesRequested ? (
+            <p className="text-sm text-muted text-center">
+              Le pediste cambios a {other.name}. Esperá su nuevo presupuesto…
+            </p>
+          ) : (
+            <p className="text-sm text-muted text-center">
+              Esperando que {other.name} acepte tu solicitud o te pase un presupuesto…
+            </p>
+          )}
+        </>
       )}
 
       {job.status === "ACCEPTED" && isWorker && (
