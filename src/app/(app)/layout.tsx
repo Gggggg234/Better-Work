@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { BottomNav, type NavItem } from "@/components/BottomNav";
@@ -48,6 +49,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     (!user.workerProfile ||
       !user.workerProfile.profession ||
       user.workerProfile.profession === "Sin definir");
+
+  // Completar el perfil profesional es OBLIGATORIO: mientras esté incompleto, el
+  // trabajador queda en /worker/profile y no puede navegar el resto de la app.
+  if (onboarding) {
+    const pathname = (await headers()).get("x-pathname") ?? "";
+    if (!pathname.startsWith("/worker/profile")) redirect("/worker/profile");
+  }
 
   return (
     <div className="min-h-screen flex flex-col pb-[60px]">

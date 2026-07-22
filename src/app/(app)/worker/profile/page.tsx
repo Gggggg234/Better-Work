@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { updateWorkerProfile } from "@/lib/actions/profile";
+import { logout } from "@/lib/actions/auth";
 import { WorkerProfileForm, type WorkerFormInitial } from "@/components/worker/WorkerProfileForm";
 import { BackButton } from "@/components/BackButton";
 
@@ -52,13 +53,32 @@ export default async function WorkerProfileEditPage() {
     visible: p.visible,
   };
 
+  // Perfil todavía sin completar: es el paso obligatorio del alta del trabajador.
+  const incomplete = !p.profession || p.profession === "Sin definir";
+
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6">
-      <BackButton fallback="/profile" />
-      <h1 className="text-2xl font-bold">Mi perfil profesional</h1>
-      <p className="text-sm text-muted mt-1">
-        Elegí de las opciones: cuanto más completo, mejor aparecés y más confianza generás.
-      </p>
+      {incomplete ? (
+        // No hay "volver": el alta no se puede saltear. Sólo cerrar sesión.
+        <form action={logout}>
+          <button className="btn-ghost !px-2 -ml-2 !text-sm text-muted">Cerrar sesión</button>
+        </form>
+      ) : (
+        <BackButton fallback="/profile" />
+      )}
+      <h1 className="text-2xl font-bold mt-2">Mi perfil profesional</h1>
+      {incomplete ? (
+        <div className="card p-4 mt-3 bg-fg text-bg">
+          <p className="text-sm font-medium">Completá tu perfil para empezar</p>
+          <p className="text-xs text-bg/70 mt-0.5">
+            Necesitás cargar tu profesión para aparecer en Better Work y recibir trabajos. Es un solo paso.
+          </p>
+        </div>
+      ) : (
+        <p className="text-sm text-muted mt-1">
+          Elegí de las opciones: cuanto más completo, mejor aparecés y más confianza generás.
+        </p>
+      )}
       <WorkerProfileForm initial={initial} categories={categories} action={updateWorkerProfile} />
     </main>
   );
