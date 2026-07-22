@@ -36,3 +36,4 @@ export function providerById(id: string): PaymentProvider | undefined {
 }
 
 export type { PaymentProvider, PaymentSubject, CheckoutResult, EscrowStatus } from "./types";
+export * from "./escrow";

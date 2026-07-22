@@ -1,139 +1,83 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import { declarePayment, confirmReceived, rejectReceived } from "@/lib/actions/jobPayments";
-import { CopyField } from "@/components/CopyField";
+import { startPayment } from "@/lib/actions/jobPayments";
 import { formatMoney } from "@/lib/format";
 
-function Submit({ label, pendingLabel }: { label: string; pendingLabel: string }) {
+function Submit({ mpReady, amount }: { mpReady: boolean; amount: number }) {
   const { pending } = useFormStatus();
   return (
-    <button disabled={pending} className="btn-primary w-full mt-3 !py-3">
+    <button disabled={pending} className="btn-primary w-full mt-4 !py-3" aria-busy={pending}>
       <span className="inline-flex items-center justify-center gap-2">
         {pending && (
           <span
             aria-hidden
-            className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin"
+            className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin"
           />
         )}
-        {pending ? pendingLabel : label}
+        {pending
+          ? "Redirigiendo al pago…"
+          : mpReady
+            ? `Pagar ${formatMoney(amount)} con Mercado Pago`
+            : `Pagar ${formatMoney(amount)}`}
       </span>
     </button>
   );
 }
 
 /**
- * El cliente avisa que transfirió (seña o saldo).
+ * Pago del trabajo con dinero retenido (escrow).
  *
- * El dinero va directo al alias del profesional: Better Work no lo recibe ni
- * lo retiene, sólo deja constancia para habilitar el paso siguiente.
+ * Better Work retiene el pago y se lo libera al profesional recién cuando el
+ * cliente confirma el código de finalización. Con Mercado Pago configurado, el
+ * botón lleva al checkout; sin credenciales, el proveedor simulado retiene al
+ * instante para poder probar el flujo.
  */
-export function DeclarePaymentForm({
+export function PayButton({
   jobId,
-  kind,
   amount,
-  alias,
-  holder,
   workerName,
-  isDeposit,
+  mpReady,
 }: {
   jobId: string;
-  kind: "DEPOSIT" | "FINAL";
   amount: number;
-  alias: string | null;
-  holder: string | null;
   workerName: string;
-  isDeposit: boolean;
+  mpReady: boolean;
 }) {
   return (
-    <form action={declarePayment.bind(null, jobId, kind)} className="card p-5 border-fg">
-      <p className="text-xs uppercase tracking-wide text-faint">
-        {isDeposit ? "Seña para reservar el trabajo" : "Saldo final"}
-      </p>
+    <form action={startPayment.bind(null, jobId)} className="card p-5 border-fg">
+      <p className="text-xs uppercase tracking-wide text-faint">Pago protegido</p>
       <p className="text-2xl font-bold mt-0.5">{formatMoney(amount)}</p>
       <p className="text-sm text-muted mt-2">
-        {isDeposit ? (
-          <>
-            Transferile la seña directamente a {workerName} para reservar el trabajo. Cuando la confirme, puede
-            arrancar.
-          </>
-        ) : (
-          <>El trabajo terminó. Pagale el saldo a {workerName} para cerrar.</>
-        )}
+        {workerName} aceptó el trabajo. Al pagar, el dinero queda <strong className="text-fg">retenido por
+        Better Work</strong> y se le libera <strong className="text-fg">recién cuando vos confirmes</strong> que el
+        trabajo terminó.
       </p>
 
-      {alias ? (
-        <div className="mt-4 space-y-2">
-          <CopyField label="Alias de destino" value={alias} />
-          {holder && <CopyField label="Titular" value={holder} />}
-        </div>
-      ) : (
-        <div className="card p-3.5 mt-4 bg-surface-2 !border-line">
-          <p className="text-sm text-muted">
-            {workerName} todavía no cargó su alias de cobro. Coordinen el pago por chat y después marcá que lo
-            hiciste.
-          </p>
-        </div>
-      )}
+      <ol className="space-y-2 text-sm mt-4">
+        {[
+          "Pagás ahora; el dinero queda protegido.",
+          "El profesional puede arrancar el trabajo.",
+          "Al terminar, le pasás el código de finalización.",
+          "Ahí se libera el pago (menos la comisión).",
+        ].map((step, i) => (
+          <li key={step} className="flex gap-2.5">
+            <span className="w-5 h-5 rounded-full bg-fg text-bg text-[11px] font-bold flex items-center justify-center shrink-0">
+              {i + 1}
+            </span>
+            <span className="text-muted">{step}</span>
+          </li>
+        ))}
+      </ol>
 
-      <label className="block mt-4">
-        <span className="label">Referencia (opcional)</span>
-        <input
-          name="note"
-          maxLength={120}
-          placeholder="Ej: transferencia desde Banco Nación"
-          className="input !py-2 !text-sm"
-        />
-      </label>
-
-      <Submit
-        label={isDeposit ? "Ya transferí la seña" : "Ya pagué el saldo"}
-        pendingLabel="Registrando…"
-      />
+      <Submit mpReady={mpReady} amount={amount} />
 
       <p className="text-[11px] text-faint mt-3">
-        Better Work no recibe este dinero: va directo a {workerName}. Sólo dejamos constancia.
+        {mpReady
+          ? "Vas a completar el pago en Mercado Pago y volvés a esta pantalla."
+          : "Modo de prueba: sin pasarela configurada, el pago se retiene al instante para probar el flujo."}
+        {" "}Si el trabajo se cancela antes de empezar, te devolvemos el dinero.
       </p>
     </form>
-  );
-}
-
-/** El trabajador confirma (o niega) haber recibido el dinero. */
-export function ConfirmReceivedForm({
-  jobId,
-  kind,
-  amount,
-  isDeposit,
-  clientName,
-  note,
-}: {
-  jobId: string;
-  kind: "DEPOSIT" | "FINAL";
-  amount: number;
-  isDeposit: boolean;
-  clientName: string;
-  note?: string;
-}) {
-  return (
-    <div className="card p-5 border-fg">
-      <p className="text-xs uppercase tracking-wide text-faint">
-        {isDeposit ? "Seña declarada por el cliente" : "Saldo declarado por el cliente"}
-      </p>
-      <p className="text-2xl font-bold mt-0.5">{formatMoney(amount)}</p>
-      <p className="text-sm text-muted mt-2">
-        {clientName} marcó que ya te transfirió. Revisá tu cuenta y confirmá.
-        {isDeposit && " Al confirmar vas a poder iniciar el trabajo."}
-      </p>
-      {note && <p className="text-xs text-faint mt-2">Referencia: {note}</p>}
-
-      <div className="flex gap-2 mt-4">
-        <form action={confirmReceived.bind(null, jobId, kind)} className="flex-1">
-          <button className="btn-primary w-full !py-2.5 !text-sm">Sí, lo recibí</button>
-        </form>
-        <form action={rejectReceived.bind(null, jobId, kind)} className="flex-1">
-          <button className="btn-secondary w-full !py-2.5 !text-sm text-red-600">No me llegó</button>
-        </form>
-      </div>
-    </div>
   );
 }

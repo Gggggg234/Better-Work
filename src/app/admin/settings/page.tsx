@@ -1,15 +1,13 @@
 import Link from "next/link";
 import { getAdRules, estimateCampaign } from "@/lib/ads";
-import { saveAdRules, saveTransferInfo, saveDepositPct, saveCommissionPct } from "@/lib/actions/admin";
-import { getDepositPct } from "@/lib/payments";
+import { saveAdRules, saveTransferInfo, saveCommissionPct } from "@/lib/actions/admin";
 import { getTransferInfo, getCommissionPct } from "@/lib/settings";
 import { formatMoney } from "@/lib/format";
 
 export default async function AdminSettingsPage() {
-  const [rules, transfer, depositPct, commissionPct] = await Promise.all([
+  const [rules, transfer, commissionPct] = await Promise.all([
     getAdRules(),
     getTransferInfo(),
-    getDepositPct(),
     getCommissionPct(),
   ]);
 
@@ -45,33 +43,6 @@ export default async function AdminSettingsPage() {
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-faint">%</span>
         </div>
         <button className="btn-primary">Guardar comisión</button>
-      </form>
-
-      {/* Seña de los trabajos */}
-      <form action={saveDepositPct} className="card p-5 space-y-4">
-        <div>
-          <h2 className="font-semibold text-sm">Seña de los trabajos</h2>
-          <p className="text-xs text-muted mt-0.5">
-            Porcentaje del precio que el cliente le transfiere al profesional para reservar el trabajo. El resto lo
-            paga al terminar. Este dinero <strong>no pasa por Better Work</strong>: va directo al profesional.
-          </p>
-        </div>
-        <div className="relative w-40">
-          <input
-            name="deposit_pct"
-            type="number"
-            min="1"
-            max="100"
-            step="1"
-            defaultValue={depositPct}
-            className="input pr-8"
-          />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-faint">%</span>
-        </div>
-        <p className="text-[11px] text-faint">
-          Sólo aplica a los trabajos nuevos: los que ya están en curso mantienen su seña.
-        </p>
-        <button className="btn-primary">Guardar seña</button>
       </form>
 
       {/* Datos de transferencia para las membresías */}

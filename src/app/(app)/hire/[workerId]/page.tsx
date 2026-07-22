@@ -6,7 +6,6 @@ import { Avatar } from "@/components/Avatar";
 import { LocationPicker } from "@/components/map/LocationPicker";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { HOURS } from "@/lib/worker";
-import { getDepositPct } from "@/lib/payments";
 import { BackButton } from "@/components/BackButton";
 
 export default async function HirePage({ params }: { params: Promise<{ workerId: string }> }) {
@@ -21,7 +20,6 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
   });
   if (!profile) notFound();
 
-  const depositPct = await getDepositPct();
   const today = new Date().toISOString().slice(0, 10);
   const timeOptions = HOURS.slice(6, 24); // 06:00 a 23:00
 
@@ -98,14 +96,14 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
         </div>
 
         <div className="card p-3.5 bg-surface-2 !border-line">
-          <p className="text-sm font-medium">Cómo sigue</p>
+          <p className="text-sm font-medium">Cómo sigue — Pago protegido</p>
           <p className="text-xs text-muted mt-0.5">
-            Cuando el profesional acepte, le transferís una seña del {depositPct}% para reservar el trabajo. El resto
-            se lo pagás al terminar. El trabajo se inicia y se finaliza con códigos de 4 dígitos.
+            Cuando el profesional acepte (o te pase un presupuesto), pagás a través de Better Work. El dinero queda
+            <strong className="text-fg"> retenido</strong> y se libera al profesional recién cuando confirmás el
+            código de finalización. El trabajo se inicia y termina con códigos de 4 dígitos.
           </p>
           <p className="text-xs text-muted mt-1.5">
-            El dinero va <strong className="text-fg">directo al profesional</strong>: Better Work no lo recibe ni
-            cobra comisión.
+            Si el trabajo se cancela antes de empezar, se te devuelve el dinero.
           </p>
         </div>
 

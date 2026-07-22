@@ -17,9 +17,10 @@ import { RatingForm } from "@/components/RatingForm";
 import { Stars } from "@/components/Stars";
 import { MapView } from "@/components/map/MapView";
 import { formatMoney, formatDateTime } from "@/lib/format";
-import { depositPending, findPayment, remainingAmount, KIND_LABEL, STATUS_LABEL } from "@/lib/payments";
+import { needsPayment, PAYMENT_LABEL, PAYMENT_HINT } from "@/lib/payments";
+import { paymentsConfigured } from "@/lib/payments";
 import { BackButton } from "@/components/BackButton";
-import { DeclarePaymentForm, ConfirmReceivedForm } from "@/components/jobs/JobPaymentForm";
+import { PayButton } from "@/components/jobs/JobPaymentForm";
 
 function CodeCard({ code, title, hint }: { code: string; title: string; hint: string }) {
   return (
@@ -73,7 +74,7 @@ export default async function JobDetailPage({
 
   const job = await db.job.findUnique({
     where: { id },
-    include: { client: true, worker: { include: { workerProfile: true } }, reviews: true, payments: true },
+    include: { client: true, worker: { include: { workerProfile: true } }, reviews: true, payment: true },
   });
   if (!job) notFound();
   const isClient = job.clientId === me.id;
@@ -85,12 +86,10 @@ export default async function JobDetailPage({
   const theirReview = job.reviews.find((r) => r.ratedId === me.id);
   const codeError = sp.error === "codigo";
 
-  // Pago directo entre las partes: la seña habilita el inicio del trabajo.
-  const deposit = findPayment(job.payments, "DEPOSIT");
-  const finalPay = findPayment(job.payments, "FINAL");
-  const needsDeposit = depositPending(job.deposit, job.payments);
-  const rest = remainingAmount(job.price, job.deposit);
-  const workerPay = job.worker.workerProfile;
+  // Escrow: el pago retenido habilita el inicio del trabajo.
+  const payment = job.payment;
+  const pending = needsPayment(job.price, payment);
+  const mpReady = paymentsConfigured();
 
   const scheduledLabel = (() => {
     if (!job.scheduledFor) return null;
@@ -177,99 +176,54 @@ export default async function JobDetailPage({
         )}
         <div className="p-4 flex justify-between text-sm">
           <span className="text-muted">Pago</span>
-          <span className="font-medium text-right">Directo al profesional</span>
+          <span className="font-medium text-right">
+            {payment ? PAYMENT_LABEL[payment.status] : "Retenido por Better Work"}
+          </span>
         </div>
-        {job.deposit != null && job.deposit > 0 && (
-          <div className="p-4 flex justify-between text-sm">
-            <span className="text-muted">Seña</span>
-            <span className="font-medium">{formatMoney(job.deposit)}</span>
-          </div>
-        )}
       </div>
 
-      {/* Estado de los pagos declarados */}
-      {job.payments.length > 0 && (
-        <div className="card divide-y divide-line">
-          {job.payments.map((p) => (
-            <div key={p.id} className="p-4 flex items-center justify-between gap-3 text-sm">
-              <div>
-                <p className="font-medium">{KIND_LABEL[p.kind]}</p>
-                <p className="text-xs text-faint">{formatMoney(p.amount)}</p>
-              </div>
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium shrink-0 ${
-                  p.status === "CONFIRMED" ? "bg-fg text-bg" : "border border-line text-muted"
-                }`}
-              >
-                {p.status === "CONFIRMED" ? "✓ " : ""}
-                {STATUS_LABEL[p.status]}
-              </span>
+      {/* Estado del pago retenido (escrow) */}
+      {payment && (
+        <div className="card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-faint">Pago del trabajo</p>
+              <p className="text-2xl font-bold mt-0.5">{formatMoney(payment.amount)}</p>
             </div>
-          ))}
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium shrink-0 ${
+                payment.status === "RELEASED"
+                  ? "bg-fg text-bg"
+                  : payment.status === "HELD"
+                    ? "border border-fg text-fg"
+                    : "bg-surface-2 text-muted"
+              }`}
+            >
+              {PAYMENT_LABEL[payment.status]}
+            </span>
+          </div>
+          <p className="text-xs text-muted mt-2">{PAYMENT_HINT[payment.status]}</p>
+          {payment.status === "RELEASED" && payment.commission > 0 && (
+            <p className="text-[11px] text-faint mt-1">
+              Comisión Better Work: {formatMoney(payment.commission)} · Neto al profesional:{" "}
+              {formatMoney(payment.amount - payment.commission)}
+            </p>
+          )}
         </div>
       )}
 
-      {/* ── Seña: el cliente transfiere, el trabajador confirma ── */}
-      {isClient && needsDeposit && !deposit && ["ACCEPTED", "EN_ROUTE"].includes(job.status) && (
-        <DeclarePaymentForm
-          jobId={job.id}
-          kind="DEPOSIT"
-          amount={job.deposit ?? 0}
-          alias={workerPay?.payAlias ?? null}
-          holder={workerPay?.payHolder ?? null}
-          workerName={other.name}
-          isDeposit
-        />
+      {/* ── El cliente paga (escrow) después de que el trabajador acepta ── */}
+      {isClient && pending && ["ACCEPTED", "EN_ROUTE"].includes(job.status) && (
+        <PayButton jobId={job.id} amount={job.price ?? 0} workerName={other.name} mpReady={mpReady} />
       )}
-      {isClient && deposit?.status === "SENT" && (
+      {isWorker && pending && ["ACCEPTED", "EN_ROUTE"].includes(job.status) && (
         <div className="card p-4">
-          <p className="text-sm font-medium">Esperando que {other.name} confirme la seña</p>
+          <p className="text-sm font-medium">Esperando el pago del cliente</p>
           <p className="text-xs text-muted mt-0.5">
-            Cuando confirme que la recibió, va a poder iniciar el trabajo.
+            Vas a poder iniciar el trabajo cuando el pago esté retenido por Better Work. Así cobrás seguro al
+            terminar.
           </p>
         </div>
-      )}
-      {isWorker && deposit?.status === "SENT" && (
-        <ConfirmReceivedForm
-          jobId={job.id}
-          kind="DEPOSIT"
-          amount={deposit.amount}
-          isDeposit
-          clientName={other.name}
-          note={deposit.note || undefined}
-        />
-      )}
-      {isWorker && needsDeposit && !deposit && ["ACCEPTED", "EN_ROUTE"].includes(job.status) && (
-        <div className="card p-4">
-          <p className="text-sm font-medium">Esperando la seña de {other.name}</p>
-          <p className="text-xs text-muted mt-0.5">
-            Vas a poder iniciar el trabajo cuando te transfiera {formatMoney(job.deposit ?? 0)} y lo confirmes acá.
-            {!workerPay?.payAlias && " Cargá tu alias de cobro en tu perfil para que sepa adónde transferir."}
-          </p>
-        </div>
-      )}
-
-      {/* ── Saldo final: al terminar el trabajo ── */}
-      {isClient && !finalPay && rest > 0 && ["WORKING", "COMPLETED"].includes(job.status) && (
-        <DeclarePaymentForm
-          jobId={job.id}
-          kind="FINAL"
-          amount={rest}
-          alias={workerPay?.payAlias ?? null}
-          holder={workerPay?.payHolder ?? null}
-          workerName={other.name}
-          isDeposit={false}
-        />
-      )}
-      {isWorker && finalPay?.status === "SENT" && (
-        <ConfirmReceivedForm
-          jobId={job.id}
-          kind="FINAL"
-          amount={finalPay.amount}
-          isDeposit={false}
-          clientName={other.name}
-          note={finalPay.note || undefined}
-        />
       )}
 
       {job.lat != null && job.lng != null && (
@@ -297,15 +251,15 @@ export default async function JobDetailPage({
       {job.status === "ACCEPTED" && isWorker && (
         <>
           <form action={enRoute}><button className="btn-primary w-full !py-3">🚗 Estoy en camino</button></form>
-          {!needsDeposit && (
+          {!pending && (
             <CodeForm action={startCode} label="Cuando llegues, pedile al cliente el código de inicio:" error={codeError} />
           )}
         </>
       )}
-      {job.status === "EN_ROUTE" && isWorker && !needsDeposit && (
+      {job.status === "EN_ROUTE" && isWorker && !pending && (
         <CodeForm action={startCode} label="Pedile al cliente el código de inicio para confirmar que llegaste:" error={codeError} />
       )}
-      {["ACCEPTED", "EN_ROUTE"].includes(job.status) && isClient && !needsDeposit && job.startCode && (
+      {["ACCEPTED", "EN_ROUTE"].includes(job.status) && isClient && !pending && job.startCode && (
         <CodeCard
           code={job.startCode}
           title="Código de inicio"

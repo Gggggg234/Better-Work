@@ -4,74 +4,109 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { getPaymentProvider } from "@/lib/payments";
+import { splitAmount } from "@/lib/payments/escrow";
+import { getCommissionPct } from "@/lib/settings";
 
 /**
- * Constancias de pago entre cliente y trabajador.
+ * Acciones del pago retenido (escrow) de un trabajo.
  *
- * Ver `lib/payments.ts` para el diseño. Acá no se mueve dinero: se registra
- * que el cliente transfirió y que el trabajador lo reconoció. Por eso no
- * interviene ningún administrador — es un acuerdo entre las dos partes.
+ * El cliente paga después de que el trabajador acepta. El dinero queda HELD y
+ * sólo se libera al confirmarse el código de finalización, descontando la
+ * comisión. Todo pasa por `getPaymentProvider()`, así que integrar Mercado Pago
+ * es sólo cargar sus credenciales: sin ellas se usa el proveedor simulado.
  */
 
-/** El cliente declara que ya transfirió la seña o el saldo. */
-export async function declarePayment(jobId: string, kind: string, formData: FormData): Promise<void> {
+/** El cliente inicia el pago del trabajo. Redirige al checkout o retiene ya. */
+export async function startPayment(jobId: string): Promise<void> {
   const user = await requireUser();
-  if (kind !== "DEPOSIT" && kind !== "FINAL") redirect(`/jobs/${jobId}`);
 
-  const job = await db.job.findUnique({ where: { id: jobId }, include: { payments: true } });
+  const job = await db.job.findUnique({
+    where: { id: jobId },
+    include: { payment: true, worker: { select: { name: true } } },
+  });
   if (!job || job.clientId !== user.id) redirect("/jobs");
+  if (!job.price || job.price <= 0) redirect(`/jobs/${jobId}?pago=sinprecio`);
+  // Se paga tras aceptar y antes de empezar; si ya está retenido, no se repite.
+  if (!["ACCEPTED", "EN_ROUTE"].includes(job.status)) redirect(`/jobs/${jobId}?pago=estado`);
+  if (job.payment && ["HELD", "RELEASED"].includes(job.payment.status)) redirect(`/jobs/${jobId}`);
 
-  // La seña se paga antes de empezar; el saldo, cuando el trabajo terminó.
-  const validStatus =
-    kind === "DEPOSIT"
-      ? ["ACCEPTED", "EN_ROUTE"].includes(job.status)
-      : ["WORKING", "COMPLETED"].includes(job.status);
-  if (!validStatus) redirect(`/jobs/${jobId}?error=estado`);
+  const provider = getPaymentProvider();
 
-  const amount =
-    kind === "DEPOSIT" ? (job.deposit ?? 0) : Math.max(0, (job.price ?? 0) - (job.deposit ?? 0));
-  if (amount <= 0) redirect(`/jobs/${jobId}?error=monto`);
+  let result;
+  try {
+    result = await provider.createCheckout({
+      jobId: job.id,
+      amount: job.price,
+      title: `Better Work — ${job.title}`,
+      payerEmail: user.email,
+    });
+  } catch {
+    redirect(`/jobs/${jobId}?pago=error`);
+  }
 
-  const note = String(formData.get("note") ?? "").trim().slice(0, 120);
-
-  // `upsert` sobre la clave (jobId, kind): reenviar no duplica el registro.
+  // Registro del pago (uno por trabajo). Si el proveedor retiene al instante
+  // (simulado) queda HELD; si redirige (Mercado Pago) queda PENDING hasta el
+  // webhook.
+  const held = result.kind === "held";
   await db.payment.upsert({
-    where: { jobId_kind: { jobId, kind } },
-    create: { jobId, kind, amount, note, status: "SENT" },
-    update: { note },
+    where: { jobId: job.id },
+    create: {
+      jobId: job.id,
+      amount: job.price,
+      method: provider.id,
+      providerRef: result.providerRef,
+      status: held ? "HELD" : "PENDING",
+      heldAt: held ? new Date() : null,
+    },
+    update: {
+      method: provider.id,
+      providerRef: result.providerRef,
+      status: held ? "HELD" : "PENDING",
+      heldAt: held ? new Date() : null,
+    },
   });
 
   revalidatePath(`/jobs/${jobId}`);
-  redirect(`/jobs/${jobId}?ok=${kind === "DEPOSIT" ? "sena" : "saldo"}`);
-}
 
-/** El trabajador confirma que recibió el dinero. Habilita el paso siguiente. */
-export async function confirmReceived(jobId: string, kind: string): Promise<void> {
-  const user = await requireUser();
-
-  const job = await db.job.findUnique({ where: { id: jobId } });
-  if (!job || job.workerId !== user.id) redirect("/jobs");
-
-  // Sólo confirma quien cobra, y sólo un pago que el cliente declaró.
-  await db.payment.updateMany({
-    where: { jobId, kind, status: "SENT" },
-    data: { status: "CONFIRMED", confirmedAt: new Date() },
-  });
-
-  revalidatePath(`/jobs/${jobId}`);
+  if (result.kind === "redirect") redirect(result.url);
+  redirect(`/jobs/${jobId}?pago=ok`);
 }
 
 /**
- * El trabajador avisa que el pago no le llegó: vuelve a quedar pendiente para
- * que el cliente lo revise. No se borra el monto, sólo la declaración.
+ * Libera el dinero al profesional y descuenta la comisión.
+ * Se llama SOLO desde `enterEndCode`: el trabajador nunca cobra antes.
  */
-export async function rejectReceived(jobId: string, kind: string): Promise<void> {
-  const user = await requireUser();
+export async function releaseForJob(jobId: string): Promise<void> {
+  const payment = await db.payment.findUnique({ where: { jobId } });
+  if (!payment || payment.status !== "HELD") return;
 
-  const job = await db.job.findUnique({ where: { id: jobId } });
-  if (!job || job.workerId !== user.id) redirect("/jobs");
+  const pct = await getCommissionPct();
+  const { commission } = splitAmount(payment.amount, pct);
 
-  await db.payment.deleteMany({ where: { jobId, kind, status: "SENT" } });
+  await db.payment.update({
+    where: { jobId },
+    data: { status: "RELEASED", releasedAt: new Date(), commission },
+  });
+}
 
-  revalidatePath(`/jobs/${jobId}`);
+/** Devuelve el dinero al cliente (cancelación). */
+export async function refundForJob(jobId: string): Promise<void> {
+  const payment = await db.payment.findUnique({ where: { jobId } });
+  if (!payment || !["PENDING", "HELD"].includes(payment.status)) return;
+
+  // Con proveedor real, pide el reembolso; el simulado no mueve dinero.
+  if (payment.providerRef) {
+    const provider = getPaymentProvider();
+    try {
+      await provider.refund(payment.providerRef);
+    } catch {
+      /* el reembolso puede reintentarse; igual marcamos el estado */
+    }
+  }
+
+  await db.payment.update({
+    where: { jobId },
+    data: { status: "REFUNDED", refundedAt: new Date() },
+  });
 }

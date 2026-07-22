@@ -101,17 +101,18 @@ model WalletTopUp {
  */
 model Payment {
   id          String   @id @default(cuid())
-  jobId       String
+  jobId       String   @unique
   job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  kind        String   // DEPOSIT | FINAL
-  amount      Float
-  status      String   @default("SENT") // SENT | CONFIRMED
-  method      String   @default("TRANSFER")
-  note        String   @default("") // referencia que deja el cliente
+  amount      Float    // total del trabajo que paga el cliente
+  commission  Float    @default(0) // comisión de Better Work, calculada al liberar
+  status      String   @default("PENDING") // PENDING | HELD | RELEASED | REFUNDED
+  method      String   @default("simulated") // id del proveedor (mercadopago | simulated)
+  providerRef String? // id de la operación en el proveedor
   createdAt   DateTime @default(now())
-  confirmedAt DateTime?
+  heldAt      DateTime?
+  releasedAt  DateTime?
+  refundedAt  DateTime?
 
-  @@unique([jobId, kind])
   @@index([status])
 }
 
@@ -295,8 +296,7 @@ model Job {
   lat          Float?
   lng          Float?
   scheduledFor DateTime?
-  price        Float? // acordado entre cliente y trabajador (el pago es directo)
-  deposit      Float? // seña que se paga antes de empezar
+  price        Float? // total acordado del trabajo (retenido por Better Work)
   status       String    @default("REQUESTED") // REQUESTED|ACCEPTED|EN_ROUTE|WORKING|COMPLETED|CANCELLED|REJECTED
   startCode    String?
   endCode      String?
@@ -305,7 +305,7 @@ model Job {
   startedAt    DateTime?
   completedAt  DateTime?
   reviews      Review[]
-  payments     Payment[]
+  payment      Payment?
 
   @@index([workerId, requestedAt])
   @@index([clientId])

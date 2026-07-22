@@ -118,11 +118,42 @@ export const mercadoPagoProvider: PaymentProvider = {
   },
 
   async refund(paymentId: string): Promise<void> {
-    const res = await mpFetch(`/v1/payments/${paymentId}/refunds`, { method: "POST", body: "{}" });
-    if (!res.ok && res.status !== 422) {
-      // 422 = ya reembolsado; cualquier otro error se propaga.
-      const detail = await res.text().catch(() => "");
-      throw new Error(`No se pudo reembolsar en Mercado Pago (${res.status}). ${detail.slice(0, 200)}`);
-    }
+    return refundPayment(paymentId);
   },
 };
+
+/**
+ * Datos de un pago de Mercado Pago, para el webhook: estado + a qué trabajo
+ * corresponde (external_reference) + el id del pago para reembolsar.
+ */
+export async function getMpPayment(
+  paymentId: string
+): Promise<{ status: ProviderPaymentStatus; jobId: string | null; paymentId: string } | null> {
+  const res = await mpFetch(`/v1/payments/${paymentId}`);
+  if (!res.ok) return null;
+  const data = (await res.json()) as { status?: string; external_reference?: string; id?: number };
+  const map: Record<string, ProviderPaymentStatus> = {
+    approved: "approved",
+    pending: "pending",
+    in_process: "pending",
+    authorized: "pending",
+    rejected: "rejected",
+    cancelled: "rejected",
+    refunded: "refunded",
+    charged_back: "refunded",
+  };
+  return {
+    status: map[data.status ?? ""] ?? "unknown",
+    jobId: data.external_reference ?? null,
+    paymentId: String(data.id ?? paymentId),
+  };
+}
+
+async function refundPayment(paymentId: string): Promise<void> {
+  const res = await mpFetch(`/v1/payments/${paymentId}/refunds`, { method: "POST", body: "{}" });
+  if (!res.ok && res.status !== 422) {
+    // 422 = ya reembolsado; cualquier otro error se propaga.
+    const detail = await res.text().catch(() => "");
+    throw new Error(`No se pudo reembolsar en Mercado Pago (${res.status}). ${detail.slice(0, 200)}`);
+  }
+}

@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { depositPending, suggestedDeposit, getDepositPct } from "@/lib/payments";
+import { needsPayment } from "@/lib/payments";
+import { releaseForJob, refundForJob } from "@/lib/actions/jobPayments";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
@@ -46,9 +47,6 @@ export async function requestJob(formData: FormData) {
       lat: Number.isFinite(lat) ? lat : null,
       lng: Number.isFinite(lng) ? lng : null,
       price: Number.isFinite(price) ? price : null,
-      // Seña sugerida sobre el precio propuesto. Si no hay precio no hay seña
-      // y el trabajo se coordina como siempre.
-      deposit: Number.isFinite(price) && price > 0 ? suggestedDeposit(price, await getDepositPct()) : null,
     },
   });
   // La marca `creada=1` dispara el banner de confirmación en la página del trabajo.
@@ -109,12 +107,12 @@ export async function setEnRoute(jobId: string) {
 export async function enterStartCode(jobId: string, formData: FormData): Promise<void> {
   const user = await requireRole("WORKER");
   const code = String(formData.get("code") ?? "").trim();
-  const job = await db.job.findUnique({ where: { id: jobId }, include: { payments: true } });
+  const job = await db.job.findUnique({ where: { id: jobId }, include: { payment: true } });
   if (!job || job.workerId !== user.id) return;
   if (!["ACCEPTED", "EN_ROUTE"].includes(job.status)) return;
-  // No arranca hasta que confirmó que recibió la seña.
-  if (depositPending(job.deposit, job.payments)) {
-    redirect(`/jobs/${jobId}?error=sena`);
+  // No arranca hasta que el pago esté retenido por Better Work.
+  if (needsPayment(job.price, job.payment)) {
+    redirect(`/jobs/${jobId}?error=pago`);
   }
   if (job.startCode !== code) {
     redirect(`/jobs/${jobId}?error=codigo`);
@@ -145,6 +143,8 @@ export async function enterEndCode(jobId: string, formData: FormData): Promise<v
     where: { userId: user.id },
     data: { jobsDone: { increment: 1 } },
   });
+  // Recién ahora se libera el dinero al profesional (con la comisión descontada).
+  await releaseForJob(jobId);
   revalidatePath(`/jobs/${jobId}`);
 }
 
@@ -156,6 +156,8 @@ export async function cancelJob(jobId: string) {
   if (!isParty || !["REQUESTED", "ACCEPTED", "EN_ROUTE"].includes(job.status)) return;
 
   await db.job.update({ where: { id: jobId }, data: { status: "CANCELLED" } });
+  // Si el cliente ya había pagado, se le devuelve.
+  await refundForJob(jobId);
   if (job.workerId === user.id) {
     await db.workerProfile.update({
       where: { userId: user.id },
