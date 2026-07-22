@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { needsPayment } from "@/lib/payments";
+import { saveAttachment } from "@/lib/upload";
 import { releaseForJob, refundForJob } from "@/lib/actions/jobPayments";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -36,6 +37,12 @@ export async function requestJob(formData: FormData) {
     if (!Number.isNaN(parsed.getTime())) scheduledFor = parsed;
   }
 
+  // Adjuntos: fotos y documentos que ayudan al trabajador a presupuestar.
+  const files = formData.getAll("attachments").filter((f): f is File => f instanceof File && f.size > 0);
+  const saved = (await Promise.all(files.slice(0, 10).map((f) => saveAttachment(f)))).filter(
+    (a): a is NonNullable<typeof a> => a != null
+  );
+
   const job = await db.job.create({
     data: {
       clientId: user.id,
@@ -47,6 +54,7 @@ export async function requestJob(formData: FormData) {
       lat: Number.isFinite(lat) ? lat : null,
       lng: Number.isFinite(lng) ? lng : null,
       price: Number.isFinite(price) ? price : null,
+      attachments: JSON.stringify(saved),
     },
   });
   // La marca `creada=1` dispara el banner de confirmación en la página del trabajo.

@@ -71,6 +71,60 @@ export async function trySaveImage(file: File): Promise<string | null> {
   }
 }
 
+/**
+ * Adjuntos de una solicitud: imágenes + PDF y documentos.
+ *
+ * A diferencia de `saveImage`, acepta también archivos (para que el cliente
+ * mande planos, presupuestos, etc.) y conserva el nombre y el tipo original,
+ * que la solicitud guarda para mostrarlos.
+ */
+export type Attachment = { url: string; name: string; type: "image" | "file" };
+
+const ATTACHMENT_MAX = 15 * 1024 * 1024; // 15 MB
+const ATTACHMENT_EXT = new Map<string, string>([
+  ...ALLOWED,
+  ["application/pdf", "pdf"],
+  ["application/msword", "doc"],
+  ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx"],
+  ["application/vnd.ms-excel", "xls"],
+  ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"],
+  ["text/plain", "txt"],
+]);
+
+/** Guarda un adjunto (imagen o documento). Devuelve null si no es válido. */
+export async function saveAttachment(file: File): Promise<Attachment | null> {
+  try {
+    if (!file || typeof file.arrayBuffer !== "function" || file.size === 0) return null;
+    if (file.size > ATTACHMENT_MAX) return null;
+    const ext = ATTACHMENT_EXT.get(file.type);
+    if (!ext) return null;
+
+    const stored = `${randomUUID()}.${ext}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const kind: Attachment["type"] = file.type.startsWith("image/") ? "image" : "file";
+    // Nombre para mostrar: el original, saneado.
+    const shown = (file.name || `archivo.${ext}`).replace(/[\r\n"]/g, "").slice(0, 120);
+
+    let url: string;
+    if (useSupabase) {
+      const { error } = await storage().upload(stored, buffer, {
+        contentType: file.type,
+        cacheControl: "31536000",
+        upsert: false,
+      });
+      if (error) return null;
+      url = storage().getPublicUrl(stored).data.publicUrl;
+    } else {
+      await mkdir(LOCAL_DIR, { recursive: true });
+      await writeFile(path.join(LOCAL_DIR, stored), buffer);
+      url = `/uploads/${stored}`;
+    }
+    return { url, name: shown, type: kind };
+  } catch {
+    return null;
+  }
+}
+
 /** Borra una imagen subida por la app (best-effort). Ignora URLs externas. */
 export async function deleteUpload(url: string): Promise<void> {
   if (!url) return;

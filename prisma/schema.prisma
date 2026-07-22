@@ -318,6 +318,7 @@ model Job {
   lng          Float?
   scheduledFor DateTime?
   price        Float? // total acordado del trabajo (retenido por Better Work)
+  attachments  String    @default("[]") // JSON [{url,name,type}] fotos/documentos de la solicitud
   status       String    @default("REQUESTED") // REQUESTED|ACCEPTED|EN_ROUTE|WORKING|COMPLETED|CANCELLED|REJECTED
   startCode    String?
   endCode      String?

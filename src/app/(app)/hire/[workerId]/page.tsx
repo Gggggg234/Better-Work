@@ -5,6 +5,7 @@ import { requestJob } from "@/lib/actions/jobs";
 import { Avatar } from "@/components/Avatar";
 import { LocationPicker } from "@/components/map/LocationPicker";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
+import { AttachmentsInput } from "@/components/AttachmentsInput";
 import { HOURS } from "@/lib/worker";
 import { BackButton } from "@/components/BackButton";
 
@@ -74,6 +75,14 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
         </div>
 
         <div>
+          <label className="label">Fotos y documentos (opcional)</label>
+          <p className="text-xs text-muted mb-2">
+            Adjuntá lo que ayude al profesional a presupuestar: fotos del problema, planos, presupuestos previos.
+          </p>
+          <AttachmentsInput />
+        </div>
+
+        <div>
           <label className="label">Dirección</label>
           <input name="address" required className="input" placeholder="Calle, número, barrio" />
         </div>
@@ -87,11 +96,11 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
         </div>
 
         <div>
-          <label className="label">Precio ofrecido</label>
-          <input name="price" type="number" min="0" step="100" className="input" placeholder="$" />
+          <label className="label">Precio tentativo (opcional)</label>
+          <input name="price" type="number" min="0" step="1" className="input" placeholder="$" />
           <p className="text-xs text-faint mt-1">
             {profile.priceHint ? `Referencia del trabajador: ${profile.priceHint}. ` : ""}
-            Podés ajustarlo después por chat con el profesional.
+            Podés dejarlo vacío: el profesional te va a pasar un presupuesto que después aceptás o negociás.
           </p>
         </div>
 

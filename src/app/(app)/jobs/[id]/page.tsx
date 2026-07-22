@@ -103,6 +103,16 @@ export default async function JobDetailPage({
   const quotePending = latestQuote?.status === "PENDING";
   const changesRequested = latestQuote?.status === "CHANGES";
 
+  // Adjuntos de la solicitud (fotos y documentos).
+  const attachments: { url: string; name: string; type: string }[] = (() => {
+    try {
+      const v = JSON.parse(job.attachments || "[]");
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
+    }
+  })();
+
   const scheduledLabel = (() => {
     if (!job.scheduledFor) return null;
     const raw = new Date(job.scheduledFor).toLocaleString("es-AR", {
@@ -193,6 +203,40 @@ export default async function JobDetailPage({
           </span>
         </div>
       </div>
+
+      {/* Adjuntos de la solicitud */}
+      {attachments.length > 0 && (
+        <div className="card p-4">
+          <p className="text-xs uppercase tracking-wide text-faint mb-3">Adjuntos de la solicitud</p>
+          <div className="grid grid-cols-3 gap-2">
+            {attachments.map((a) =>
+              a.type === "image" ? (
+                <a
+                  key={a.url}
+                  href={a.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="aspect-square rounded-xl overflow-hidden border border-line block"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={a.url} alt={a.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                </a>
+              ) : (
+                <a
+                  key={a.url}
+                  href={a.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="aspect-square rounded-xl border border-line flex flex-col items-center justify-center gap-1 p-2 text-center hover:bg-surface-2 transition"
+                >
+                  <span className="text-2xl" aria-hidden>📄</span>
+                  <span className="text-[10px] text-muted truncate w-full">{a.name}</span>
+                </a>
+              )
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Estado del pago retenido (escrow) */}
       {payment && (
