@@ -40,7 +40,6 @@ export async function updateWorkerProfile(formData: FormData) {
   };
 
   const services = splitList("services");
-  const payMethods = splitList("payMethods");
   const availableDays = parseJsonArr("availableDays");
 
   const workModeRaw = String(formData.get("workMode") ?? "AMBOS");
@@ -88,7 +87,6 @@ export async function updateWorkerProfile(formData: FormData) {
       availableDays: JSON.stringify(availableDays),
       workMode,
       whatsapp: String(formData.get("whatsapp") ?? "").trim() || null,
-      payMethods: JSON.stringify(payMethods),
       payAlias: String(formData.get("payAlias") ?? "").trim() || null,
       payHolder: String(formData.get("payHolder") ?? "").trim() || null,
       priceHint: String(formData.get("priceHint") ?? "").trim() || null,

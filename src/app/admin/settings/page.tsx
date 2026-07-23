@@ -151,9 +151,10 @@ export default async function AdminSettingsPage() {
       <div className="card p-4 text-xs text-muted space-y-1">
         <p className="font-medium text-fg">Nota técnica</p>
         <p>
-          Better Work no cobra comisión por trabajo ni procesa pagos: los ingresos son las membresías de empresa
-          (<code>lib/plans.ts</code>) y las campañas de publicidad (<code>lib/ads.ts</code>). Cuando se integre un
-          proveedor de pagos, el cobro se enchufa en <code>lib/actions/monetize.ts</code> sin tocar el resto.
+          Ingresos de Better Work: membresías de empresa (<code>lib/plans.ts</code>), campañas de publicidad
+          (<code>lib/ads.ts</code>) y la comisión de cada trabajo, retenida por el escrow y liberada con el pago
+          (<code>lib/payments/</code>). El proveedor de pago es Mercado Pago si está <code>MP_ACCESS_TOKEN</code>; si
+          no, uno simulado para probar el flujo.
         </p>
       </div>
     </div>

@@ -34,7 +34,6 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
 
   const services: string[] = JSON.parse(profile.services || "[]");
   const gallery: string[] = JSON.parse(profile.gallery || "[]");
-  const payMethods: string[] = JSON.parse(profile.payMethods || "[]");
   const availableDays: string[] = JSON.parse(profile.availableDays || "[]");
   const sponsored = isSponsored(profile.sponsoredUntil);
   const r = rankBreakdown({
@@ -158,9 +157,6 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
         )}
         {(profile.zone || profile.city) && (
           <div className="p-4 flex justify-between text-sm"><span className="text-muted">Zona</span><span className="font-medium text-right">{[profile.zone, profile.city].filter(Boolean).join(", ")} · {radiusLabel(profile.radiusKm)}</span></div>
-        )}
-        {payMethods.length > 0 && (
-          <div className="p-4 flex justify-between text-sm"><span className="text-muted">Cobra por</span><span className="font-medium text-right">{payMethods.join(", ")}</span></div>
         )}
         {profile.whatsapp && !isMe && (
           <div className="p-4 flex justify-between text-sm items-center">

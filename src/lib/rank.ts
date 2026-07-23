@@ -94,23 +94,24 @@ export function rankBreakdown(s: RankSignals): RankBreakdown {
   ];
 
   const raw = parts.reduce((sum, p) => sum + p.value, 0);
-  const score = Math.max(0, Math.round(raw * (1 - penalty(s.cancellations, s.claims, s.jobsDone))));
+  const computed = Math.max(0, Math.round(raw * (1 - penalty(s.cancellations, s.claims, s.jobsDone))));
 
-  let rank: string = RANKS[0].name;
-  for (const r of RANKS) if (score >= r.min) rank = r.name;
-
-  // Sin trabajos ni reseñas todavía no hay rango ganado.
+  // Sin trabajos ni reseñas todavía no hay rango ni puntaje ganado: los valores
+  // "neutros" no cuentan hasta tener actividad real.
   const isNew = isNewWorker(s);
-  if (isNew) rank = NEW_RANK;
+  const score = isNew ? 0 : computed;
+
+  let rank: string = NEW_RANK;
+  if (!isNew) for (const r of RANKS) if (score >= r.min) rank = r.name;
 
   const nextRank = RANKS.find((r) => r.min > score) ?? null;
 
   return {
     score,
     rank,
-    next: isNew ? RANKS[0].name : (nextRank?.name ?? null),
+    next: nextRank?.name ?? null,
     toNext: nextRank ? nextRank.min - score : 0,
-    parts: parts.map((p) => ({ ...p, value: Math.round(p.value) })),
+    parts: parts.map((p) => ({ ...p, value: isNew ? 0 : Math.round(p.value) })),
   };
 }
 

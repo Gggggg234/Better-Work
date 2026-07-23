@@ -32,12 +32,16 @@ export default async function AdminRevenuePage() {
 
   const planIncome = promotions.filter((p) => p.kind === "COMPANY_PLAN").reduce((s, p) => s + p.amount, 0);
   const adsIncome = promotions.filter((p) => p.kind === "CAMPAIGN").reduce((s, p) => s + p.amount, 0);
-  const total = planIncome + adsIncome;
 
-  const [activeCompanies, activeCampaigns] = await Promise.all([
+  // Comisión de los trabajos liberados (escrow).
+  const [activeCompanies, activeCampaigns, commissionAgg, completedPaid] = await Promise.all([
     db.companyProfile.count({ where: { planActiveUntil: { gt: new Date() } } }),
     db.campaign.count({ where: { status: "ACTIVE" } }),
+    db.payment.aggregate({ where: { status: "RELEASED" }, _sum: { commission: true } }),
+    db.payment.count({ where: { status: "RELEASED" } }),
   ]);
+  const commissionIncome = commissionAgg._sum.commission ?? 0;
+  const total = planIncome + adsIncome + commissionIncome;
 
   const byMonth = lastMonths(6).map((m) => ({
     label: m.label,
@@ -49,7 +53,7 @@ export default async function AdminRevenuePage() {
       <div>
         <h1 className="text-xl font-bold">Ingresos</h1>
         <p className="text-sm text-muted mt-0.5">
-          Membresías de empresa y campañas de publicidad. Better Work no cobra comisión por trabajo.
+          Membresías de empresa, campañas de publicidad y la comisión de los trabajos completados.
         </p>
       </div>
 
@@ -57,6 +61,10 @@ export default async function AdminRevenuePage() {
         <div className="card p-4">
           <p className="text-lg font-bold">{formatMoney(total)}</p>
           <p className="text-xs text-faint">Ingresos totales</p>
+        </div>
+        <div className="card p-4">
+          <p className="text-lg font-bold">{formatMoney(commissionIncome)}</p>
+          <p className="text-xs text-faint">Comisión de trabajos ({completedPaid})</p>
         </div>
         <div className="card p-4">
           <p className="text-lg font-bold">{formatMoney(planIncome)}</p>

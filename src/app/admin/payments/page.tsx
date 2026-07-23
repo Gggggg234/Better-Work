@@ -50,8 +50,8 @@ export default async function AdminPaymentsPage() {
       <div>
         <h1 className="text-xl font-bold">Pagos pendientes</h1>
         <p className="text-sm text-muted mt-0.5">
-          Membresías de empresa y cargas de presupuesto publicitario. El pago de los trabajos es directo entre
-          cliente y profesional: Better Work no interviene.
+          Membresías de empresa y cargas de presupuesto publicitario. El pago de los trabajos se cobra y libera solo
+          por Mercado Pago (escrow), no requiere tu aprobación.
         </p>
       </div>
 
