@@ -16,7 +16,7 @@ import { StatusTimeline } from "@/components/StatusTimeline";
 import { RatingForm } from "@/components/RatingForm";
 import { Stars } from "@/components/Stars";
 import { MapView } from "@/components/map/MapView";
-import { formatMoney, formatDateTime } from "@/lib/format";
+import { formatMoney, formatDateTime, TZ } from "@/lib/format";
 import { needsPayment, PAYMENT_LABEL, PAYMENT_HINT, PAYMENT_HINT_WORKER } from "@/lib/payments";
 import { paymentsConfigured } from "@/lib/payments";
 import { priceBreakdown, splitAmount } from "@/lib/payments/escrow";
@@ -24,6 +24,7 @@ import { getFeeConfig } from "@/lib/settings";
 import { BackButton } from "@/components/BackButton";
 import { PayButton } from "@/components/jobs/JobPaymentForm";
 import { SendQuoteForm, QuoteReview } from "@/components/jobs/QuoteForms";
+import { Attachments, parseAttachments } from "@/components/jobs/Attachments";
 
 function CodeCard({ code, title, hint }: { code: string; title: string; hint: string }) {
   return (
@@ -119,14 +120,7 @@ export default async function JobDetailPage({
   const changesRequested = latestQuote?.status === "CHANGES";
 
   // Adjuntos de la solicitud (fotos y documentos).
-  const attachments: { url: string; name: string; type: string }[] = (() => {
-    try {
-      const v = JSON.parse(job.attachments || "[]");
-      return Array.isArray(v) ? v : [];
-    } catch {
-      return [];
-    }
-  })();
+  const attachments = parseAttachments(job.attachments);
 
   const scheduledLabel = (() => {
     if (!job.scheduledFor) return null;
@@ -137,6 +131,7 @@ export default async function JobDetailPage({
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
+      timeZone: TZ,
     });
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   })();
@@ -231,38 +226,7 @@ export default async function JobDetailPage({
       </div>
 
       {/* Adjuntos de la solicitud */}
-      {attachments.length > 0 && (
-        <div className="card p-4">
-          <p className="text-xs uppercase tracking-wide text-faint mb-3">Adjuntos de la solicitud</p>
-          <div className="grid grid-cols-3 gap-2">
-            {attachments.map((a) =>
-              a.type === "image" ? (
-                <a
-                  key={a.url}
-                  href={a.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="aspect-square rounded-xl overflow-hidden border border-line block"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={a.url} alt={a.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                </a>
-              ) : (
-                <a
-                  key={a.url}
-                  href={a.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="aspect-square rounded-xl border border-line flex flex-col items-center justify-center gap-1 p-2 text-center hover:bg-surface-2 transition"
-                >
-                  <span className="text-2xl" aria-hidden>📄</span>
-                  <span className="text-[10px] text-muted truncate w-full">{a.name}</span>
-                </a>
-              )
-            )}
-          </div>
-        </div>
-      )}
+      <Attachments items={attachments} />
 
       {/* Estado del pago retenido (escrow) */}
       {payment && (

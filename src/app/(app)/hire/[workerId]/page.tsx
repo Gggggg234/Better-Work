@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -7,6 +8,7 @@ import { LocationPicker } from "@/components/map/LocationPicker";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { AttachmentsInput } from "@/components/AttachmentsInput";
 import { HOURS } from "@/lib/worker";
+import { todayAR } from "@/lib/format";
 import { getFeeConfig } from "@/lib/settings";
 import { BackButton } from "@/components/BackButton";
 
@@ -17,12 +19,15 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
   if (me.id === workerId) redirect(`/w/${workerId}`);
 
   const [profile, fees] = await Promise.all([
-    db.workerProfile.findUnique({ where: { userId: workerId }, include: { user: true } }),
+    db.workerProfile.findUnique({
+      where: { userId: workerId },
+      include: { user: true, category: { select: { slug: true } } },
+    }),
     getFeeConfig(),
   ]);
   if (!profile) notFound();
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayAR();
   const timeOptions = HOURS.slice(6, 24); // 06:00 a 23:00
 
   return (
@@ -37,6 +42,15 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
           <p className="text-sm text-muted">{profile.profession}</p>
         </div>
       </div>
+      <p className="text-xs text-muted mt-2">
+        ¿Querés comparar precios?{" "}
+        <Link
+          href={`/pedidos/nuevo${profile.category ? `?categoria=${profile.category.slug}` : ""}`}
+          className="font-medium text-fg underline"
+        >
+          Pedí presupuesto a varios profesionales
+        </Link>
+      </p>
 
       <form action={requestJob} className="space-y-4 mt-6">
         <input type="hidden" name="workerId" value={workerId} />

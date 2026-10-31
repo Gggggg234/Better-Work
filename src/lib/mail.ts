@@ -68,6 +68,62 @@ function layout(title: string, body: string, cta?: { href: string; label: string
   </div>`;
 }
 
+/** Escapa texto que escribió un usuario antes de meterlo en el HTML del email. */
+function esc(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
+
+/** Pedido abierto nuevo cerca de un profesional de ese oficio. */
+export async function sendNewOpenRequestEmail(
+  to: string,
+  req: { title: string; category: string; zone: string; urgent: boolean },
+  url: string
+): Promise<MailResult> {
+  return sendMail(
+    to,
+    `${req.urgent ? "🚨 Urgente: " : ""}nuevo pedido de ${req.category} cerca tuyo — Better Work`,
+    layout(
+      `${req.urgent ? "Pedido urgente" : "Nuevo pedido"} cerca tuyo`,
+      `<p><strong>${esc(req.title)}</strong>${req.zone ? ` · ${esc(req.zone)}` : ""}</p>
+       <p>Un cliente busca ${esc(req.category.toLowerCase())} y está comparando presupuestos. Mandá el tuyo antes
+       que se cierre.</p>`,
+      { href: url, label: "Ver pedido y cotizar" }
+    )
+  );
+}
+
+/** Al cliente: un profesional le cotizó su pedido. */
+export async function sendNewBidEmail(
+  to: string,
+  bid: { workerName: string; price: string; title: string },
+  url: string
+): Promise<MailResult> {
+  return sendMail(
+    to,
+    `Recibiste un presupuesto de ${bid.price} — Better Work`,
+    layout(
+      "Recibiste un presupuesto",
+      `<p>${esc(bid.workerName)} cotizó <strong>${bid.price}</strong> para «${esc(bid.title)}».</p>
+       <p>Compará los presupuestos y elegí el que más te convenga.</p>`,
+      { href: url, label: "Comparar presupuestos" }
+    )
+  );
+}
+
+/** Al profesional: el cliente eligió su presupuesto. */
+export async function sendBidAcceptedEmail(to: string, title: string, url: string): Promise<MailResult> {
+  return sendMail(
+    to,
+    "¡Te eligieron! — Better Work",
+    layout(
+      "El cliente eligió tu presupuesto",
+      `<p>Te eligieron para «${esc(title)}». Cuando el cliente pague, el dinero queda retenido y podés arrancar
+       el trabajo.</p>`,
+      { href: url, label: "Ver el trabajo" }
+    )
+  );
+}
+
 export async function sendVerificationEmail(to: string, name: string, url: string): Promise<MailResult> {
   return sendMail(
     to,
@@ -87,7 +143,7 @@ export async function sendPlanApprovedEmail(to: string, planName: string, until:
     layout(
       `Plan ${planName} activado`,
       `<p>Aprobamos tu comprobante y tu membresía ya está activa hasta el
-        <strong>${until.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" })}</strong>.
+        <strong>${until.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Argentina/Buenos_Aires" })}</strong>.
         Ya podés publicar empleos y aparecer en las búsquedas.</p>`
     )
   );

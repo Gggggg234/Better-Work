@@ -28,6 +28,8 @@ model User {
   companyProfile CompanyProfile?
   jobsAsClient   Job[]          @relation("ClientJobs")
   jobsAsWorker   Job[]          @relation("WorkerJobs")
+  openRequests   OpenRequest[]  @relation("ClientOpenRequests")
+  bids           Bid[]          @relation("WorkerBids")
   reviewsGiven   Review[]       @relation("Rater")
   reviewsGotten  Review[]       @relation("Rated")
   messages       Message[]
@@ -118,6 +120,58 @@ model Quote {
   createdAt     DateTime @default(now())
 
   @@index([jobId, createdAt])
+}
+
+/**
+ * Pedido abierto: el cliente describe el trabajo sin elegir profesional y los
+ * de ese oficio cercanos le cotizan. Al elegir una cotización se crea el Job
+ * (ACCEPTED, con ese precio) y sigue el flujo normal de escrow.
+ *
+ * `zone` es lo que ven todos; `address` (exacta) sólo se copia al Job del
+ * profesional elegido.
+ */
+model OpenRequest {
+  id           String    @id @default(cuid())
+  clientId     String
+  client       User      @relation("ClientOpenRequests", fields: [clientId], references: [id], onDelete: Cascade)
+  categoryId   String
+  category     Category  @relation(fields: [categoryId], references: [id])
+  title        String
+  description  String    @default("")
+  zone         String    @default("") // barrio/ciudad, visible para los profesionales
+  address      String    @default("") // exacta, sólo para el elegido
+  lat          Float?
+  lng          Float?
+  scheduledFor DateTime?
+  urgent       Boolean   @default(false)
+  urgencyPct   Float     @default(0)
+  attachments  String    @default("[]") // JSON [{url,name,type}]
+  status       String    @default("OPEN") // OPEN | ASSIGNED | CANCELLED
+  jobId        String?   @unique
+  job          Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  bids         Bid[]
+
+  @@index([status, categoryId])
+  @@index([clientId])
+}
+
+/** Cotización de un profesional a un pedido abierto (una por profesional). */
+model Bid {
+  id            String      @id @default(cuid())
+  requestId     String
+  request       OpenRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  workerId      String
+  worker        User        @relation("WorkerBids", fields: [workerId], references: [id], onDelete: Cascade)
+  price         Float
+  estimatedTime String      @default("")
+  note          String      @default("")
+  status        String      @default("PENDING") // PENDING | ACCEPTED | REJECTED | WITHDRAWN
+  createdAt     DateTime    @default(now())
+
+  @@unique([requestId, workerId])
+  @@index([workerId])
 }
 
 model Payment {
@@ -304,6 +358,7 @@ model Category {
   active  Boolean @default(true)
   workers WorkerProfile[]
   offers  JobOffer[]
+  openRequests OpenRequest[]
 }
 
 model Job {
@@ -332,6 +387,7 @@ model Job {
   reviews      Review[]
   payment      Payment?
   quotes       Quote[]
+  openRequest  OpenRequest? // si nació de un pedido abierto
 
   @@index([workerId, requestedAt])
   @@index([clientId])

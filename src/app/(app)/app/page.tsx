@@ -8,12 +8,17 @@ import { SponsoredBadge } from "@/components/Badges";
 import { workerScore, isSponsored, activeBoost } from "@/lib/ranking";
 import { computeRank } from "@/lib/rank";
 import { trackSearchAppearances } from "@/lib/track";
+import { openRequestsFor } from "@/lib/openRequests";
 
 const BA_CENTER: [number, number] = [-34.6037, -58.3816];
 
 export default async function AppHome() {
   const user = await getCurrentUser();
   const now = new Date();
+
+  // Pedidos abiertos que puede cotizar (sólo para profesionales).
+  const nearbyRequests =
+    user?.role === "WORKER" && user.workerProfile ? (await openRequestsFor(user.workerProfile)).filter((r) => !r.myBid) : [];
 
   const [categories, workers, companies] = await Promise.all([
     db.category.findMany({ where: { active: true }, orderBy: { order: "asc" } }),
@@ -131,6 +136,32 @@ export default async function AppHome() {
         <div className="w-10 h-1 rounded-full bg-line mx-auto mb-4" />
 
         <div className="max-w-lg mx-auto space-y-6">
+          {/* Pedido abierto: el cliente publica, varios profesionales cotizan. */}
+          {user?.role === "WORKER" ? (
+            nearbyRequests.length > 0 && (
+              <Link href="/pedidos" className="card p-4 bg-fg text-bg !border-fg flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-sm">
+                    📣 {nearbyRequests.length}{" "}
+                    {nearbyRequests.length === 1 ? "pedido esperando presupuesto" : "pedidos esperando presupuesto"}
+                  </p>
+                  <p className="text-xs text-bg/70">Clientes de tu zona buscando {user.workerProfile?.profession.toLowerCase()}.</p>
+                </div>
+                <span className="text-lg">→</span>
+              </Link>
+            )
+          ) : (
+            user?.role !== "ADMIN" && (
+              <Link href="/pedidos/nuevo" className="card p-4 flex items-center justify-between gap-3 hover:bg-surface-2 transition">
+                <div>
+                  <p className="font-semibold text-sm">📣 Pedí presupuestos a varios</p>
+                  <p className="text-xs text-muted">Publicá qué necesitás, los profesionales te cotizan y elegís.</p>
+                </div>
+                <span className="text-lg">→</span>
+              </Link>
+            )
+          )}
+
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-bold text-lg">Cerca tuyo</h2>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, TZ } from "@/lib/format";
 
 type Msg = {
   id: string;
@@ -56,7 +56,7 @@ function Bubble({ m, mine }: { m: Msg; mine: boolean }) {
         )}
         {m.content && <p className="whitespace-pre-wrap break-words">{m.content}</p>}
         <p className={`text-[10px] mt-1 ${mine ? "text-bg/50" : "text-faint"}`}>
-          {new Date(m.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+          {new Date(m.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: TZ })}
         </p>
       </div>
     </div>

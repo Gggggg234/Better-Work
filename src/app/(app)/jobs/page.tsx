@@ -63,7 +63,12 @@ export default async function JobsPage() {
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6">
-      <h1 className="text-2xl font-bold">Trabajos</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Trabajos</h1>
+        <Link href="/pedidos" className="text-sm text-muted hover:text-fg transition">
+          {me.role === "WORKER" ? "Pedidos cerca tuyo →" : "Mis pedidos →"}
+        </Link>
+      </div>
 
       <h2 className="font-semibold mt-6 mb-3 text-muted text-sm uppercase tracking-wide">En curso</h2>
       <div className="space-y-2.5">

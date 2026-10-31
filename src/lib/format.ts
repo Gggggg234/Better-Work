@@ -2,8 +2,14 @@ export function formatMoney(n: number): string {
   return n.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 }
 
+/**
+ * Zona horaria de la app. El servidor (Vercel) corre en UTC: sin esto las
+ * horas se muestran 3 h adelantadas. Argentina no tiene horario de verano.
+ */
+export const TZ = "America/Argentina/Buenos_Aires";
+
 export function formatDate(d: Date | string): string {
-  return new Date(d).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(d).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric", timeZone: TZ });
 }
 
 export function formatDateTime(d: Date | string): string {
@@ -12,7 +18,20 @@ export function formatDateTime(d: Date | string): string {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: TZ,
   });
+}
+
+/** Fecha de hoy en Argentina como "AAAA-MM-DD" (para los <input type="date">). */
+export function todayAR(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
+}
+
+/** Fecha + hora elegidas en un formulario, leídas como hora argentina (UTC-3). */
+export function parseLocalDateTime(date: string, time: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return null;
+  const d = new Date(`${date}T${time}:00-03:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 export function timeAgo(d: Date | string): string {

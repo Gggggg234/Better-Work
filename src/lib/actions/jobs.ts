@@ -7,7 +7,7 @@ import { releaseForJob, refundForJob } from "@/lib/actions/jobPayments";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
-import { genCode } from "@/lib/format";
+import { genCode, parseLocalDateTime } from "@/lib/format";
 import { isPlanActive } from "@/lib/plans";
 import { getFeeConfig } from "@/lib/settings";
 
@@ -30,13 +30,7 @@ export async function requestJob(formData: FormData) {
   if (!worker || worker.suspended) redirect(`/w/${workerId}`);
 
   // Fecha + hora propuestas por el cliente (selectores del formulario).
-  let scheduledFor: Date | null = null;
-  const date = String(formData.get("date") ?? "");
-  const time = String(formData.get("time") ?? "");
-  if (/^\d{4}-\d{2}-\d{2}$/.test(date) && /^\d{2}:\d{2}$/.test(time)) {
-    const parsed = new Date(`${date}T${time}:00`);
-    if (!Number.isNaN(parsed.getTime())) scheduledFor = parsed;
-  }
+  let scheduledFor = parseLocalDateTime(String(formData.get("date") ?? ""), String(formData.get("time") ?? ""));
 
   // Adjuntos: fotos y documentos que ayudan al trabajador a presupuestar.
   const files = formData.getAll("attachments").filter((f): f is File => f instanceof File && f.size > 0);
