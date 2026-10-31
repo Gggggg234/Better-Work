@@ -68,16 +68,17 @@ export async function saveTransferInfo(formData: FormData) {
 }
 
 /**
- * Comisión que Better Work retiene de cada trabajo completado (escrow).
- * Se aplica al liberar el pago; se admite 0 a 100 %.
+ * Tarifas de Better Work (escrow): comisión al profesional, tarifa de servicio
+ * al cliente y recargo por urgencia. Cada una admite 0 a 100 %; un valor
+ * inválido se ignora sin tocar los demás.
  */
-export async function saveCommissionPct(formData: FormData) {
+export async function saveFeeSettings(formData: FormData) {
   await requireRole("ADMIN");
 
-  const pct = parseFloat(String(formData.get("commission_pct") ?? ""));
-  if (!Number.isFinite(pct) || pct < 0 || pct > 100) return;
-
-  await setSetting("commission_pct", String(pct));
+  for (const key of ["commission_pct", "service_fee_pct", "urgency_pct"]) {
+    const pct = parseFloat(String(formData.get(key) ?? ""));
+    if (Number.isFinite(pct) && pct >= 0 && pct <= 100) await setSetting(key, String(pct));
+  }
   revalidatePath("/admin/settings");
 }
 

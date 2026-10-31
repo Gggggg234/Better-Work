@@ -1,15 +1,24 @@
 import Link from "next/link";
 import { getAdRules, estimateCampaign } from "@/lib/ads";
-import { saveAdRules, saveTransferInfo, saveCommissionPct } from "@/lib/actions/admin";
-import { getTransferInfo, getCommissionPct } from "@/lib/settings";
+import { saveAdRules, saveTransferInfo, saveFeeSettings } from "@/lib/actions/admin";
+import { getTransferInfo, getFeeConfig } from "@/lib/settings";
+import { priceBreakdown } from "@/lib/payments/escrow";
 import { formatMoney } from "@/lib/format";
 
+function PctInput({ name, value }: { name: string; value: number }) {
+  return (
+    <div className="relative w-28 shrink-0">
+      <input name={name} type="number" min="0" max="100" step="0.5" defaultValue={value} className="input pr-8" />
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-faint">%</span>
+    </div>
+  );
+}
+
 export default async function AdminSettingsPage() {
-  const [rules, transfer, commissionPct] = await Promise.all([
-    getAdRules(),
-    getTransferInfo(),
-    getCommissionPct(),
-  ]);
+  const [rules, transfer, fees] = await Promise.all([getAdRules(), getTransferInfo(), getFeeConfig()]);
+
+  // Ejemplo con las tarifas actuales: un trabajo urgente de $10.000.
+  const example = priceBreakdown(10_000, fees);
 
   // Ejemplo de referencia con las reglas actuales, para ver el efecto de un cambio.
   const sample = estimateCampaign(10_000, 15, "REPUTATION", "CITY", rules);
@@ -21,28 +30,39 @@ export default async function AdminSettingsPage() {
         <p className="text-sm text-muted mt-0.5">Datos de cobro y reglas de la publicidad.</p>
       </div>
 
-      {/* Comisión de Better Work (escrow) */}
-      <form action={saveCommissionPct} className="card p-5 space-y-4">
+      {/* Tarifas de Better Work (escrow) */}
+      <form action={saveFeeSettings} className="card p-5 space-y-4">
         <div>
-          <h2 className="font-semibold text-sm">Comisión por trabajo</h2>
+          <h2 className="font-semibold text-sm">Tarifas por trabajo</h2>
           <p className="text-xs text-muted mt-0.5">
-            Porcentaje que Better Work retiene de cada trabajo completado. Se descuenta al liberar el pago retenido
-            (escrow); el resto va al profesional.
+            Se aplican a los pagos nuevos; lo ya cobrado no cambia. El recargo por urgencia queda fijado al momento del
+            pedido.
           </p>
         </div>
-        <div className="relative w-40">
-          <input
-            name="commission_pct"
-            type="number"
-            min="0"
-            max="100"
-            step="0.5"
-            defaultValue={commissionPct}
-            className="input pr-8"
-          />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-faint">%</span>
+
+        {[
+          { name: "commission_pct", value: fees.commissionPct, label: "Comisión al profesional", hint: "Se descuenta al liberar el pago." },
+          { name: "service_fee_pct", value: fees.serviceFeePct, label: "Tarifa de servicio al cliente", hint: "Se suma a lo que paga el cliente." },
+          { name: "urgency_pct", value: fees.urgencyPct, label: "Recargo por urgencia", hint: "“Lo necesito YA”: va íntegro al profesional." },
+        ].map((f) => (
+          <div key={f.name} className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">{f.label}</p>
+              <p className="text-xs text-faint">{f.hint}</p>
+            </div>
+            <PctInput name={f.name} value={f.value} />
+          </div>
+        ))}
+
+        <div className="rounded-xl bg-surface-2 p-3 text-xs text-muted space-y-0.5">
+          <p className="font-medium text-fg">Ejemplo: trabajo urgente de {formatMoney(10_000)}</p>
+          <p>
+            El cliente paga {formatMoney(example.clientTotal)} · el profesional cobra {formatMoney(example.net)} · Better
+            Work gana {formatMoney(example.serviceFee + example.commission)}.
+          </p>
         </div>
-        <button className="btn-primary">Guardar comisión</button>
+
+        <button className="btn-primary">Guardar tarifas</button>
       </form>
 
       {/* Datos de transferencia para las membresías */}

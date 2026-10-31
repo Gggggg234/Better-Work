@@ -18,7 +18,11 @@ export default async function JobsPage() {
     take: 50,
   });
 
-  const active = jobs.filter((j) => ACTIVE.includes(j.status));
+  // Los pedidos urgentes todavía sin responder van primero.
+  const urgentFirst = (j: (typeof jobs)[number]) => (j.urgent && j.status === "REQUESTED" ? 0 : 1);
+  const active = jobs
+    .filter((j) => ACTIVE.includes(j.status))
+    .sort((a, b) => urgentFirst(a) - urgentFirst(b));
   const past = jobs.filter((j) => !ACTIVE.includes(j.status));
 
   function JobRow({ job }: { job: (typeof jobs)[number] }) {
@@ -28,7 +32,14 @@ export default async function JobsPage() {
       <Link href={`/jobs/${job.id}`} className="card p-4 flex items-center gap-3.5 hover:shadow-md transition">
         <Avatar name={other.name} url={other.avatarUrl} size={44} />
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate">{job.title}</p>
+          <p className="font-semibold text-sm truncate">
+            {job.urgent && isActive && (
+              <span className="inline-block rounded-full bg-fg text-bg px-1.5 py-px text-[10px] font-semibold mr-1.5 align-middle">
+                🚨 Urgente
+              </span>
+            )}
+            {job.title}
+          </p>
           <p className="text-xs text-muted">
             {job.clientId === me!.id ? "Trabajador" : "Cliente"}: {other.name}
           </p>

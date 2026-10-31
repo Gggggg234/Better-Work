@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { sendQuote, acceptQuote, rejectQuote, requestQuoteChanges } from "@/lib/actions/quotes";
 import { formatMoney } from "@/lib/format";
+import type { PriceBreakdown } from "@/lib/payments/escrow";
 
 function Submit({ children, pendingLabel, variant = "primary" }: { children: React.ReactNode; pendingLabel: string; variant?: "primary" | "secondary" }) {
   const { pending } = useFormStatus();
@@ -18,15 +19,35 @@ function Submit({ children, pendingLabel, variant = "primary" }: { children: Rea
 }
 
 /** El trabajador arma y envía su presupuesto. */
-export function SendQuoteForm({ jobId, changeNote }: { jobId: string; changeNote?: string }) {
+export function SendQuoteForm({
+  jobId,
+  changeNote,
+  urgencyPct = 0,
+  commissionPct,
+}: {
+  jobId: string;
+  changeNote?: string;
+  urgencyPct?: number;
+  commissionPct: number;
+}) {
   return (
     <form action={sendQuote.bind(null, jobId)} className="card p-5 border-fg space-y-3">
       <div>
         <p className="font-semibold text-sm">{changeNote ? "Enviá un nuevo presupuesto" : "Pasá tu presupuesto"}</p>
         <p className="text-xs text-muted mt-0.5">
           El cliente lo va a poder aceptar, rechazar o pedirte cambios. El precio no es automático: lo ponés vos.
+          Al terminar cobrás el presupuesto menos la comisión de Better Work ({commissionPct}%).
         </p>
       </div>
+
+      {urgencyPct > 0 && (
+        <div className="rounded-xl bg-fg text-bg p-3">
+          <p className="text-sm font-semibold">🚨 Pedido urgente</p>
+          <p className="text-xs text-bg/70 mt-0.5">
+            El cliente lo necesita ya. A tu presupuesto se le suma un {urgencyPct}% extra para vos.
+          </p>
+        </div>
+      )}
 
       {changeNote && (
         <div className="rounded-xl border border-line bg-surface-2 p-3">
@@ -68,10 +89,12 @@ export function QuoteReview({
   jobId,
   quote,
   workerName,
+  breakdown: b,
 }: {
   jobId: string;
   quote: { id: string; price: number; estimatedTime: string; note: string };
   workerName: string;
+  breakdown: PriceBreakdown;
 }) {
   const [changing, setChanging] = useState(false);
 
@@ -120,8 +143,13 @@ export function QuoteReview({
       )}
 
       <p className="text-[11px] text-faint mt-3">
-        Al aceptar vas a pagar {formatMoney(quote.price)}, que queda retenido por Better Work hasta que confirmes el
-        final del trabajo.
+        Al aceptar vas a pagar {formatMoney(b.clientTotal)}
+        {b.surcharge > 0 || b.serviceFee > 0
+          ? ` (presupuesto${b.surcharge > 0 ? ` + ${formatMoney(b.surcharge)} de urgencia` : ""}${
+              b.serviceFee > 0 ? ` + ${formatMoney(b.serviceFee)} de tarifa de servicio` : ""
+            })`
+          : ""}
+        , que queda retenido por Better Work hasta que confirmes el final del trabajo.
       </p>
     </div>
   );

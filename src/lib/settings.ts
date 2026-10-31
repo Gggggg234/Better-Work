@@ -40,6 +40,29 @@ export async function getCommissionPct(): Promise<number> {
   return Number.isFinite(raw) && raw >= 0 && raw <= 100 ? raw : 5;
 }
 
+/** Porcentaje válido (0 a 100) o el default. */
+function pct(raw: string, fallback: number): number {
+  const v = parseFloat(raw);
+  return Number.isFinite(v) && v >= 0 && v <= 100 ? v : fallback;
+}
+
+export type FeeConfig = { commissionPct: number; serviceFeePct: number; urgencyPct: number };
+
+/**
+ * Tarifas de Better Work, editables desde el Super Admin:
+ *  - comisión que se descuenta al profesional (default 5%),
+ *  - tarifa de servicio que paga el cliente encima del trabajo (default 5%),
+ *  - recargo por urgencia "Lo necesito YA", íntegro para el profesional (default 25%).
+ */
+export async function getFeeConfig(): Promise<FeeConfig> {
+  const s = await getSettings({ commission_pct: "5", service_fee_pct: "5", urgency_pct: "25" });
+  return {
+    commissionPct: pct(s.commission_pct, 5),
+    serviceFeePct: pct(s.service_fee_pct, 5),
+    urgencyPct: pct(s.urgency_pct, 25),
+  };
+}
+
 /** Datos bancarios para las transferencias de membresías. */
 export type TransferInfo = { alias: string; holder: string; bank: string };
 

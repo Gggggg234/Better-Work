@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { getPaymentProvider } from "@/lib/payments";
-import { splitAmount } from "@/lib/payments/escrow";
-import { getCommissionPct } from "@/lib/settings";
+import { splitAmount, priceBreakdown } from "@/lib/payments/escrow";
+import { getCommissionPct, getFeeConfig } from "@/lib/settings";
 
 /**
  * Acciones del pago retenido (escrow) de un trabajo.
@@ -33,12 +33,16 @@ export async function startPayment(jobId: string): Promise<void> {
 
   const provider = getPaymentProvider();
 
+  // El cliente paga el trabajo (presupuesto + urgencia) más la tarifa de servicio.
+  const fees = await getFeeConfig();
+  const b = priceBreakdown(job.price, { ...fees, urgencyPct: job.urgencyPct });
+
   let result;
   try {
     result = await provider.createCheckout({
       jobId: job.id,
-      amount: job.price,
-      title: `Better Work — ${job.title}`,
+      amount: b.clientTotal,
+      title: `Better Work — ${job.title}${job.urgent ? " (urgente)" : ""}`,
       payerEmail: user.email,
     });
   } catch {
@@ -53,13 +57,16 @@ export async function startPayment(jobId: string): Promise<void> {
     where: { jobId: job.id },
     create: {
       jobId: job.id,
-      amount: job.price,
+      amount: b.workAmount,
+      serviceFee: b.serviceFee,
       method: provider.id,
       providerRef: result.providerRef,
       status: held ? "HELD" : "PENDING",
       heldAt: held ? new Date() : null,
     },
     update: {
+      amount: b.workAmount,
+      serviceFee: b.serviceFee,
       method: provider.id,
       providerRef: result.providerRef,
       status: held ? "HELD" : "PENDING",

@@ -33,14 +33,14 @@ export default async function AdminRevenuePage() {
   const planIncome = promotions.filter((p) => p.kind === "COMPANY_PLAN").reduce((s, p) => s + p.amount, 0);
   const adsIncome = promotions.filter((p) => p.kind === "CAMPAIGN").reduce((s, p) => s + p.amount, 0);
 
-  // Comisión de los trabajos liberados (escrow).
+  // Comisión + tarifa de servicio de los trabajos liberados (escrow).
   const [activeCompanies, activeCampaigns, commissionAgg, completedPaid] = await Promise.all([
     db.companyProfile.count({ where: { planActiveUntil: { gt: new Date() } } }),
     db.campaign.count({ where: { status: "ACTIVE" } }),
-    db.payment.aggregate({ where: { status: "RELEASED" }, _sum: { commission: true } }),
+    db.payment.aggregate({ where: { status: "RELEASED" }, _sum: { commission: true, serviceFee: true } }),
     db.payment.count({ where: { status: "RELEASED" } }),
   ]);
-  const commissionIncome = commissionAgg._sum.commission ?? 0;
+  const commissionIncome = (commissionAgg._sum.commission ?? 0) + (commissionAgg._sum.serviceFee ?? 0);
   const total = planIncome + adsIncome + commissionIncome;
 
   const byMonth = lastMonths(6).map((m) => ({
@@ -64,7 +64,7 @@ export default async function AdminRevenuePage() {
         </div>
         <div className="card p-4">
           <p className="text-lg font-bold">{formatMoney(commissionIncome)}</p>
-          <p className="text-xs text-faint">Comisión de trabajos ({completedPaid})</p>
+          <p className="text-xs text-faint">Comisión y tarifas de trabajos ({completedPaid})</p>
         </div>
         <div className="card p-4">
           <p className="text-lg font-bold">{formatMoney(planIncome)}</p>

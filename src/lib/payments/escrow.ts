@@ -27,6 +27,14 @@ export const PAYMENT_HINT: Record<string, string> = {
   REFUNDED: "El trabajo se canceló y te devolvimos el dinero.",
 };
 
+/** Lo mismo, contado desde el lado del profesional. */
+export const PAYMENT_HINT_WORKER: Record<string, string> = {
+  PENDING: "El cliente está completando el pago.",
+  HELD: "El dinero ya está asegurado. Se te libera cuando ingreses el código de finalización.",
+  RELEASED: "El trabajo se completó y el pago se liberó a tu cuenta de cobro.",
+  REFUNDED: "El trabajo se canceló y el dinero se le devolvió al cliente.",
+};
+
 export type PaymentLike = { status: string } | null | undefined;
 
 /** El dinero está retenido: el trabajo ya puede arrancar. */
@@ -44,4 +52,32 @@ export function needsPayment(price: number | null, payment: PaymentLike): boolea
 export function splitAmount(amount: number, commissionPct: number): { commission: number; net: number } {
   const commission = Math.round(amount * (commissionPct / 100));
   return { commission, net: Math.max(0, amount - commission) };
+}
+
+export type PriceBreakdown = {
+  price: number; //       presupuesto acordado
+  surcharge: number; //   recargo por urgencia (va al profesional)
+  workAmount: number; //  price + surcharge: lo que se retiene para el trabajo
+  serviceFee: number; //  tarifa de servicio que paga el cliente (Better Work)
+  clientTotal: number; // lo que paga el cliente
+  commission: number; //  lo que Better Work descuenta al profesional
+  net: number; //         lo que cobra el profesional
+};
+
+/**
+ * Desglose completo del cobro de un trabajo.
+ *
+ * Better Work gana por los dos lados: la tarifa de servicio que paga el cliente
+ * encima del trabajo y la comisión que se descuenta al profesional al liberar.
+ * El recargo por urgencia es íntegro para el profesional (menos la comisión).
+ */
+export function priceBreakdown(
+  price: number,
+  pct: { urgencyPct: number; serviceFeePct: number; commissionPct: number }
+): PriceBreakdown {
+  const surcharge = Math.round(price * (pct.urgencyPct / 100));
+  const workAmount = price + surcharge;
+  const serviceFee = Math.round(workAmount * (pct.serviceFeePct / 100));
+  const { commission, net } = splitAmount(workAmount, pct.commissionPct);
+  return { price, surcharge, workAmount, serviceFee, clientTotal: workAmount + serviceFee, commission, net };
 }

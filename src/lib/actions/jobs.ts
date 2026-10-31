@@ -9,9 +9,10 @@ import { db } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
 import { genCode } from "@/lib/format";
 import { isPlanActive } from "@/lib/plans";
+import { getFeeConfig } from "@/lib/settings";
 
 /** Cliente crea una solicitud de trabajo para un trabajador, con fecha y
- *  horario propuestos. El pago se arregla directo entre las partes. */
+ *  horario propuestos. El pago se hace después, retenido por Better Work. */
 export async function requestJob(formData: FormData) {
   const user = await requireUser();
   const workerId = String(formData.get("workerId"));
@@ -43,6 +44,13 @@ export async function requestJob(formData: FormData) {
     (a): a is NonNullable<typeof a> => a != null
   );
 
+  // "Lo necesito YA": se fija el recargo vigente para que un cambio de tarifa
+  // no altere un pedido ya hecho.
+  const urgent = formData.get("urgent") === "on";
+  const urgencyPct = urgent ? (await getFeeConfig()).urgencyPct : 0;
+  // Urgente con un horario que ya pasó (el default es 09:00 de hoy) = lo antes posible.
+  if (urgent && (!scheduledFor || scheduledFor.getTime() < Date.now())) scheduledFor = new Date();
+
   const job = await db.job.create({
     data: {
       clientId: user.id,
@@ -55,6 +63,8 @@ export async function requestJob(formData: FormData) {
       lng: Number.isFinite(lng) ? lng : null,
       price: Number.isFinite(price) ? price : null,
       attachments: JSON.stringify(saved),
+      urgent,
+      urgencyPct,
     },
   });
   // La marca `creada=1` dispara el banner de confirmación en la página del trabajo.

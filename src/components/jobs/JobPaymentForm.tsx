@@ -3,6 +3,7 @@
 import { useFormStatus } from "react-dom";
 import { startPayment } from "@/lib/actions/jobPayments";
 import { formatMoney } from "@/lib/format";
+import type { PriceBreakdown } from "@/lib/payments/escrow";
 
 function Submit({ mpReady, amount }: { mpReady: boolean; amount: number }) {
   const { pending } = useFormStatus();
@@ -35,19 +36,47 @@ function Submit({ mpReady, amount }: { mpReady: boolean; amount: number }) {
  */
 export function PayButton({
   jobId,
-  amount,
+  breakdown: b,
+  urgencyPct,
+  serviceFeePct,
   workerName,
   mpReady,
 }: {
   jobId: string;
-  amount: number;
+  breakdown: PriceBreakdown;
+  urgencyPct: number;
+  serviceFeePct: number;
   workerName: string;
   mpReady: boolean;
 }) {
+  const amount = b.clientTotal;
   return (
     <form action={startPayment.bind(null, jobId)} className="card p-5 border-fg">
       <p className="text-xs uppercase tracking-wide text-faint">Pago protegido</p>
       <p className="text-2xl font-bold mt-0.5">{formatMoney(amount)}</p>
+
+      <dl className="mt-3 space-y-1 text-sm">
+        <div className="flex justify-between">
+          <dt className="text-muted">Presupuesto</dt>
+          <dd>{formatMoney(b.price)}</dd>
+        </div>
+        {b.surcharge > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-muted">Urgencia (+{urgencyPct}%, para el profesional)</dt>
+            <dd>{formatMoney(b.surcharge)}</dd>
+          </div>
+        )}
+        {b.serviceFee > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-muted">Tarifa de servicio ({serviceFeePct}%)</dt>
+            <dd>{formatMoney(b.serviceFee)}</dd>
+          </div>
+        )}
+        <div className="flex justify-between border-t border-line pt-1 font-semibold">
+          <dt>Total</dt>
+          <dd>{formatMoney(amount)}</dd>
+        </div>
+      </dl>
       <p className="text-sm text-muted mt-2">
         {workerName} aceptó el trabajo. Al pagar, el dinero queda <strong className="text-fg">retenido por
         Better Work</strong> y se le libera <strong className="text-fg">recién cuando vos confirmes</strong> que el

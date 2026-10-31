@@ -7,6 +7,7 @@ import { LocationPicker } from "@/components/map/LocationPicker";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { AttachmentsInput } from "@/components/AttachmentsInput";
 import { HOURS } from "@/lib/worker";
+import { getFeeConfig } from "@/lib/settings";
 import { BackButton } from "@/components/BackButton";
 
 export default async function HirePage({ params }: { params: Promise<{ workerId: string }> }) {
@@ -15,10 +16,10 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
   if (!me) redirect("/login");
   if (me.id === workerId) redirect(`/w/${workerId}`);
 
-  const profile = await db.workerProfile.findUnique({
-    where: { userId: workerId },
-    include: { user: true },
-  });
+  const [profile, fees] = await Promise.all([
+    db.workerProfile.findUnique({ where: { userId: workerId }, include: { user: true } }),
+    getFeeConfig(),
+  ]);
   if (!profile) notFound();
 
   const today = new Date().toISOString().slice(0, 10);
@@ -44,6 +45,18 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
           <label className="label">¿Qué necesitás?</label>
           <input name="title" required className="input" placeholder="Ej: Arreglar una pérdida en la cocina" />
         </div>
+
+        {/* Urgencia: aparece primero y el recargo va íntegro al profesional. */}
+        <label className="card p-4 flex items-start gap-3 cursor-pointer transition has-[:checked]:border-fg has-[:checked]:bg-surface-2">
+          <input type="checkbox" name="urgent" className="mt-0.5 w-4 h-4 accent-current shrink-0" />
+          <span>
+            <span className="block text-sm font-semibold">🚨 Lo necesito YA</span>
+            <span className="block text-xs text-muted mt-0.5">
+              Tu pedido le aparece primero y destacado al profesional. Se suma un {fees.urgencyPct}% al presupuesto,
+              que va íntegro al profesional por atenderte con urgencia.
+            </span>
+          </span>
+        </label>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -112,7 +125,8 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
             código de finalización. El trabajo se inicia y termina con códigos de 4 dígitos.
           </p>
           <p className="text-xs text-muted mt-1.5">
-            Si el trabajo se cancela antes de empezar, se te devuelve el dinero.
+            Al pagar se suma una tarifa de servicio del {fees.serviceFeePct}% que cubre la protección del pago. Si el
+            trabajo se cancela antes de empezar, se te devuelve todo.
           </p>
         </div>
 

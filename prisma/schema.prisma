@@ -124,7 +124,8 @@ model Payment {
   id          String   @id @default(cuid())
   jobId       String   @unique
   job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  amount      Float    // total del trabajo que paga el cliente
+  amount      Float    // importe del trabajo (presupuesto + urgencia); base de la comisión
+  serviceFee  Float    @default(0) // tarifa de servicio que paga el cliente encima (ingreso de Better Work)
   commission  Float    @default(0) // comisión de Better Work, calculada al liberar
   status      String   @default("PENDING") // PENDING | HELD | RELEASED | REFUNDED
   method      String   @default("simulated") // id del proveedor (mercadopago | simulated)
@@ -319,6 +320,8 @@ model Job {
   scheduledFor DateTime?
   price        Float? // total acordado del trabajo (retenido por Better Work)
   attachments  String    @default("[]") // JSON [{url,name,type}] fotos/documentos de la solicitud
+  urgent       Boolean   @default(false) // "Lo necesito YA": aparece primero y suma recargo
+  urgencyPct   Float     @default(0) // recargo por urgencia (para el trabajador), fijado al pedir
   status       String    @default("REQUESTED") // REQUESTED|ACCEPTED|EN_ROUTE|WORKING|COMPLETED|CANCELLED|REJECTED
   startCode    String?
   endCode      String?

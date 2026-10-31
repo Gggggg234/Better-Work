@@ -17,8 +17,10 @@ import { RatingForm } from "@/components/RatingForm";
 import { Stars } from "@/components/Stars";
 import { MapView } from "@/components/map/MapView";
 import { formatMoney, formatDateTime } from "@/lib/format";
-import { needsPayment, PAYMENT_LABEL, PAYMENT_HINT } from "@/lib/payments";
+import { needsPayment, PAYMENT_LABEL, PAYMENT_HINT, PAYMENT_HINT_WORKER } from "@/lib/payments";
 import { paymentsConfigured } from "@/lib/payments";
+import { priceBreakdown, splitAmount } from "@/lib/payments/escrow";
+import { getFeeConfig } from "@/lib/settings";
 import { BackButton } from "@/components/BackButton";
 import { PayButton } from "@/components/jobs/JobPaymentForm";
 import { SendQuoteForm, QuoteReview } from "@/components/jobs/QuoteForms";
@@ -73,16 +75,19 @@ export default async function JobDetailPage({
   const me = await getCurrentUser();
   if (!me) redirect("/login");
 
-  const job = await db.job.findUnique({
-    where: { id },
-    include: {
-      client: true,
-      worker: { include: { workerProfile: true } },
-      reviews: true,
-      payment: true,
-      quotes: { orderBy: { createdAt: "desc" } },
-    },
-  });
+  const [job, fees] = await Promise.all([
+    db.job.findUnique({
+      where: { id },
+      include: {
+        client: true,
+        worker: { include: { workerProfile: true } },
+        reviews: true,
+        payment: true,
+        quotes: { orderBy: { createdAt: "desc" } },
+      },
+    }),
+    getFeeConfig(),
+  ]);
   if (!job) notFound();
   const isClient = job.clientId === me.id;
   const isWorker = job.workerId === me.id;
@@ -97,6 +102,16 @@ export default async function JobDetailPage({
   const payment = job.payment;
   const pending = needsPayment(job.price, payment);
   const mpReady = paymentsConfigured();
+
+  // Desglose del cobro: el recargo por urgencia quedó fijado al pedir.
+  const breakdownFor = (price: number) => priceBreakdown(price, { ...fees, urgencyPct: job.urgencyPct });
+  const breakdown = job.price != null && job.price > 0 ? breakdownFor(job.price) : null;
+  // Comisión real si ya se liberó; si no, la estimada con la tarifa vigente.
+  const workerCut = payment
+    ? payment.status === "RELEASED"
+      ? { commission: payment.commission, net: payment.amount - payment.commission }
+      : splitAmount(payment.amount, fees.commissionPct)
+    : null;
 
   // Negociación por presupuesto: el más reciente es el vigente.
   const latestQuote = job.quotes[0];
@@ -152,6 +167,11 @@ export default async function JobDetailPage({
       )}
 
       <div>
+        {job.urgent && (
+          <span className="inline-block rounded-full bg-fg text-bg px-2.5 py-0.5 text-[11px] font-semibold mb-1.5">
+            🚨 Urgente
+          </span>
+        )}
         <h1 className="text-xl font-bold">{job.title}</h1>
         <p className="text-sm text-muted">Solicitado el {formatDateTime(job.requestedAt)}</p>
       </div>
@@ -194,6 +214,12 @@ export default async function JobDetailPage({
           <div className="p-4 flex justify-between text-sm">
             <span className="text-muted">Presupuesto</span>
             <span className="font-medium">{formatMoney(job.price)}</span>
+          </div>
+        )}
+        {breakdown && breakdown.surcharge > 0 && (
+          <div className="p-4 flex justify-between text-sm">
+            <span className="text-muted">Urgencia (+{job.urgencyPct}%, para el profesional)</span>
+            <span className="font-medium">{formatMoney(breakdown.surcharge)}</span>
           </div>
         )}
         <div className="p-4 flex justify-between text-sm">
@@ -243,8 +269,12 @@ export default async function JobDetailPage({
         <div className="card p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-wide text-faint">Pago del trabajo</p>
-              <p className="text-2xl font-bold mt-0.5">{formatMoney(payment.amount)}</p>
+              <p className="text-xs uppercase tracking-wide text-faint">
+                {isWorker ? "Pago del trabajo" : "Pagaste"}
+              </p>
+              <p className="text-2xl font-bold mt-0.5">
+                {formatMoney(isWorker ? payment.amount : payment.amount + payment.serviceFee)}
+              </p>
             </div>
             <span
               className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium shrink-0 ${
@@ -258,19 +288,32 @@ export default async function JobDetailPage({
               {PAYMENT_LABEL[payment.status]}
             </span>
           </div>
-          <p className="text-xs text-muted mt-2">{PAYMENT_HINT[payment.status]}</p>
-          {payment.status === "RELEASED" && payment.commission > 0 && (
+          <p className="text-xs text-muted mt-2">{(isWorker ? PAYMENT_HINT_WORKER : PAYMENT_HINT)[payment.status]}</p>
+          {/* El profesional ve lo que cobra; el cliente, en qué se fue lo que pagó. */}
+          {isWorker && workerCut && payment.status !== "REFUNDED" && (
             <p className="text-[11px] text-faint mt-1">
-              Comisión Better Work: {formatMoney(payment.commission)} · Neto al profesional:{" "}
-              {formatMoney(payment.amount - payment.commission)}
+              Comisión Better Work: {formatMoney(workerCut.commission)} ·{" "}
+              {payment.status === "RELEASED" ? "Cobraste" : "Vas a cobrar"}: {formatMoney(workerCut.net)}
+            </p>
+          )}
+          {!isWorker && payment.serviceFee > 0 && (
+            <p className="text-[11px] text-faint mt-1">
+              Trabajo: {formatMoney(payment.amount)} · Tarifa de servicio: {formatMoney(payment.serviceFee)}
             </p>
           )}
         </div>
       )}
 
       {/* ── El cliente paga (escrow) después de que el trabajador acepta ── */}
-      {isClient && pending && ["ACCEPTED", "EN_ROUTE"].includes(job.status) && (
-        <PayButton jobId={job.id} amount={job.price ?? 0} workerName={other.name} mpReady={mpReady} />
+      {isClient && pending && breakdown && ["ACCEPTED", "EN_ROUTE"].includes(job.status) && (
+        <PayButton
+          jobId={job.id}
+          breakdown={breakdown}
+          urgencyPct={job.urgencyPct}
+          serviceFeePct={fees.serviceFeePct}
+          workerName={other.name}
+          mpReady={mpReady}
+        />
       )}
       {isWorker && pending && ["ACCEPTED", "EN_ROUTE"].includes(job.status) && (
         <div className="card p-4">
@@ -305,7 +348,12 @@ export default async function JobDetailPage({
               </p>
             </div>
           ) : (
-            <SendQuoteForm jobId={job.id} changeNote={changesRequested ? latestQuote?.clientNote : undefined} />
+            <SendQuoteForm
+              jobId={job.id}
+              changeNote={changesRequested ? latestQuote?.clientNote : undefined}
+              urgencyPct={job.urgencyPct}
+              commissionPct={fees.commissionPct}
+            />
           )}
           {!quotePending && (
             <div className="flex gap-2">
@@ -333,6 +381,7 @@ export default async function JobDetailPage({
                 note: latestQuote.note,
               }}
               workerName={other.name}
+              breakdown={breakdownFor(latestQuote.price)}
             />
           ) : changesRequested ? (
             <p className="text-sm text-muted text-center">
