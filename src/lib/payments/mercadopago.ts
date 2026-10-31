@@ -157,3 +157,125 @@ async function refundPayment(paymentId: string): Promise<void> {
     throw new Error(`No se pudo reembolsar en Mercado Pago (${res.status}). ${detail.slice(0, 200)}`);
   }
 }
+
+// ── Suscripciones y pagos únicos de la plataforma (Pro, planes, billetera) ──
+
+/** Estados de una suscripción tal como los devuelve Mercado Pago (incluye las dos grafías de "cancelada"). */
+export type MpPreapproval = {
+  id: string;
+  status: string; // pending | authorized | paused | cancelled | canceled
+  external_reference?: string;
+  init_point?: string;
+  next_payment_date?: string | null;
+  summarized?: { charged_quantity?: number | null; last_charged_date?: string | null } | null;
+};
+
+async function mpJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await mpFetch(path, init);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Mercado Pago respondió ${res.status} en ${path}. ${detail.slice(0, 300)}`);
+  }
+  return (await res.json()) as T;
+}
+
+/**
+ * Crea una suscripción mensual con débito automático ("sin plan asociado",
+ * estado pending): devuelve el `init_point` donde la persona elige cómo pagar
+ * y autoriza los cobros.
+ */
+export async function createPreapproval(input: {
+  reason: string;
+  externalReference: string;
+  payerEmail: string;
+  amount: number;
+  backUrl: string;
+}): Promise<MpPreapproval> {
+  return mpJson<MpPreapproval>("/preapproval", {
+    method: "POST",
+    body: JSON.stringify({
+      reason: input.reason,
+      external_reference: input.externalReference,
+      payer_email: input.payerEmail,
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: "months",
+        transaction_amount: Math.round(input.amount * 100) / 100,
+        currency_id: "ARS",
+      },
+      back_url: input.backUrl,
+      status: "pending",
+    }),
+  });
+}
+
+export async function getPreapproval(id: string): Promise<MpPreapproval> {
+  return mpJson<MpPreapproval>(`/preapproval/${encodeURIComponent(id)}`);
+}
+
+/** Cancela la suscripción: no se hacen más débitos (lo ya pagado sigue vigente). */
+export async function cancelPreapproval(id: string): Promise<void> {
+  await mpJson(`/preapproval/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify({ status: "canceled" }),
+  }).catch(async () => {
+    // La documentación usa "canceled"; si no se acepta, probamos la otra grafía.
+    await mpJson(`/preapproval/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify({ status: "cancelled" }),
+    });
+  });
+}
+
+/** Un débito de una suscripción: sólo interesa a qué suscripción pertenece. */
+export async function getAuthorizedPayment(id: string): Promise<{ preapproval_id?: string } | null> {
+  const res = await mpFetch(`/authorized_payments/${encodeURIComponent(id)}`);
+  if (!res.ok) return null;
+  return (await res.json()) as { preapproval_id?: string };
+}
+
+/** Pago único con Checkout Pro (tarjeta, dinero en cuenta, efectivo, etc.). */
+export async function createOneTimePreference(input: {
+  title: string;
+  amount: number;
+  externalReference: string;
+  payerEmail?: string;
+  backUrl: string;
+  notificationUrl: string;
+}): Promise<{ id: string; url: string }> {
+  const sep = input.backUrl.includes("?") ? "&" : "?";
+  const pref = await mpJson<{ id: string; init_point?: string; sandbox_init_point?: string }>("/checkout/preferences", {
+    method: "POST",
+    body: JSON.stringify({
+      items: [{ title: input.title, quantity: 1, unit_price: Math.round(input.amount * 100) / 100, currency_id: "ARS" }],
+      external_reference: input.externalReference,
+      ...(input.payerEmail ? { payer: { email: input.payerEmail } } : {}),
+      back_urls: {
+        success: `${input.backUrl}${sep}mp=ok`,
+        pending: `${input.backUrl}${sep}mp=pendiente`,
+        failure: `${input.backUrl}${sep}mp=error`,
+      },
+      auto_return: "approved",
+      notification_url: input.notificationUrl,
+      statement_descriptor: "BETTER WORK",
+    }),
+  });
+  const url = (isSandbox() ? pref.sandbox_init_point : pref.init_point) ?? pref.init_point;
+  if (!url) throw new Error("Mercado Pago no devolvió una URL de pago.");
+  return { id: pref.id, url };
+}
+
+/** Datos crudos de un pago (para reconciliar por `external_reference`). */
+export async function getPaymentInfo(
+  paymentId: string
+): Promise<{ id: string; status: string; externalReference: string | null; amount: number } | null> {
+  const res = await mpFetch(`/v1/payments/${encodeURIComponent(paymentId)}`);
+  if (!res.ok) return null;
+  const d = (await res.json()) as { id?: number; status?: string; external_reference?: string; transaction_amount?: number };
+  return {
+    id: String(d.id ?? paymentId),
+    status: d.status ?? "unknown",
+    externalReference: d.external_reference ?? null,
+    amount: d.transaction_amount ?? 0,
+  };
+}

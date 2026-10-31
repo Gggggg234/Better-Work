@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { giveBackFreeJob } from "@/lib/referrals";
 import { getMpPayment } from "@/lib/payments/mercadopago";
+import { handlePaymentNotice, handleSubscriptionNotice } from "@/lib/billing";
 
 /**
  * Webhook de Mercado Pago.
@@ -9,6 +10,9 @@ import { getMpPayment } from "@/lib/payments/mercadopago";
  * MP avisa que hubo movimiento en un pago; nunca confiamos en el cuerpo:
  * re-consultamos el pago con la API, y si está aprobado marcamos el escrow del
  * trabajo como HELD (el `external_reference` es el jobId).
+ *
+ * También recibe los cobros de la plataforma (Pro, planes, billetera) y los
+ * avisos de suscripciones: esos los resuelve `lib/billing`.
  *
  * Siempre respondemos 200: si devolviéramos error, Mercado Pago reintenta en
  * bucle. Los casos que no aplican simplemente se ignoran.
@@ -20,16 +24,27 @@ export async function POST(request: Request) {
     let paymentId = url.searchParams.get("data.id") ?? url.searchParams.get("id");
     const type = url.searchParams.get("type") ?? url.searchParams.get("topic");
 
+    let bodyType: string | undefined;
     if (!paymentId) {
       const body = (await request.json().catch(() => null)) as
-        | { data?: { id?: string }; type?: string }
+        | { data?: { id?: string | number }; type?: string }
         | null;
-      paymentId = body?.data?.id ?? null;
-      if (!type && body?.type && body.type !== "payment") return NextResponse.json({ ok: true });
+      paymentId = body?.data?.id != null ? String(body.data.id) : null;
+      bodyType = body?.type;
+    }
+    const kind = type ?? bodyType ?? "payment";
+    if (!paymentId) return NextResponse.json({ ok: true });
+
+    // Suscripciones de la plataforma (débito automático).
+    if (kind.startsWith("subscription_")) {
+      await handleSubscriptionNotice(kind, paymentId);
+      return NextResponse.json({ ok: true });
     }
     // Sólo nos interesan las notificaciones de pagos.
-    if (type && type !== "payment") return NextResponse.json({ ok: true });
-    if (!paymentId) return NextResponse.json({ ok: true });
+    if (kind !== "payment") return NextResponse.json({ ok: true });
+
+    // ¿Es un cobro de la plataforma (Pro, plan, billetera, débito de suscripción)?
+    if (await handlePaymentNotice(paymentId)) return NextResponse.json({ ok: true });
 
     const info = await getMpPayment(paymentId);
     if (!info || !info.jobId) return NextResponse.json({ ok: true });

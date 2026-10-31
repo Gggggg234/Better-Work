@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { login, resendVerification } from "@/lib/actions/auth";
-import { Brand } from "@/components/Brand";
+import { AuthShell } from "@/components/auth/AuthShell";
 import {
   Field,
   Notice,
@@ -32,10 +32,9 @@ export function LoginForm({ google, urlError }: { google: boolean; urlError?: st
   const topError = state?.error ?? (urlError ? URL_ERRORS[urlError] ?? URL_ERRORS.google : undefined);
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-10">
-      <div className="w-full max-w-sm animate-fade-up">
-        <Brand href="/" />
-        <h1 className="text-2xl font-bold mt-8">Ingresá a tu cuenta</h1>
+    <AuthShell>
+      <div>
+        <h1 className="text-2xl font-extrabold tracking-tight">Ingresá a tu cuenta</h1>
         <p className="text-sm text-muted mt-1">Bienvenido de nuevo.</p>
 
         <form action={action} className="space-y-4 mt-8">
@@ -83,6 +82,6 @@ export function LoginForm({ google, urlError }: { google: boolean; urlError?: st
           <Link href="/register" className="font-medium text-fg underline">Registrate</Link>
         </p>
       </div>
-    </main>
+    </AuthShell>
   );
 }

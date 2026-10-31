@@ -1,169 +1,197 @@
 import { redirect } from "next/navigation";
+import { Check, Landmark, Crown } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { listPlans, benefitList, isPlanActive } from "@/lib/plans";
 import { getTransferInfo } from "@/lib/settings";
+import { subscribePlan, payPlanOnce, cancelSubscription } from "@/lib/actions/billing";
+import { billingMode, confirmReturn, userSubscriptions } from "@/lib/billing";
 import { formatMoney, formatDate, formatDateTime } from "@/lib/format";
 import { PlanCheckout } from "@/components/company/PlanCheckout";
 import { CopyField } from "@/components/CopyField";
-import { BackButton } from "@/components/BackButton";
+import { PageHero } from "@/components/ui/ActionCards";
+import { ReturnBanner, SubscriptionStatus, MpPayOptions } from "@/components/billing/BillingParts";
 
 const ERRORS: Record<string, string> = {
   plan: "Ese plan no está disponible.",
   pendiente: "Ya tenés un comprobante en revisión. Esperá la respuesta antes de enviar otro.",
   comprobante: "Adjuntá el comprobante de la transferencia.",
   archivo: "No pudimos leer ese archivo. Subí una imagen (JPG, PNG o WEBP) de hasta 8 MB.",
+  mp: "Mercado Pago no pudo iniciar el pago. Probá de nuevo en un rato o pagá por transferencia.",
+  email: "Revisá el email de tu cuenta de Mercado Pago.",
 };
 
 export default async function CompanyPlanPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; ok?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; mp?: string; payment_id?: string; collection_id?: string; sid?: string }>;
 }) {
   const me = await getCurrentUser();
   if (!me) redirect("/login");
   if (me.role !== "COMPANY" || !me.companyProfile) redirect("/app");
   const sp = await searchParams;
 
-  const [plans, company, transfer] = await Promise.all([
+  const result = await confirmReturn(me.id, sp);
+  const mode = billingMode();
+
+  const [plans, company, transfer, subs] = await Promise.all([
     listPlans(),
     db.companyProfile.findUnique({ where: { userId: me.id } }),
     getTransferInfo(),
+    userSubscriptions(me.id, "PLAN"),
   ]);
   if (!company) redirect("/app");
 
   const active = isPlanActive(company.planActiveUntil);
+  const authorized = subs.find((s) => s.status === "AUTHORIZED");
 
   const [pending, lastRejected] = await Promise.all([
-    db.planRequest.findFirst({
-      where: { companyId: company.id, status: "PENDING" },
-      orderBy: { createdAt: "desc" },
-    }),
-    db.planRequest.findFirst({
-      where: { companyId: company.id, status: "REJECTED" },
-      orderBy: { reviewedAt: "desc" },
-    }),
+    db.planRequest.findFirst({ where: { companyId: company.id, status: "PENDING" }, orderBy: { createdAt: "desc" } }),
+    db.planRequest.findFirst({ where: { companyId: company.id, status: "REJECTED" }, orderBy: { reviewedAt: "desc" } }),
   ]);
 
   const planName = (key: string | null) => plans.find((p) => p.key === key)?.name ?? key ?? "";
+  // El plan del medio es el recomendado (el más elegido en este tipo de tablas).
+  const featured = plans.length >= 3 ? plans[1]?.key : null;
 
   return (
-    <main className="max-w-lg mx-auto w-full px-4 py-6 animate-fade-up">
-      <BackButton fallback="/company" />
-      <h1 className="text-2xl font-bold">Membresía</h1>
-      <p className="text-sm text-muted mt-1">
-        Elegí el plan que necesita tu empresa. Los trabajadores usan Better Work gratis.
-      </p>
+    <main className="w-full animate-fade-up">
+      <PageHero
+        eyebrow="Membresía de empresa"
+        title={active ? `Plan ${planName(company.planKey)}` : "Elegí tu plan"}
+        subtitle={
+          active
+            ? `Activo hasta el ${formatDate(company.planActiveUntil!)}.`
+            : "Publicá empleos, recibí postulantes y aparecé primero. Los profesionales usan Better Work gratis."
+        }
+      />
 
-      {sp.ok === "enviado" && (
-        <div className="card p-4 mt-5 bg-fg text-bg">
-          <p className="text-sm font-medium">✓ Recibimos tu comprobante</p>
-          <p className="text-xs text-bg/70 mt-0.5">
-            Lo revisamos a la brevedad. Te avisamos por email apenas se apruebe.
-          </p>
-        </div>
-      )}
-      {sp.error && ERRORS[sp.error] && (
-        <div className="card p-4 mt-5 border-red-300" role="alert">
-          <p className="text-sm text-red-600">⚠ {ERRORS[sp.error]}</p>
-        </div>
-      )}
-
-      {/* Estado actual */}
-      {active && (
-        <div className="card p-4 mt-5 border-fg bg-surface-2">
-          <p className="text-sm font-medium">Plan {planName(company.planKey)} activo</p>
-          <p className="text-xs text-muted mt-0.5">
-            Vence el {formatDate(company.planActiveUntil!)}. Renovalo o cambiá de plan cuando quieras.
-          </p>
-        </div>
-      )}
-
-      {/* Comprobante en revisión */}
-      {pending && (
-        <div className="card p-4 mt-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-fg animate-pulse" aria-hidden />
-            <p className="text-sm font-medium">Pendiente de aprobación</p>
+      <div className="max-w-lg mx-auto px-4 -mt-8 relative space-y-4 pb-4">
+        <ReturnBanner result={result} />
+        {sp.ok === "enviado" && (
+          <div className="card p-4 !border-success/30">
+            <p className="text-sm font-bold text-success">✓ Recibimos tu comprobante</p>
+            <p className="text-xs text-muted mt-0.5">Lo revisamos a la brevedad. Te avisamos por email apenas se apruebe.</p>
           </div>
-          <p className="text-xs text-muted mt-1">
-            Enviaste el comprobante del plan {planName(pending.planKey)} por {formatMoney(pending.amount)} el{" "}
-            {formatDateTime(pending.createdAt)}. Un administrador lo va a revisar.
-          </p>
-        </div>
-      )}
+        )}
+        {sp.error && ERRORS[sp.error] && (
+          <div className="card p-4 !border-danger/30" role="alert">
+            <p className="text-sm font-semibold text-danger">{ERRORS[sp.error]}</p>
+          </div>
+        )}
 
-      {/* Último rechazo, con el motivo */}
-      {!pending && lastRejected && (
-        <div className="card p-4 mt-3 border-red-300">
-          <p className="text-sm font-medium text-red-600">Tu último comprobante fue rechazado</p>
-          {lastRejected.note && <p className="text-xs text-muted mt-1">Motivo: {lastRejected.note}</p>}
-          <p className="text-xs text-muted mt-1">Podés volver a enviarlo desde acá.</p>
-        </div>
-      )}
+        {subs.map((s) => (
+          <SubscriptionStatus
+            key={s.id}
+            sub={s}
+            title={`Suscripción · Plan ${planName(s.planKey)}`}
+            cancelAction={cancelSubscription.bind(null, s.id)}
+          />
+        ))}
 
-      {/* Datos para transferir */}
-      <section className="card p-5 mt-6">
-        <h2 className="font-semibold">Cómo se paga</h2>
-        <p className="text-sm text-muted mt-1">
-          El pago es por transferencia bancaria. Transferí el importe del plan y subí el comprobante: activamos la
-          membresía apenas lo validemos.
-        </p>
-        <div className="mt-4 space-y-2">
-          <CopyField label="Alias" value={transfer.alias} />
-          {transfer.holder && <CopyField label="Titular" value={transfer.holder} />}
-          {transfer.bank && <CopyField label="Banco" value={transfer.bank} />}
-        </div>
-      </section>
-
-      {/* Planes */}
-      <div className="space-y-3 mt-6">
+        {/* Planes */}
         {plans.map((p) => {
           const current = active && company.planKey === p.key;
+          const isFeatured = p.key === featured;
+          const subscribedHere = authorized?.planKey === p.key;
           return (
-            <div key={p.key} className={`card p-5 ${current ? "border-fg" : ""}`}>
+            <section
+              key={p.key}
+              className={`card p-5 relative overflow-hidden ${isFeatured ? "!border-accent/40 shadow-glow" : ""} ${current ? "!border-success/40" : ""}`}
+            >
+              {isFeatured && <div className="absolute inset-x-0 top-0 h-1 bg-brand" aria-hidden />}
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-bold text-lg">{p.name}</h2>
-                    {current && (
-                      <span className="rounded-full bg-fg text-bg px-2 py-0.5 text-[11px] font-medium">Tu plan</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="font-extrabold text-xl tracking-tight">{p.name}</h2>
+                    {isFeatured && (
+                      <span className="badge bg-brand text-white">
+                        <Crown className="w-3 h-3" aria-hidden /> Recomendado
+                      </span>
                     )}
+                    {current && <span className="badge badge-success">Tu plan</span>}
                   </div>
-                  <p className="text-xs text-muted">{p.tagline}</p>
+                  <p className="text-xs text-muted mt-0.5">{p.tagline}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-bold text-lg">{formatMoney(p.price)}</p>
+                  <p className="font-extrabold text-2xl tracking-tight">{formatMoney(p.price)}</p>
                   <p className="text-[11px] text-faint">por mes</p>
                 </div>
               </div>
 
-              <ul className="mt-3 space-y-1.5">
+              <ul className="mt-4 space-y-2">
                 {benefitList(p).map((b) => (
-                  <li key={b} className="flex items-start gap-2 text-sm">
-                    <span className="text-fg mt-0.5">✓</span>
-                    <span className="text-muted">{b}</span>
+                  <li key={b} className="flex items-start gap-2.5 text-sm">
+                    <span className="w-5 h-5 rounded-full bg-success/12 text-success flex items-center justify-center shrink-0 mt-px">
+                      <Check className="w-3.5 h-3.5" strokeWidth={3} aria-hidden />
+                    </span>
+                    <span>{b}</span>
                   </li>
                 ))}
               </ul>
 
+              <div className="mt-5">
+                <MpPayOptions
+                  mode={mode}
+                  subscribeAction={subscribePlan}
+                  onceAction={payPlanOnce}
+                  hidden={{ planKey: p.key }}
+                  defaultEmail={me.email}
+                  price={p.price}
+                  subscribed={subscribedHere}
+                />
+              </div>
+            </section>
+          );
+        })}
+
+        {/* Transferencia (alternativa manual) */}
+        <details className="card group" open={mode === "off" ? true : undefined}>
+          <summary className="list-none cursor-pointer flex items-center gap-3 p-4">
+            <span className="icon-tile w-10 h-10 bg-surface-2 text-fg">
+              <Landmark className="w-5 h-5" aria-hidden />
+            </span>
+            <span className="flex-1">
+              <span className="block text-sm font-bold">Pagar por transferencia</span>
+              <span className="block text-xs text-muted">Subís el comprobante y lo aprobamos a mano</span>
+            </span>
+          </summary>
+          <div className="px-4 pb-4 space-y-3 border-t border-line pt-4">
+            {pending && (
+              <p className="text-xs rounded-xl bg-warning/10 text-warning font-semibold p-3">
+                Comprobante del plan {planName(pending.planKey)} por {formatMoney(pending.amount)} enviado el{" "}
+                {formatDateTime(pending.createdAt)}: en revisión.
+              </p>
+            )}
+            {!pending && lastRejected && (
+              <p className="text-xs rounded-xl bg-danger/8 text-danger font-semibold p-3">
+                Tu último comprobante fue rechazado{lastRejected.note ? `: ${lastRejected.note}` : "."}
+              </p>
+            )}
+            <div className="space-y-2">
+              <CopyField label="Alias" value={transfer.alias} />
+              {transfer.holder && <CopyField label="Titular" value={transfer.holder} />}
+              {transfer.bank && <CopyField label="Banco" value={transfer.bank} />}
+            </div>
+            {plans.map((p) => (
               <PlanCheckout
+                key={p.key}
                 planKey={p.key}
                 planName={p.name}
                 price={p.price}
                 alias={transfer.alias}
                 blocked={!!pending}
-                label={current ? "Renovar 30 días" : active ? `Cambiar a ${p.name}` : `Activar ${p.name}`}
+                label={`Transferí y activá ${p.name}`}
               />
-            </div>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+        </details>
 
-      <p className="text-xs text-faint mt-4 text-center">
-        La membresía dura 30 días desde la aprobación. Si renovás el mismo plan antes del vencimiento, los días se
-        suman.
-      </p>
+        <p className="text-xs text-faint text-center px-4">
+          Cada pago suma 30 días. Renovar el mismo plan antes del vencimiento acumula días; cambiar de plan reinicia el
+          período.
+        </p>
+      </div>
     </main>
   );
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { MapView } from "@/components/map/MapView";
+import { HomeMap } from "@/components/home/HomeMap";
 import type { MapMarker } from "@/components/map/Map";
 import { WorkerCard } from "@/components/WorkerCard";
 import { SponsoredBadge } from "@/components/Badges";
@@ -29,10 +29,9 @@ import {
   Users,
   Megaphone,
   MessageCircle,
+  ChevronRight,
 } from "lucide-react";
 import { QuickAction, ActionRow, SectionTitle, IconTile } from "@/components/ui/ActionCards";
-
-const BA_CENTER: [number, number] = [-34.6037, -58.3816];
 
 export default async function AppHome() {
   const user = await getCurrentUser();
@@ -72,6 +71,7 @@ export default async function AppHome() {
         avgResponseMins: true,
         punctualityAvg: true,
         user: { select: { name: true, avatarUrl: true } },
+        category: { select: { slug: true } },
       },
       take: 80,
     }),
@@ -112,7 +112,14 @@ export default async function AppHome() {
       label: w.user.name,
       sublabel: w.profession,
       href: `/w/${w.userId}`,
+      actionHref: user?.role === "WORKER" ? undefined : `/hire/${w.userId}`,
       kind: (isSponsored(w.sponsoredUntil) ? "sponsored" : "worker") as MapMarker["kind"],
+      avatarUrl: w.user.avatarUrl,
+      rating: w.ratingAvg,
+      ratingCount: w.ratingCount,
+      pro: isPro(w.proUntil),
+      zone: w.zone,
+      categorySlug: w.category?.slug ?? null,
     })),
     ...sortedCompanies.map((c) => ({
       id: c.id,
@@ -121,52 +128,46 @@ export default async function AppHome() {
       label: c.companyName,
       sublabel: c.industry,
       kind: "company" as MapMarker["kind"],
+      zone: c.city,
+      actionHref: `/offers?company=${c.id}`,
     })),
   ];
 
   const firstName = user?.name.trim().split(/\s+/)[0] ?? "";
   const workerPro = isPro(user?.workerProfile?.proUntil);
 
-  return (
-    <main className="relative flex-1 flex flex-col">
-      {/* Mapa con buscador flotante */}
-      <div className="relative h-[38vh] min-h-[260px]">
-        <div className="absolute inset-0">
-          <MapView center={BA_CENTER} zoom={12} markers={markers} locate />
-        </div>
-
-        <div className="absolute top-3 inset-x-3 z-[999]">
-          <form action="/search" className="flex items-center gap-2.5 bg-surface rounded-2xl shadow-lg border border-line px-4">
-            <Search className="w-[18px] h-[18px] text-faint shrink-0" aria-hidden />
-            <input
-              name="q"
-              placeholder="¿Qué necesitás? Plomero, electricista…"
-              aria-label="Buscar profesionales"
-              className="w-full py-3.5 text-sm bg-transparent text-fg outline-none placeholder:text-faint"
-            />
-          </form>
-
-          {/* Oficios: un toque y busca */}
-          <div className="flex gap-2 mt-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {categories.map((c) => (
-              <Link key={c.id} href={`/search?category=${c.slug}`} className="chip shadow-sm !py-1.5">
-                <span aria-hidden>{c.icon}</span> {c.name}
-              </Link>
-            ))}
-          </div>
-        </div>
+  const header = (
+    <div className="flex items-end justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">
+          {user?.role === "WORKER" ? "Tu día de trabajo" : "Inicio"}
+        </p>
+        <h1 className="text-[26px] leading-tight font-extrabold tracking-tight truncate">
+          Hola{firstName ? `, ${firstName}` : ""} 👋
+        </h1>
+        <p className="text-sm text-muted mt-0.5">
+          {user?.role === "WORKER"
+            ? nearbyRequests.length > 0
+              ? `Tenés ${nearbyRequests.length} ${nearbyRequests.length === 1 ? "pedido" : "pedidos"} cerca para cotizar.`
+              : "Mirá el mapa y tus accesos."
+            : "Elegí en el mapa o buscá por oficio."}
+        </p>
       </div>
+      {user?.role === "WORKER" && nearbyRequests.length > 0 && (
+        <Link href="/pedidos" className="btn-primary !py-2 !px-3.5 !text-xs shrink-0">
+          Ver pedidos <ChevronRight className="w-3.5 h-3.5" aria-hidden />
+        </Link>
+      )}
+    </div>
+  );
 
-      {/* Panel */}
-      <section className="flex-1 bg-bg rounded-t-3xl -mt-5 z-[500] relative shadow-[0_-8px_30px_rgba(0,0,0,0.08)] px-4 pt-5 pb-8">
-        <div className="max-w-lg mx-auto space-y-7">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Hola{firstName ? `, ${firstName}` : ""} 👋</h1>
-            <p className="text-sm text-muted mt-0.5">
-              {user?.role === "WORKER" ? "Esto es lo que podés hacer hoy." : "¿Qué necesitás hoy?"}
-            </p>
-          </div>
-
+  return (
+    <HomeMap
+      markers={markers}
+      categories={categories.map((c) => ({ slug: c.slug, name: c.name, icon: c.icon }))}
+      header={header}
+    >
+        <div className="max-w-lg mx-auto space-y-7 pt-1">
           {/* Accesos rápidos: qué es cada cosa y para qué sirve */}
           <div className="grid grid-cols-2 gap-3">
             {user?.role === "WORKER" ? (
@@ -312,7 +313,6 @@ export default async function AppHome() {
             </div>
           </div>
         </div>
-      </section>
-    </main>
+    </HomeMap>
   );
 }

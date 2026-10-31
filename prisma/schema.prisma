@@ -8,93 +8,96 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id            String    @id @default(cuid())
+  email         String    @unique
   // Opcional: las cuentas creadas con Google no tienen contraseña propia.
-  passwordHash String?
-  name         String
-  phone        String?
-  role         String   // CLIENT | WORKER | COMPANY | ADMIN
-  avatarUrl    String?
-  suspended    Boolean  @default(false)
+  passwordHash  String?
+  name          String
+  phone         String?
+  role          String // CLIENT | WORKER | COMPANY | ADMIN
+  avatarUrl     String?
+  suspended     Boolean   @default(false)
   // Verificación de email: hasta tener fecha, la cuenta no puede iniciar sesión.
   emailVerified DateTime?
   // Alta con Google (OAuth). `onboarded` marca si ya eligió rol y completó el perfil.
-  googleId      String?  @unique
-  onboarded     Boolean  @default(true)
+  googleId      String?   @unique
+  onboarded     Boolean   @default(true)
   // Cómo prefiere pagar quien contrata (cliente o empresa). Informativo.
-  payPreference String   @default("[]") // JSON string[] ej ["Efectivo","Transferencia","Mercado Pago"]
-  createdAt    DateTime @default(now())
+  payPreference String    @default("[]") // JSON string[] ej ["Efectivo","Transferencia","Mercado Pago"]
+  createdAt     DateTime  @default(now())
 
-  workerProfile  WorkerProfile?
-  companyProfile CompanyProfile?
-  jobsAsClient   Job[]          @relation("ClientJobs")
-  jobsAsWorker   Job[]          @relation("WorkerJobs")
-  openRequests   OpenRequest[]  @relation("ClientOpenRequests")
-  bids           Bid[]          @relation("WorkerBids")
-  aiAnalyses     AiAnalysis[]
-  proRequests    ProRequest[]
-  notifications  Notification[]
-  pushSubs       PushSubscription[]
-  supplierProfile SupplierProfile?
-  supplyOrders    SupplyOrder[]    @relation("SupplyBuyer")
-  supplierReviews SupplierReview[]
+  workerProfile    WorkerProfile?
+  companyProfile   CompanyProfile?
+  jobsAsClient     Job[]              @relation("ClientJobs")
+  jobsAsWorker     Job[]              @relation("WorkerJobs")
+  openRequests     OpenRequest[]      @relation("ClientOpenRequests")
+  bids             Bid[]              @relation("WorkerBids")
+  aiAnalyses       AiAnalysis[]
+  proRequests      ProRequest[]
+  notifications    Notification[]
+  pushSubs         PushSubscription[]
+  supplierProfile  SupplierProfile?
+  supplyOrders     SupplyOrder[]      @relation("SupplyBuyer")
+  supplierReviews  SupplierReview[]
+  subscriptions    Subscription[]
+  mpPayments       MpPayment[]
   // Referidos: código propio para invitar, quién lo invitó y trabajos
   // bonificados (sin comisión si es profesional, sin tarifa si contrata).
-  referralCode     String?  @unique
+  referralCode     String?            @unique
   referredById     String?
-  referredBy       User?    @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
-  referrals        User[]   @relation("Referrals")
-  freeJobs         Int      @default(0)
-  referralRewarded Boolean  @default(false) // ya le dio el premio a quien lo invitó
-  reviewsGiven   Review[]       @relation("Rater")
-  reviewsGotten  Review[]       @relation("Rated")
-  messages       Message[]
-  conversationsA Conversation[] @relation("ConvA")
-  conversationsB Conversation[] @relation("ConvB")
-  reportsMade    Report[]       @relation("Reporter")
-  reportsGotten  Report[]       @relation("Target")
-  applications   Application[]
-  posts          Post[]         @relation("PostAuthor")
-  postLikes      PostLike[]
-  postComments   PostComment[]
-  postSaves      PostSave[]
-  postReports    PostReport[]
-  campaigns      Campaign[]
-  authTokens     AuthToken[]
-  adWallet       AdWallet?
+  referredBy       User?              @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals        User[]             @relation("Referrals")
+  freeJobs         Int                @default(0)
+  referralRewarded Boolean            @default(false) // ya le dio el premio a quien lo invitó
+  reviewsGiven     Review[]           @relation("Rater")
+  reviewsGotten    Review[]           @relation("Rated")
+  messages         Message[]
+  conversationsA   Conversation[]     @relation("ConvA")
+  conversationsB   Conversation[]     @relation("ConvB")
+  reportsMade      Report[]           @relation("Reporter")
+  reportsGotten    Report[]           @relation("Target")
+  applications     Application[]
+  posts            Post[]             @relation("PostAuthor")
+  postLikes        PostLike[]
+  postComments     PostComment[]
+  postSaves        PostSave[]
+  postReports      PostReport[]
+  campaigns        Campaign[]
+  authTokens       AuthToken[]
+  adWallet         AdWallet?
 
   @@index([referredById])
 }
 
 /**
  * Billetera de publicidad de un trabajador o empresa.
- *
  * El saldo se carga por transferencia (WalletTopUp, aprobada por el Super
  * Admin) y se descuenta al lanzar una campaña. `spent` es el acumulado
  * histórico invertido: no se recalcula sumando campañas para que un borrado
  * futuro no altere la contabilidad.
  */
 model AdWallet {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balance   Float    @default(0)
-  spent     Float    @default(0)
-  createdAt DateTime @default(now())
+  id        String        @id @default(cuid())
+  userId    String        @unique
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Float         @default(0)
+  spent     Float         @default(0)
+  createdAt DateTime      @default(now())
   topUps    WalletTopUp[]
 }
 
-/** Carga de saldo por transferencia, pendiente de aprobación manual. */
+/**
+ * Carga de saldo por transferencia, pendiente de aprobación manual.
+ */
 model WalletTopUp {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   walletId   String
-  wallet     AdWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  wallet     AdWallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)
   amount     Float
   receiptUrl String
-  status     String   @default("PENDING") // PENDING | APPROVED | REJECTED
-  note       String   @default("")
-  createdAt  DateTime @default(now())
+  status     String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  note       String    @default("")
+  createdAt  DateTime  @default(now())
   reviewedAt DateTime?
 
   @@index([status, createdAt])
@@ -107,22 +110,18 @@ model WalletTopUp {
  */
 /**
  * Registro de un pago entre cliente y trabajador.
- *
  * Better Work NO recibe ni retiene este dinero: el cliente le transfiere
  * directamente al profesional. La app sólo deja constancia de que el pago se
  * hizo y de que la otra parte lo reconoció, para que quede un historial y para
  * habilitar los pasos del trabajo.
- *
  * Son dos por trabajo:
- *   - DEPOSIT: la seña, antes de empezar. Compromete a las dos partes.
- *   - FINAL:   el saldo, cuando el trabajo terminó.
- *
+ * - DEPOSIT: la seña, antes de empezar. Compromete a las dos partes.
+ * - FINAL:   el saldo, cuando el trabajo terminó.
  * Estados: SENT (el cliente dice que transfirió) → CONFIRMED (el trabajador
  * confirma que lo recibió). Sin CONFIRMED de la seña el trabajo no arranca.
  */
 /**
  * Presupuesto que el trabajador le envía al cliente antes del pago.
- *
  * El cliente lo acepta (fija el precio del trabajo y pasa a ACCEPTED), lo
  * rechaza, o pide cambios (CHANGES) y el trabajador manda uno nuevo. El más
  * reciente es el vigente; los anteriores quedan como historial.
@@ -145,7 +144,6 @@ model Quote {
  * Pedido abierto: el cliente describe el trabajo sin elegir profesional y los
  * de ese oficio cercanos le cotizan. Al elegir una cotización se crea el Job
  * (ACCEPTED, con ese precio) y sigue el flujo normal de escrow.
- *
  * `zone` es lo que ven todos; `address` (exacta) sólo se copia al Job del
  * profesional elegido.
  */
@@ -176,7 +174,9 @@ model OpenRequest {
   @@index([clientId])
 }
 
-/** Cotización de un profesional a un pedido abierto (una por profesional). */
+/**
+ * Cotización de un profesional a un pedido abierto (una por profesional).
+ */
 model Bid {
   id            String      @id @default(cuid())
   requestId     String
@@ -193,7 +193,9 @@ model Bid {
   @@index([workerId])
 }
 
-/** Cada análisis de fotos con IA: limita el uso por persona y mide cuánto se usa. */
+/**
+ * Cada análisis de fotos con IA: limita el uso por persona y mide cuánto se usa.
+ */
 model AiAnalysis {
   id           String   @id @default(cuid())
   userId       String
@@ -226,7 +228,9 @@ model ProRequest {
   @@index([userId])
 }
 
-/** Aviso para un usuario: lo ve en el centro de notificaciones y, si activó push, en el celular. */
+/**
+ * Aviso para un usuario: lo ve en el centro de notificaciones y, si activó push, en el celular.
+ */
 model Notification {
   id        String    @id @default(cuid())
   userId    String
@@ -240,7 +244,9 @@ model Notification {
   @@index([userId, createdAt])
 }
 
-/** Suscripción Web Push de un dispositivo (una persona puede tener varias). */
+/**
+ * Suscripción Web Push de un dispositivo (una persona puede tener varias).
+ */
 model PushSubscription {
   id        String   @id @default(cuid())
   userId    String
@@ -259,39 +265,41 @@ model PushSubscription {
  * o al recibir), como el resto de la app.
  */
 model SupplierProfile {
-  id               String   @id @default(cuid())
-  userId           String   @unique
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   businessName     String
-  description      String   @default("")
+  description      String           @default("")
   logoUrl          String?
-  phone            String   @default("")
-  whatsapp         String   @default("")
-  address          String   @default("")
-  city             String   @default("")
-  zone             String   @default("")
+  phone            String           @default("")
+  whatsapp         String           @default("")
+  address          String           @default("")
+  city             String           @default("")
+  zone             String           @default("")
   lat              Float?
   lng              Float?
-  hours            String   @default("") // ej. "Lun a Vie 8 a 18 · Sáb 8 a 13"
-  rubros           String   @default("[]") // JSON string[] de PRODUCT_CATEGORIES
-  pickup           Boolean  @default(true) // retiro en el local
-  delivery         Boolean  @default(false) // hace envíos
-  deliveryRadiusKm Float    @default(10)
-  deliveryFee      String   @default("") // texto libre: "Gratis desde $50.000", "$3.000"
+  hours            String           @default("") // ej. "Lun a Vie 8 a 18 · Sáb 8 a 13"
+  rubros           String           @default("[]") // JSON string[] de PRODUCT_CATEGORIES
+  pickup           Boolean          @default(true) // retiro en el local
+  delivery         Boolean          @default(false) // hace envíos
+  deliveryRadiusKm Float            @default(10)
+  deliveryFee      String           @default("") // texto libre: "Gratis desde $50.000", "$3.000"
   minOrder         Float? // pedido mínimo (opcional)
-  payMethods       String   @default("[]") // JSON string[] de SUPPLY_PAY_METHODS
-  payAlias         String   @default("") // para transferencias
-  verified         Boolean  @default(false)
-  visible          Boolean  @default(true)
-  ratingAvg        Float    @default(0)
-  ratingCount      Int      @default(0)
-  createdAt        DateTime @default(now())
+  payMethods       String           @default("[]") // JSON string[] de SUPPLY_PAY_METHODS
+  payAlias         String           @default("") // para transferencias
+  verified         Boolean          @default(false)
+  visible          Boolean          @default(true)
+  ratingAvg        Float            @default(0)
+  ratingCount      Int              @default(0)
+  createdAt        DateTime         @default(now())
   products         Product[]
   orders           SupplyOrder[]
   reviews          SupplierReview[]
 }
 
-/** Producto del catálogo de un proveedor. */
+/**
+ * Producto del catálogo de un proveedor.
+ */
 model Product {
   id             String          @id @default(cuid())
   supplierId     String
@@ -347,7 +355,9 @@ model SupplyOrder {
   @@index([buyerId])
 }
 
-/** Reseña de un proveedor, una por pedido entregado. */
+/**
+ * Reseña de un proveedor, una por pedido entregado.
+ */
 model SupplierReview {
   id         String          @id @default(cuid())
   supplierId String
@@ -364,21 +374,21 @@ model SupplierReview {
 }
 
 model Payment {
-  id          String   @id @default(cuid())
-  jobId       String   @unique
-  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  amount      Float    // importe del trabajo (presupuesto + urgencia); base de la comisión
-  serviceFee  Float    @default(0) // tarifa de servicio que paga el cliente encima (ingreso de Better Work)
-  feeWaived        Boolean @default(false) // tarifa bonificada por referidos
-  commissionWaived Boolean @default(false) // comisión bonificada por referidos
-  commission  Float    @default(0) // comisión de Better Work, calculada al liberar
-  status      String   @default("PENDING") // PENDING | HELD | RELEASED | REFUNDED
-  method      String   @default("simulated") // id del proveedor (mercadopago | simulated)
-  providerRef String? // id de la operación en el proveedor
-  createdAt   DateTime @default(now())
-  heldAt      DateTime?
-  releasedAt  DateTime?
-  refundedAt  DateTime?
+  id               String    @id @default(cuid())
+  jobId            String    @unique
+  job              Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  amount           Float // importe del trabajo (presupuesto + urgencia); base de la comisión
+  serviceFee       Float     @default(0) // tarifa de servicio que paga el cliente encima (ingreso de Better Work)
+  feeWaived        Boolean   @default(false) // tarifa bonificada por referidos
+  commissionWaived Boolean   @default(false) // comisión bonificada por referidos
+  commission       Float     @default(0) // comisión de Better Work, calculada al liberar
+  status           String    @default("PENDING") // PENDING | HELD | RELEASED | REFUNDED
+  method           String    @default("simulated") // id del proveedor (mercadopago | simulated)
+  providerRef      String? // id de la operación en el proveedor
+  createdAt        DateTime  @default(now())
+  heldAt           DateTime?
+  releasedAt       DateTime?
+  refundedAt       DateTime?
 
   @@index([status])
 }
@@ -387,7 +397,7 @@ model AuthToken {
   token     String   @id
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  kind      String   // EMAIL_VERIFY
+  kind      String // EMAIL_VERIFY
   expiresAt DateTime
   createdAt DateTime @default(now())
 
@@ -396,23 +406,22 @@ model AuthToken {
 
 /**
  * Solicitud de membresía pagada por transferencia.
- *
  * La empresa elige el plan, transfiere y sube el comprobante; queda PENDING
  * hasta que el Super Admin la aprueba (recién ahí se activa el plan) o la
  * rechaza. Guarda el precio del momento para que un cambio de tarifa no
  * altere una solicitud ya enviada.
  */
 model PlanRequest {
-  id         String   @id @default(cuid())
+  id         String         @id @default(cuid())
   companyId  String
   company    CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
   planKey    String
   amount     Float
-  days       Int      @default(30)
+  days       Int            @default(30)
   receiptUrl String
-  status     String   @default("PENDING") // PENDING | APPROVED | REJECTED
-  note       String   @default("")
-  createdAt  DateTime @default(now())
+  status     String         @default("PENDING") // PENDING | APPROVED | REJECTED
+  note       String         @default("")
+  createdAt  DateTime       @default(now())
   reviewedAt DateTime?
 
   @@index([status, createdAt])
@@ -425,21 +434,21 @@ model PlanRequest {
  * beneficios. Agregar un beneficio nuevo = una columna acá + su chequeo.
  */
 model Plan {
-  key             String  @id // STARTER | BUSINESS | ENTERPRISE
+  key             String           @id // STARTER | BUSINESS | ENTERPRISE
   name            String
-  tagline         String  @default("")
+  tagline         String           @default("")
   price           Float
-  order           Int     @default(0)
-  active          Boolean @default(true)
+  order           Int              @default(0)
+  active          Boolean          @default(true)
   // Límites (-1 = ilimitado)
-  jobPostLimit    Int     @default(3) // ofertas activas simultáneas
-  applicantLimit  Int     @default(10) // postulaciones visibles por oferta
+  jobPostLimit    Int              @default(3) // ofertas activas simultáneas
+  applicantLimit  Int              @default(10) // postulaciones visibles por oferta
   // Beneficios
-  searchBoost     Float   @default(0) // posicionamiento extra en listados
-  analytics       Boolean @default(false) // dashboard de estadísticas
-  verifiedBadge   Boolean @default(false) // insignia verificada automática
-  featuredHome    Boolean @default(false) // aparece destacada en el inicio
-  prioritySupport Boolean @default(false)
+  searchBoost     Float            @default(0) // posicionamiento extra en listados
+  analytics       Boolean          @default(false) // dashboard de estadísticas
+  verifiedBadge   Boolean          @default(false) // insignia verificada automática
+  featuredHome    Boolean          @default(false) // aparece destacada en el inicio
+  prioritySupport Boolean          @default(false)
   companies       CompanyProfile[]
 }
 
@@ -472,107 +481,107 @@ model Campaign {
 }
 
 model WorkerProfile {
-  id           String    @id @default(cuid())
-  userId       String    @unique
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profession   String
-  bio          String    @default("")
-  experience   Int       @default(0) // años
-  categoryId   String?
-  category     Category? @relation(fields: [categoryId], references: [id])
-  services     String    @default("[]") // JSON string[]
-  gallery      String    @default("[]") // JSON string[] (urls)
-  city         String    @default("")
-  zone         String    @default("")
-  lat          Float?
-  lng          Float?
-  radiusKm     Float     @default(10) // 5/10/20/50, 100=ciudad, 500=provincia
-  schedule     String    @default("") // rango horario ej "08:00-18:00"
-  availableDays String   @default("[]") // JSON string[] ej ["Lun","Mar","Mie"]
-  workMode     String    @default("AMBOS") // ONSITE | REMOTE | AMBOS
-  whatsapp     String?
-  payMethods   String    @default("[]") // JSON string[] ej ["Efectivo","Transferencia","Mercado Pago"]
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profession        String
+  bio               String    @default("")
+  experience        Int       @default(0) // años
+  categoryId        String?
+  category          Category? @relation(fields: [categoryId], references: [id])
+  services          String    @default("[]") // JSON string[]
+  gallery           String    @default("[]") // JSON string[] (urls)
+  city              String    @default("")
+  zone              String    @default("")
+  lat               Float?
+  lng               Float?
+  radiusKm          Float     @default(10) // 5/10/20/50, 100=ciudad, 500=provincia
+  schedule          String    @default("") // rango horario ej "08:00-18:00"
+  availableDays     String    @default("[]") // JSON string[] ej ["Lun","Mar","Mie"]
+  workMode          String    @default("AMBOS") // ONSITE | REMOTE | AMBOS
+  whatsapp          String?
+  payMethods        String    @default("[]") // JSON string[] ej ["Efectivo","Transferencia","Mercado Pago"]
   // Datos de cobro: el cliente le transfiere directamente a este alias.
-  payAlias     String?
-  payHolder    String?
-  priceHint    String? // precios orientativos (opcional)
-  verified     Boolean   @default(false)
-  visible      Boolean   @default(true)
+  payAlias          String?
+  payHolder         String?
+  priceHint         String? // precios orientativos (opcional)
+  verified          Boolean   @default(false)
+  visible           Boolean   @default(true)
   // Publicidad (denormalizado desde la campaña activa, para el ranking)
-  proUntil     DateTime? // Better Work Pro vigente hasta (null = no es Pro)
-  sponsoredUntil DateTime?
-  sponsorBoost Float     @default(0)
+  proUntil          DateTime? // Better Work Pro vigente hasta (null = no es Pro)
+  sponsoredUntil    DateTime?
+  sponsorBoost      Float     @default(0)
   // Métricas
-  profileViews      Int  @default(0) // veces que abrieron el perfil
-  searchAppearances Int  @default(0) // veces que apareció en listados
-  jobsDone     Int       @default(0)
-  ratingAvg    Float     @default(0)
-  ratingCount  Int       @default(0)
-  cancellations Int      @default(0)
+  profileViews      Int       @default(0) // veces que abrieron el perfil
+  searchAppearances Int       @default(0) // veces que apareció en listados
+  jobsDone          Int       @default(0)
+  ratingAvg         Float     @default(0)
+  ratingCount       Int       @default(0)
+  cancellations     Int       @default(0)
   // Señales del rango (denormalizadas para que los listados sean baratos)
-  punctualityAvg  Float  @default(0) // promedio de puntualidad de las reseñas
-  avgResponseMins Int? // minutos promedio en aceptar/rechazar una solicitud
-  claims          Int    @default(0) // denuncias recibidas
-  createdAt    DateTime  @default(now())
+  punctualityAvg    Float     @default(0) // promedio de puntualidad de las reseñas
+  avgResponseMins   Int? // minutos promedio en aceptar/rechazar una solicitud
+  claims            Int       @default(0) // denuncias recibidas
+  createdAt         DateTime  @default(now())
 }
 
 model CompanyProfile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  companyName String
-  description String   @default("")
-  industry    String   @default("")
-  city        String   @default("")
-  lat         Float?
-  lng         Float?
-  website     String?
-  verified    Boolean  @default(false)
+  id              String        @id @default(cuid())
+  userId          String        @unique
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName     String
+  description     String        @default("")
+  industry        String        @default("")
+  city            String        @default("")
+  lat             Float?
+  lng             Float?
+  website         String?
+  verified        Boolean       @default(false)
   // Membresía: sin plan activo la empresa no publica ni aparece
   planKey         String?
-  plan            Plan?     @relation(fields: [planKey], references: [key])
+  plan            Plan?         @relation(fields: [planKey], references: [key])
   planActiveUntil DateTime?
   // Publicidad
   sponsoredUntil  DateTime?
-  sponsorBoost    Float    @default(0)
-  profileViews    Int      @default(0)
-  createdAt   DateTime @default(now())
-  offers      JobOffer[]
-  planRequests PlanRequest[]
+  sponsorBoost    Float         @default(0)
+  profileViews    Int           @default(0)
+  createdAt       DateTime      @default(now())
+  offers          JobOffer[]
+  planRequests    PlanRequest[]
 }
 
 model Category {
-  id      String @id @default(cuid())
-  name    String @unique
-  slug    String @unique
-  icon    String @default("🔧")
-  order   Int    @default(0)
-  active  Boolean @default(true)
-  workers WorkerProfile[]
-  offers  JobOffer[]
+  id           String          @id @default(cuid())
+  name         String          @unique
+  slug         String          @unique
+  icon         String          @default("🔧")
+  order        Int             @default(0)
+  active       Boolean         @default(true)
+  workers      WorkerProfile[]
+  offers       JobOffer[]
   openRequests OpenRequest[]
 }
 
 model Job {
-  id           String    @id @default(cuid())
+  id           String       @id @default(cuid())
   clientId     String
-  client       User      @relation("ClientJobs", fields: [clientId], references: [id])
+  client       User         @relation("ClientJobs", fields: [clientId], references: [id])
   workerId     String
-  worker       User      @relation("WorkerJobs", fields: [workerId], references: [id])
+  worker       User         @relation("WorkerJobs", fields: [workerId], references: [id])
   title        String
-  description  String    @default("")
-  address      String    @default("")
+  description  String       @default("")
+  address      String       @default("")
   lat          Float?
   lng          Float?
   scheduledFor DateTime?
   price        Float? // total acordado del trabajo (retenido por Better Work)
-  attachments  String    @default("[]") // JSON [{url,name,type}] fotos/documentos de la solicitud
-  urgent       Boolean   @default(false) // "Lo necesito YA": aparece primero y suma recargo
-  urgencyPct   Float     @default(0) // recargo por urgencia (para el trabajador), fijado al pedir
-  status       String    @default("REQUESTED") // REQUESTED|ACCEPTED|EN_ROUTE|WORKING|COMPLETED|CANCELLED|REJECTED
+  attachments  String       @default("[]") // JSON [{url,name,type}] fotos/documentos de la solicitud
+  urgent       Boolean      @default(false) // "Lo necesito YA": aparece primero y suma recargo
+  urgencyPct   Float        @default(0) // recargo por urgencia (para el trabajador), fijado al pedir
+  status       String       @default("REQUESTED") // REQUESTED|ACCEPTED|EN_ROUTE|WORKING|COMPLETED|CANCELLED|REJECTED
   startCode    String?
   endCode      String?
-  requestedAt  DateTime  @default(now())
+  requestedAt  DateTime     @default(now())
   acceptedAt   DateTime?
   startedAt    DateTime?
   completedAt  DateTime?
@@ -631,21 +640,21 @@ model Message {
 }
 
 model JobOffer {
-  id          String         @id @default(cuid())
-  companyId   String
-  company     CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  title       String
-  description String         @default("")
-  categoryId  String?
-  category    Category?      @relation(fields: [categoryId], references: [id])
-  city        String         @default("")
-  modality    String         @default("Presencial") // Presencial | Remoto | Híbrido
-  salary      String?
+  id            String         @id @default(cuid())
+  companyId     String
+  company       CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title         String
+  description   String         @default("")
+  categoryId    String?
+  category      Category?      @relation(fields: [categoryId], references: [id])
+  city          String         @default("")
+  modality      String         @default("Presencial") // Presencial | Remoto | Híbrido
+  salary        String?
   promotedUntil DateTime?
-  views       Int            @default(0) // visualizaciones de la publicación
-  active      Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  applications Application[]
+  views         Int            @default(0) // visualizaciones de la publicación
+  active        Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  applications  Application[]
 }
 
 model Application {
@@ -680,8 +689,8 @@ model Report {
 model Promotion {
   id        String   @id @default(cuid())
   userId    String // quién compró
-  kind      String   // COMPANY_PLAN | CAMPAIGN
-  refId     String   // id del plan o de la campaña
+  kind      String // COMPANY_PLAN | CAMPAIGN
+  refId     String // id del plan o de la campaña
   days      Int
   amount    Float
   createdAt DateTime @default(now())
@@ -694,19 +703,19 @@ model Promotion {
  * como JSON de URLs (subidas reales a /uploads). `hidden` es para moderación.
  */
 model Post {
-  id            String   @id @default(cuid())
-  authorId      String
-  author        User     @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  content       String   @default("")
-  kind          String   @default("GENERAL") // GENERAL|WORK_DONE|BEFORE_AFTER|PROMO|HIRING|JOB_SEEK|TIP|NEWS
-  images        String   @default("[]") // JSON string[] de URLs
-  lat           Float?
-  lng           Float?
-  locationLabel String   @default("")
+  id             String    @id @default(cuid())
+  authorId       String
+  author         User      @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  content        String    @default("")
+  kind           String    @default("GENERAL") // GENERAL|WORK_DONE|BEFORE_AFTER|PROMO|HIRING|JOB_SEEK|TIP|NEWS
+  images         String    @default("[]") // JSON string[] de URLs
+  lat            Float?
+  lng            Float?
+  locationLabel  String    @default("")
   sponsoredUntil DateTime?
-  hidden        Boolean  @default(false) // oculto por moderación
-  shareCount    Int      @default(0)
-  createdAt     DateTime @default(now())
+  hidden         Boolean   @default(false) // oculto por moderación
+  shareCount     Int       @default(0)
+  createdAt      DateTime  @default(now())
 
   likes    PostLike[]
   comments PostComment[]
@@ -765,4 +774,58 @@ model PostReport {
 model Setting {
   key   String @id
   value String
+}
+
+// ── Cobros con Mercado Pago (suscripciones y pagos únicos) ──
+
+/**
+ * Suscripción con débito automático (preapproval de Mercado Pago) para Pro o
+ * un plan de empresa. Cada cobro mensual que Mercado Pago acredita suma 30
+ * días: se cuentan con `chargedCount` contra `summarized.charged_quantity`,
+ * así un mismo cobro nunca se aplica dos veces aunque llegue repetido.
+ */
+model Subscription {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  kind            String // PRO | PLAN
+  planKey         String? // sólo para PLAN
+  amount          Float
+  payerEmail      String
+  mpPreapprovalId String?   @unique
+  status          String    @default("PENDING") // PENDING | AUTHORIZED | PAUSED | CANCELLED
+  chargedCount    Int       @default(0)
+  nextPaymentAt   DateTime?
+  lastChargeAt    DateTime?
+  syncedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId, kind])
+  @@index([status])
+}
+
+/**
+ * Un cobro de Mercado Pago: pago único (Checkout Pro) o un débito de una
+ * suscripción. Es el registro contable y el candado de idempotencia: se
+ * aplica sólo al pasar de PENDING a APPROVED.
+ */
+model MpPayment {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  kind           String // PRO | PLAN | WALLET
+  refKey         String? // planKey para PLAN
+  amount         Float
+  days           Int       @default(30)
+  status         String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  source         String    @default("CHECKOUT") // CHECKOUT | SUBSCRIPTION
+  subscriptionId String?
+  mpPreferenceId String?
+  mpPaymentId    String?   @unique
+  createdAt      DateTime  @default(now())
+  approvedAt     DateTime?
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
 }

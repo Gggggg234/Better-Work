@@ -4,9 +4,9 @@ import { ChevronRight, type LucideIcon } from "lucide-react";
 export type ActionTone = "accent" | "success" | "warning" | "neutral";
 
 const TILE: Record<ActionTone, string> = {
-  accent: "bg-accent/12 text-accent",
-  success: "bg-success/12 text-success",
-  warning: "bg-warning/14 text-warning",
+  accent: "bg-brand text-white shadow-glow",
+  success: "bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-[0_8px_18px_-8px_rgba(16,185,129,0.7)]",
+  warning: "bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-[0_8px_18px_-8px_rgba(245,158,11,0.7)]",
   neutral: "bg-surface-2 text-fg",
 };
 
@@ -41,10 +41,10 @@ export function QuickAction({
   badge?: number;
 }) {
   return (
-    <Link href={href} className="card p-4 flex flex-col gap-3 hover:-translate-y-0.5 hover:border-fg/20 transition relative">
+    <Link href={href} className="card card-hover p-4 flex flex-col gap-3.5 relative overflow-hidden">
       <IconTile icon={icon} tone={tone} />
       <div>
-        <p className="font-semibold text-sm leading-tight">{title}</p>
+        <p className="font-bold text-[15px] leading-tight">{title}</p>
         <p className="text-xs text-muted mt-1 leading-snug">{desc}</p>
       </div>
       {!!badge && badge > 0 && (
@@ -75,11 +75,11 @@ export function ActionRow({
   return (
     <Link
       href={href}
-      className={`card p-4 flex items-center gap-3.5 transition hover:border-fg/20 ${highlight ? "!border-accent/40 bg-accent/5" : ""}`}
+      className={`card card-hover p-4 flex items-center gap-3.5 ${highlight ? "!border-accent/40 bg-accent/[0.04]" : ""}`}
     >
       <IconTile icon={icon} tone={tone} size="sm" />
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-sm">{title}</p>
+        <p className="font-bold text-sm">{title}</p>
         <p className="text-xs text-muted mt-0.5">{desc}</p>
       </div>
       <ChevronRight className="w-5 h-5 text-faint shrink-0" aria-hidden />
@@ -91,13 +91,44 @@ export function ActionRow({
 export function SectionTitle({ title, href, linkLabel = "Ver todo" }: { title: string; href?: string; linkLabel?: string }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <h2 className="font-bold text-lg tracking-tight">{title}</h2>
+      <h2 className="font-extrabold text-lg tracking-tight">{title}</h2>
       {href && (
-        <Link href={href} className="text-sm font-medium text-accent hover:underline inline-flex items-center gap-0.5">
+        <Link href={href} className="text-sm font-bold text-accent hover:underline inline-flex items-center gap-0.5">
           {linkLabel}
           <ChevronRight className="w-4 h-4" aria-hidden />
         </Link>
       )}
     </div>
+  );
+}
+
+/**
+ * Encabezado de pantalla con el degradé de marca. El contenido que sigue puede
+ * montarse encima con un margen negativo (`-mt-8`) para el efecto de tarjeta.
+ */
+export function PageHero({
+  title,
+  subtitle,
+  eyebrow,
+  children,
+  className = "",
+}: {
+  title: string;
+  subtitle?: string;
+  eyebrow?: string;
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`relative overflow-hidden bg-hero text-white ${className}`}>
+      <div className="absolute inset-0 bg-dots opacity-60" aria-hidden />
+      <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-white/10 blur-2xl" aria-hidden />
+      <div className="relative max-w-3xl mx-auto px-5 pt-7 pb-12">
+        {eyebrow && <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/70">{eyebrow}</p>}
+        <h1 className="text-[28px] leading-tight font-extrabold tracking-tight mt-1">{title}</h1>
+        {subtitle && <p className="text-sm text-white/80 mt-1.5 max-w-md">{subtitle}</p>}
+        {children && <div className="mt-4">{children}</div>}
+      </div>
+    </section>
   );
 }

@@ -15,6 +15,7 @@ import { ProgressBar } from "@/components/charts/Charts";
 import { experienceLabel, radiusLabel, workModeLabel } from "@/lib/worker";
 import { formatDate } from "@/lib/format";
 import { BackButton } from "@/components/BackButton";
+import { Star, Briefcase, Award, Clock3, MessageCircle, ChevronRight, MapPin } from "lucide-react";
 
 export default async function WorkerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -55,80 +56,107 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
   const openChat = openConversation.bind(null, id);
 
   return (
-    <main className="max-w-lg mx-auto w-full px-4 py-6 animate-fade-up">
-      <BackButton fallback="/search" />
-      {/* Encabezado */}
-      <div className="flex items-start gap-4">
-        <Avatar name={profile.user.name} url={profile.user.avatarUrl} size={72} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-bold">{profile.user.name}</h1>
+    <main className="w-full animate-fade-up pb-28">
+      {/* Portada */}
+      <section className="relative h-36 bg-hero overflow-hidden">
+        <div className="absolute inset-0 bg-dots opacity-60" aria-hidden />
+        <div className="relative max-w-lg mx-auto px-4 pt-3 [&_*]:!text-white/85">
+          <BackButton fallback="/search" />
+        </div>
+      </section>
+
+      <div className="max-w-lg mx-auto px-4">
+        {/* Encabezado */}
+        <div className="-mt-14 relative flex items-end gap-4">
+          <Avatar name={profile.user.name} url={profile.user.avatarUrl} size={104} ring className="!rounded-[30px] shadow-float" />
+          <div className="pb-1 min-w-0 flex flex-wrap gap-1.5">
             {profile.verified && <VerifiedBadge />}
             {isPro(profile.proUntil) && <ProBadge />}
             {sponsored && <SponsoredBadge />}
           </div>
-          <p className="text-muted">{profile.profession}</p>
-          <div className="flex items-center gap-2 mt-1 text-sm text-muted flex-wrap">
-            <Stars value={profile.ratingAvg} />
-            <span className="font-medium">{profile.ratingAvg.toFixed(1)}</span>
-            <span className="text-faint">({profile.ratingCount} reseñas)</span>
-          </div>
         </div>
-      </div>
+        <h1 className="text-[26px] leading-tight font-extrabold tracking-tight mt-3">{profile.user.name}</h1>
+        <p className="text-muted font-semibold">{profile.profession}</p>
+        <div className="flex items-center gap-3 mt-1.5 text-sm flex-wrap">
+          {profile.ratingCount > 0 ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Stars value={profile.ratingAvg} />
+              <span className="font-extrabold">{profile.ratingAvg.toFixed(1)}</span>
+              <span className="text-faint">({profile.ratingCount} reseñas)</span>
+            </span>
+          ) : (
+            <span className="badge badge-accent">Nuevo en Better Work</span>
+          )}
+          {(profile.zone || profile.city) && (
+            <span className="inline-flex items-center gap-1 text-muted">
+              <MapPin className="w-3.5 h-3.5" aria-hidden />
+              {profile.zone || profile.city}
+            </span>
+          )}
+        </div>
 
-      {/* Métricas */}
-      <div className="grid grid-cols-3 gap-2 mt-5">
-        {[
-          [String(profile.jobsDone), "Trabajos"],
-          [experienceLabel(profile.experience), "Experiencia"],
-          [r.rank, "Rango"],
-        ].map(([v, l]) => (
-          <div key={l} className="card p-3 text-center">
-            <p className="font-bold text-sm">{v}</p>
-            <p className="text-[11px] text-faint mt-0.5">{l}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Cómo se calcula el rango */}
-      <details className="card p-4 mt-3 group">
-        <summary className="flex items-center justify-between cursor-pointer list-none">
-          <span className="text-sm font-medium">Rango {r.rank} · {r.score}/100</span>
-          <span className="text-faint text-xs group-open:rotate-180 transition">▾</span>
-        </summary>
-        <div className="mt-4 space-y-2.5">
-          {r.parts.map((p) => (
-            <ProgressBar key={p.label} label={p.label} value={p.value} max={p.max} />
+        {/* Métricas */}
+        <div className="grid grid-cols-3 gap-2 mt-5">
+          {[
+            { v: String(profile.jobsDone), l: "Trabajos", icon: Briefcase },
+            { v: experienceLabel(profile.experience), l: "Experiencia", icon: Clock3 },
+            { v: r.rank, l: "Rango", icon: Award },
+          ].map(({ v, l, icon: Icon }) => (
+            <div key={l} className="card p-3 text-center">
+              <Icon className="w-4 h-4 mx-auto text-accent" aria-hidden />
+              <p className="font-extrabold text-sm mt-1.5 truncate">{v}</p>
+              <p className="text-[11px] font-semibold text-faint">{l}</p>
+            </div>
           ))}
         </div>
-        <p className="text-[11px] text-faint mt-3">
-          El rango combina calificación, trabajos realizados, puntualidad, tiempo de respuesta y antigüedad.
-          Las cancelaciones y los reclamos lo bajan.
-        </p>
-      </details>
 
-      {/* Acciones */}
-      {!isMe && me?.role !== "WORKER" && (
-        <div className="flex gap-2 mt-5 sticky top-3 z-[600]">
-          <Link href={`/hire/${id}`} className="btn-primary flex-1 !py-3 shadow-lg">Contratar</Link>
-          <form action={openChat} className="flex-1 flex">
-            <button className="btn-secondary flex-1 !py-3 shadow-lg">Mensaje</button>
+        {/* Cómo se calcula el rango */}
+        <details className="card p-4 mt-3 group">
+          <summary className="flex items-center justify-between cursor-pointer list-none">
+            <span className="text-sm font-bold inline-flex items-center gap-1.5">
+              <Star className="w-4 h-4 text-gold fill-gold" aria-hidden /> Rango {r.rank} · {r.score}/100
+            </span>
+            <ChevronRight className="w-4 h-4 text-faint group-open:rotate-90 transition" aria-hidden />
+          </summary>
+          <div className="mt-4 space-y-2.5">
+            {r.parts.map((p) => (
+              <ProgressBar key={p.label} label={p.label} value={p.value} max={p.max} />
+            ))}
+          </div>
+          <p className="text-[11px] text-faint mt-3">
+            El rango combina calificación, trabajos realizados, puntualidad, tiempo de respuesta y antigüedad.
+            Las cancelaciones y los reclamos lo bajan.
+          </p>
+        </details>
+
+        {/* Acciones: barra fija sobre el menú, siempre a mano */}
+        {!isMe && me?.role !== "WORKER" && (
+          <div className="fixed inset-x-3 bottom-[92px] z-[950] mx-auto max-w-md glass border border-line/70 rounded-[22px] shadow-float p-2 flex gap-2 animate-pop-in">
+            <form action={openChat} className="flex">
+              <button className="btn-secondary !px-4 h-full" aria-label="Enviar mensaje">
+                <MessageCircle className="w-5 h-5" aria-hidden />
+              </button>
+            </form>
+            <Link href={`/hire/${id}`} className="btn-primary flex-1 !py-3.5 !text-[15px]">
+              Contratar a {profile.user.name.split(" ")[0]}
+            </Link>
+          </div>
+        )}
+        {!isMe && me?.role === "WORKER" && (
+          <form action={openChat} className="mt-5">
+            <button className="btn-secondary w-full !py-3">
+              <MessageCircle className="w-4 h-4" aria-hidden /> Enviar mensaje
+            </button>
           </form>
-        </div>
-      )}
-      {!isMe && me?.role === "WORKER" && (
-        <form action={openChat} className="mt-5">
-          <button className="btn-secondary w-full !py-3">Enviar mensaje</button>
-        </form>
-      )}
-      {isMe && (
-        <Link href="/worker/profile" className="btn-secondary w-full !py-3 mt-5">Editar mi perfil</Link>
-      )}
+        )}
+        {isMe && (
+          <Link href="/worker/profile" className="btn-secondary w-full !py-3 mt-5">Editar mi perfil</Link>
+        )}
 
-      {/* Descripción */}
+        {/* Descripción */}
       {profile.bio && (
         <section className="mt-6">
-          <h2 className="font-semibold mb-2">Sobre mí</h2>
+          <h2 className="font-extrabold text-lg tracking-tight mb-2">Sobre mí</h2>
           <p className="text-sm text-muted leading-relaxed">{profile.bio}</p>
         </section>
       )}
@@ -136,7 +164,7 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
       {/* Servicios */}
       {services.length > 0 && (
         <section className="mt-6">
-          <h2 className="font-semibold mb-2">Servicios</h2>
+          <h2 className="font-extrabold text-lg tracking-tight mb-2">Servicios</h2>
           <div className="flex flex-wrap gap-2">
             {services.map((s) => (
               <span key={s} className="chip !cursor-default">{s}</span>
@@ -177,7 +205,7 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
 
       {/* Galería */}
       <section className="mt-6">
-        <h2 className="font-semibold mb-2">Trabajos realizados</h2>
+        <h2 className="font-extrabold text-lg tracking-tight mb-2">Trabajos realizados</h2>
         {gallery.length > 0 ? (
           <div className="grid grid-cols-3 gap-2">
             {gallery.map((url, i) => (
@@ -193,7 +221,7 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
       {/* Ubicación */}
       {profile.lat != null && profile.lng != null && (
         <section className="mt-6">
-          <h2 className="font-semibold mb-2">Ubicación aproximada</h2>
+          <h2 className="font-extrabold text-lg tracking-tight mb-2">Ubicación aproximada</h2>
           <div className="h-48 rounded-2xl overflow-hidden border border-line">
             <MapView
               center={[profile.lat, profile.lng]}
@@ -206,7 +234,7 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
 
       {/* Reseñas */}
       <section className="mt-6">
-        <h2 className="font-semibold mb-2">Reseñas</h2>
+        <h2 className="font-extrabold text-lg tracking-tight mb-2">Reseñas</h2>
         <div className="space-y-2.5">
           {reviews.map((r) => (
             <div key={r.id} className="card p-4">
@@ -224,6 +252,7 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
           {reviews.length === 0 && <p className="text-sm text-faint">Sin reseñas todavía.</p>}
         </div>
       </section>
+      </div>
     </main>
   );
 }

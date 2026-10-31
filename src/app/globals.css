@@ -2,6 +2,7 @@
 
 /* Tokens semánticos → utilidades Tailwind (bg-bg, text-fg, border-line, …) */
 @theme inline {
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -11,121 +12,170 @@
   --color-line: var(--line);
   /* Acento de marca (acciones e información) y colores de estado */
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --color-accent-fg: var(--accent-fg);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-gold: var(--gold);
 }
 
-/* Modo claro (por defecto): fondo gris suave + tarjetas blancas dan profundidad */
+/*
+ * Identidad: índigo eléctrico → azul. El degradé de marca se usa en la acción
+ * principal de cada pantalla, en los encabezados y en lo "premium" (Pro).
+ */
 :root {
-  --bg: #f6f7f9;
+  --bg: #f5f6fb;
   --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --fg: #0b0d12;
-  --muted: #5d6470;
-  --faint: #9aa1ab;
-  --line: #e4e7eb;
-  --accent: #2563eb;
+  --surface-2: #eef0f7;
+  --fg: #0e1121;
+  --muted: #5a607a;
+  --faint: #959ab0;
+  --line: #e2e5ef;
+  --accent: #4f46e5;
+  --accent-2: #2563eb;
   --accent-fg: #ffffff;
-  --success: #15803d;
-  --warning: #b45309;
-  --danger: #dc2626;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 16px -8px rgba(16, 24, 40, 0.1);
+  --success: #0f9d58;
+  --warning: #c2680a;
+  --danger: #e11d48;
+  --gold: #d97706;
+  --brand: linear-gradient(135deg, #6d5efc 0%, #4f46e5 45%, #2563eb 100%);
+  --hero: radial-gradient(120% 120% at 100% 0%, #3b82f6 0%, transparent 55%),
+    radial-gradient(90% 90% at 0% 100%, #7c3aed 0%, transparent 60%), linear-gradient(135deg, #312e81, #1e3a8a);
+  --shadow: 0 1px 2px rgba(17, 24, 64, 0.04), 0 8px 24px -12px rgba(17, 24, 64, 0.12);
+  --shadow-lg: 0 2px 6px rgba(17, 24, 64, 0.06), 0 24px 48px -16px rgba(17, 24, 64, 0.22);
+  --glow: 0 10px 24px -8px rgba(79, 70, 229, 0.55);
 }
 
 /* Modo automático: seguir el sistema salvo que el usuario force claro */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0b0d12;
-    --surface: #14171d;
-    --surface-2: #1d2129;
-    --fg: #f3f4f6;
-    --muted: #a3aab5;
-    --faint: #6b7280;
-    --line: #272c35;
-    --accent: #5b8cff;
+    --bg: #0a0b14;
+    --surface: #131521;
+    --surface-2: #1b1e2d;
+    --fg: #f1f2f8;
+    --muted: #a2a7bd;
+    --faint: #6c7189;
+    --line: #262a3d;
+    --accent: #8b85ff;
+    --accent-2: #60a5fa;
     --accent-fg: #ffffff;
     --success: #34d399;
     --warning: #fbbf24;
-    --danger: #f87171;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    --danger: #fb7185;
+    --gold: #fbbf24;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 28px -14px rgba(0, 0, 0, 0.7);
+    --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 28px 56px -18px rgba(0, 0, 0, 0.85);
+    --glow: 0 10px 28px -10px rgba(139, 133, 255, 0.6);
   }
 }
 
 /* Overrides explícitos del usuario */
 :root[data-theme="dark"] {
-  --bg: #0b0d12;
-  --surface: #14171d;
-  --surface-2: #1d2129;
-  --fg: #f3f4f6;
-  --muted: #a3aab5;
-  --faint: #6b7280;
-  --line: #272c35;
-  --accent: #5b8cff;
+  --bg: #0a0b14;
+  --surface: #131521;
+  --surface-2: #1b1e2d;
+  --fg: #f1f2f8;
+  --muted: #a2a7bd;
+  --faint: #6c7189;
+  --line: #262a3d;
+  --accent: #8b85ff;
+  --accent-2: #60a5fa;
   --accent-fg: #ffffff;
   --success: #34d399;
   --warning: #fbbf24;
-  --danger: #f87171;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --danger: #fb7185;
+  --gold: #fbbf24;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 28px -14px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 28px 56px -18px rgba(0, 0, 0, 0.85);
+  --glow: 0 10px 28px -10px rgba(139, 133, 255, 0.6);
 }
 :root[data-theme="light"] {
-  --bg: #f6f7f9;
+  --bg: #f5f6fb;
   --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --fg: #0b0d12;
-  --muted: #5d6470;
-  --faint: #9aa1ab;
-  --line: #e4e7eb;
-  --accent: #2563eb;
+  --surface-2: #eef0f7;
+  --fg: #0e1121;
+  --muted: #5a607a;
+  --faint: #959ab0;
+  --line: #e2e5ef;
+  --accent: #4f46e5;
+  --accent-2: #2563eb;
   --accent-fg: #ffffff;
-  --success: #15803d;
-  --warning: #b45309;
-  --danger: #dc2626;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 16px -8px rgba(16, 24, 40, 0.1);
+  --success: #0f9d58;
+  --warning: #c2680a;
+  --danger: #e11d48;
+  --gold: #d97706;
+  --shadow: 0 1px 2px rgba(17, 24, 64, 0.04), 0 8px 24px -12px rgba(17, 24, 64, 0.12);
+  --shadow-lg: 0 2px 6px rgba(17, 24, 64, 0.06), 0 24px 48px -16px rgba(17, 24, 64, 0.22);
+  --glow: 0 10px 24px -8px rgba(79, 70, 229, 0.55);
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-jakarta), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
 }
 
 @layer components {
+  /* Acción principal: degradé de marca con brillo de color */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer bg-fg text-bg hover:opacity-90 shadow-sm;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none cursor-pointer text-white hover:brightness-110;
+    background: var(--brand);
+    box-shadow: var(--glow);
   }
-  /* Acción destacada de color (la principal de una pantalla cuando conviene resaltarla) */
+  /* Igual que la principal (se mantiene el nombre por compatibilidad) */
   .btn-accent {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer bg-accent text-accent-fg hover:brightness-110 shadow-sm;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none cursor-pointer text-white hover:brightness-110;
+    background: var(--brand);
+    box-shadow: var(--glow);
+  }
+  /* Sólida oscura: para acciones fuertes que no son "la" principal */
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none cursor-pointer bg-fg text-bg hover:opacity-90;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer bg-surface text-fg border border-line hover:bg-surface-2;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none cursor-pointer bg-surface text-fg border border-line hover:bg-surface-2 hover:border-fg/15;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer text-muted hover:bg-surface-2 hover:text-fg;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none cursor-pointer text-muted hover:bg-surface-2 hover:text-fg;
   }
   .card {
-    @apply bg-surface rounded-2xl border border-line;
+    @apply bg-surface rounded-[22px] border border-line/70;
     box-shadow: var(--shadow);
   }
+  /* Tarjeta que se puede tocar: levanta al pasar el mouse */
+  .card-hover {
+    @apply transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99];
+  }
+  .card-hover:hover {
+    box-shadow: var(--shadow-lg);
+  }
   .input {
-    @apply w-full rounded-xl border border-line bg-surface text-fg px-3.5 py-2.5 text-sm outline-none transition placeholder:text-faint focus:border-accent focus:ring-4 focus:ring-accent/15;
+    @apply w-full rounded-2xl border border-line bg-surface text-fg px-4 py-3 text-sm outline-none transition placeholder:text-faint focus:border-accent focus:ring-4 focus:ring-accent/15;
   }
   .label {
-    @apply block text-sm font-medium text-fg mb-1.5;
+    @apply block text-sm font-semibold text-fg mb-1.5;
   }
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface text-fg px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition hover:border-fg/40 cursor-pointer;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface text-fg px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap transition hover:border-accent/40 hover:text-accent cursor-pointer;
   }
   .chip-active {
-    @apply border-fg bg-fg text-bg hover:border-fg;
+    @apply border-transparent text-white hover:text-white;
+    background: var(--brand);
+    box-shadow: var(--glow);
   }
   /* Etiquetas de estado: el color ayuda a entender de un vistazo qué pasa */
   .badge {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold whitespace-nowrap;
   }
   .badge-neutral {
     @apply bg-surface-2 text-muted;
@@ -145,9 +195,51 @@ body {
   .badge-solid {
     @apply bg-fg text-bg;
   }
-  /* Ícono dentro de un círculo de color suave (accesos y listas) */
+  /* Ícono dentro de un cuadrado de color suave (accesos y listas) */
   .icon-tile {
-    @apply inline-flex items-center justify-center rounded-xl shrink-0;
+    @apply inline-flex items-center justify-center rounded-2xl shrink-0;
+  }
+  /* Superficie translúcida (barras flotantes sobre el mapa o el contenido) */
+  .glass {
+    background: color-mix(in srgb, var(--surface) 78%, transparent);
+    -webkit-backdrop-filter: saturate(1.8) blur(18px);
+    backdrop-filter: saturate(1.8) blur(18px);
+  }
+}
+
+@layer utilities {
+  .bg-brand {
+    background: var(--brand);
+  }
+  .bg-hero {
+    background: var(--hero);
+  }
+  .text-gradient {
+    background: var(--brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .shadow-soft {
+    box-shadow: var(--shadow);
+  }
+  .shadow-float {
+    box-shadow: var(--shadow-lg);
+  }
+  .shadow-glow {
+    box-shadow: var(--glow);
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Trama de puntos sutil para los encabezados con degradé */
+  .bg-dots {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+    background-size: 18px 18px;
   }
 }
 
@@ -162,16 +254,16 @@ body {
   color: var(--fg);
 }
 .leaflet-popup-content-wrapper {
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
 }
 /* Mapa: el estilo de OSM es muy saturado; se calma para que no compita con la UI. */
 .leaflet-tile-pane {
-  filter: saturate(0.45) brightness(1.04) contrast(0.95);
+  filter: saturate(0.4) brightness(1.05) contrast(0.92);
 }
 /* Modo oscuro del mapa: OSM no tiene estilo oscuro, se invierten los tiles. */
 .map-dark .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.55);
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.86) saturate(0.5);
 }
 .leaflet-control-attribution {
   font-size: 9px !important;
@@ -181,6 +273,105 @@ body {
 }
 .leaflet-control-attribution a {
   color: var(--muted) !important;
+}
+
+/* Pines del mapa (los arma Map.tsx como divIcon) */
+.bw-pin {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.15s ease;
+}
+.bw-pin:hover,
+.bw-pin.is-active {
+  transform: scale(1.12) translateY(-2px);
+  z-index: 1000;
+}
+.bw-pin-head {
+  width: 42px;
+  height: 42px;
+  border-radius: 9999px;
+  padding: 3px;
+  background: #fff;
+  box-shadow: 0 6px 16px -4px rgba(15, 17, 40, 0.45);
+}
+.bw-pin-face {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--brand);
+  color: #fff;
+  font: 700 13px/1 var(--font-jakarta), system-ui, sans-serif;
+}
+.bw-pin-face img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.bw-pin-tail {
+  width: 10px;
+  height: 10px;
+  margin-top: -6px;
+  background: #fff;
+  transform: rotate(45deg);
+  border-radius: 2px;
+  box-shadow: 3px 3px 6px -2px rgba(15, 17, 40, 0.35);
+}
+.bw-pin--sponsored .bw-pin-head {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+.bw-pin--sponsored .bw-pin-tail {
+  background: #f59e0b;
+}
+.bw-pin--company .bw-pin-face {
+  background: #0e1121;
+  font-size: 16px;
+}
+.bw-pin-star {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: #0e1121;
+  color: #fff;
+  font: 700 9px/18px var(--font-jakarta), system-ui, sans-serif;
+  text-align: center;
+  border: 2px solid #fff;
+}
+.bw-me {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #2563eb;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.6);
+}
+.bw-me::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 9999px;
+  background: rgba(37, 99, 235, 0.22);
+  animation: bw-pulse 2s ease-out infinite;
+}
+@keyframes bw-pulse {
+  from {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
 }
 
 ::-webkit-scrollbar {
@@ -195,7 +386,7 @@ body {
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -203,5 +394,25 @@ body {
   }
 }
 .animate-fade-up {
-  animation: fade-up 0.3s ease both;
+  animation: fade-up 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-pop-in {
+  animation: pop-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-pop-in,
+  .bw-me::after {
+    animation: none;
+  }
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { register, resendVerification } from "@/lib/actions/auth";
-import { Brand } from "@/components/Brand";
+import { AuthShell } from "@/components/auth/AuthShell";
 import {
   Field,
   Notice,
@@ -44,10 +44,9 @@ export function RegisterForm({
   // Cuenta creada: la pantalla pasa a ser el aviso de verificación.
   if (done) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-6 py-10">
-        <div className="w-full max-w-sm animate-fade-up">
-          <Brand href="/" />
-          <h1 className="text-2xl font-bold mt-8">Ya casi está</h1>
+      <AuthShell>
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight">Ya casi está</h1>
           <p className="text-sm text-muted mt-1">Falta un paso para activar tu cuenta.</p>
 
           <VerificationNotice email={verify?.email} devLink={verify?.devLink} />
@@ -62,15 +61,14 @@ export function RegisterForm({
 
           <Link href="/login" className="btn-secondary w-full mt-4 !py-3">Ir al inicio de sesión</Link>
         </div>
-      </main>
+      </AuthShell>
     );
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-10">
-      <div className="w-full max-w-sm animate-fade-up">
-        <Brand href="/" />
-        <h1 className="text-2xl font-bold mt-8">Creá tu cuenta</h1>
+    <AuthShell>
+      <div>
+        <h1 className="text-2xl font-extrabold tracking-tight">Creá tu cuenta</h1>
         <p className="text-sm text-muted mt-1">Elegí cómo querés usar Better Work.</p>
 
         {invitedBy && (
@@ -185,6 +183,6 @@ export function RegisterForm({
           <Link href="/login" className="font-medium text-fg underline">Ingresá</Link>
         </p>
       </div>
-    </main>
+    </AuthShell>
   );
 }

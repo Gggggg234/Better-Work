@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getOrCreateWallet, TOPUP_STATUS } from "@/lib/wallet";
+import { getOrCreateWallet, TOPUP_STATUS, TOPUP_PRESETS, MIN_TOPUP } from "@/lib/wallet";
+import { topUpWithMp } from "@/lib/actions/billing";
+import { billingMode, confirmReturn } from "@/lib/billing";
+import { ReturnBanner } from "@/components/billing/BillingParts";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { getTransferInfo } from "@/lib/settings";
 import { formatMoney, formatDateTime } from "@/lib/format";
 import { BackButton } from "@/components/BackButton";
@@ -13,17 +17,22 @@ const ERRORS: Record<string, string> = {
   pendiente: "Ya tenés una carga en revisión. Esperá la respuesta antes de enviar otra.",
   comprobante: "Adjuntá el comprobante de la transferencia.",
   archivo: "No pudimos leer ese archivo. Subí una imagen (JPG, PNG o WEBP) de hasta 8 MB.",
+  mp: "Mercado Pago no pudo iniciar el pago. Probá de nuevo en un rato o cargá por transferencia.",
 };
 
 export default async function WalletPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; error?: string }>;
+  searchParams: Promise<{ ok?: string; error?: string; mp?: string; payment_id?: string; collection_id?: string }>;
 }) {
   const me = await getCurrentUser();
   if (!me) redirect("/login");
   if (me.role !== "WORKER" && me.role !== "COMPANY") redirect("/app");
   const sp = await searchParams;
+
+  // La vuelta de Mercado Pago se verifica antes de leer el saldo (puede acreditarlo ahora).
+  const result = await confirmReturn(me.id, sp);
+  const mode = billingMode();
 
   const [wallet, transfer] = await Promise.all([getOrCreateWallet(me.id), getTransferInfo()]);
 
@@ -39,8 +48,12 @@ export default async function WalletPage({
       <BackButton fallback="/ads" />
       <h1 className="text-2xl font-bold mt-2">Presupuesto publicitario</h1>
       <p className="text-sm text-muted mt-1">
-        Cargá saldo por transferencia y usalo para tus campañas cuando quieras.
+        Cargá saldo y usalo para tus campañas cuando quieras.
       </p>
+
+      <div className="mt-5">
+        <ReturnBanner result={result} />
+      </div>
 
       {sp.ok === "enviado" && (
         <div className="card p-4 mt-5 bg-fg text-bg">
@@ -57,11 +70,37 @@ export default async function WalletPage({
       )}
 
       {/* Saldo */}
-      <div className="card p-6 mt-5 bg-fg text-bg">
-        <p className="text-xs uppercase tracking-wide text-bg/60">Saldo disponible</p>
-        <p className="text-4xl font-bold mt-1">{formatMoney(wallet.balance)}</p>
-        <p className="text-xs text-bg/60 mt-2">Invertido en campañas: {formatMoney(wallet.spent)}</p>
+      <div className="relative overflow-hidden rounded-[22px] p-6 mt-5 bg-brand text-white shadow-glow">
+        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/15 blur-2xl" aria-hidden />
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/70">Saldo disponible</p>
+        <p className="text-4xl font-extrabold tracking-tight mt-1">{formatMoney(wallet.balance)}</p>
+        <p className="text-xs text-white/70 mt-2">Invertido en campañas: {formatMoney(wallet.spent)}</p>
       </div>
+
+      {/* Carga al instante con Mercado Pago */}
+      {mode !== "off" && (
+        <section className="card p-5 mt-5">
+          <h2 className="font-bold">Cargar con Mercado Pago</h2>
+          <p className="text-sm text-muted mt-1">Se acredita al instante con tarjeta o dinero en cuenta.</p>
+          <form action={topUpWithMp} className="mt-4 space-y-3">
+            <div className="grid grid-cols-4 gap-2">
+              {TOPUP_PRESETS.map((v, i) => (
+                <label
+                  key={v}
+                  className="cursor-pointer rounded-2xl border border-line py-2.5 text-center text-sm font-bold transition has-[:checked]:border-accent has-[:checked]:bg-accent/8 has-[:checked]:text-accent"
+                >
+                  <input type="radio" name="amount" value={v} defaultChecked={i === 1} className="sr-only" />
+                  {formatMoney(v).replace(/,00$/, "")}
+                </label>
+              ))}
+            </div>
+            <FormSubmitButton pendingLabel="Abriendo Mercado Pago…">Cargar saldo</FormSubmitButton>
+            <p className="text-[11px] text-faint text-center">
+              {mode === "simulated" ? "Modo prueba (desarrollo): no se cobra de verdad." : `Mínimo ${formatMoney(MIN_TOPUP)}.`}
+            </p>
+          </form>
+        </section>
+      )}
 
       {pending && (
         <div className="card p-4 mt-3">
@@ -78,7 +117,7 @@ export default async function WalletPage({
 
       {/* Cómo cargar */}
       <section className="card p-5 mt-5">
-        <h2 className="font-semibold">Cómo cargar saldo</h2>
+        <h2 className="font-semibold">{mode === "off" ? "Cómo cargar saldo" : "O cargá por transferencia"}</h2>
         <p className="text-sm text-muted mt-1">
           Transferí el monto que quieras cargar y subí el comprobante. Acreditamos el saldo cuando lo validemos.
         </p>
@@ -107,7 +146,7 @@ export default async function WalletPage({
                 </div>
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium shrink-0 ${
-                    t.status === "APPROVED" ? "bg-fg text-bg" : "bg-surface-2 text-muted"
+                    t.status === "APPROVED" ? "bg-success/12 text-success" : t.status === "REJECTED" ? "bg-danger/12 text-danger" : "bg-surface-2 text-muted"
                   }`}
                 >
                   {TOPUP_STATUS[t.status] ?? t.status}

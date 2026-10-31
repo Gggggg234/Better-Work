@@ -18,7 +18,7 @@ export async function deleteAccountIfEmpty(userId: string): Promise<{ ok: true }
   if (!user) return { ok: false, reason: "No encontramos la cuenta." };
   if (user.role === "ADMIN") return { ok: false, reason: "Las cuentas de administrador no se pueden eliminar." };
 
-  const [jobs, reviews, messages, conversations, reports, applications, planRequests, topUps, campaigns, supplyOrders] =
+  const [jobs, reviews, messages, conversations, reports, applications, planRequests, topUps, campaigns, supplyOrders, mpBilling] =
     await Promise.all([
       db.job.count({ where: { OR: [{ clientId: userId }, { workerId: userId }] } }),
       db.review.count({ where: { OR: [{ raterId: userId }, { ratedId: userId }] } }),
@@ -33,10 +33,12 @@ export async function deleteAccountIfEmpty(userId: string): Promise<{ ok: true }
       db.campaign.count({ where: { userId } }),
       // Pedidos de materiales: como comprador o como proveedor.
       db.supplyOrder.count({ where: { OR: [{ buyerId: userId }, { supplier: { userId } }] } }),
+      // Suscripciones y pagos de Mercado Pago (historial de facturación).
+      Promise.all([db.subscription.count({ where: { userId } }), db.mpPayment.count({ where: { userId } })]).then(([a, b]) => a + b),
     ]);
 
   const hasHistory =
-    jobs + reviews + messages + conversations + reports + applications + planRequests + topUps + campaigns + supplyOrders > 0;
+    jobs + reviews + messages + conversations + reports + applications + planRequests + topUps + campaigns + supplyOrders + mpBilling > 0;
   if (hasHistory) {
     return {
       ok: false,

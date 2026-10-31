@@ -1,7 +1,11 @@
 import { Suspense } from "react";
+import Link from "next/link";
+import { Search as SearchIcon, SlidersHorizontal, List, Map as MapIcon, SearchX } from "lucide-react";
 import { db } from "@/lib/db";
 import { WorkerCard } from "@/components/WorkerCard";
 import { LocationAutoUpdate } from "@/components/LocationAutoUpdate";
+import { ResultsMap } from "@/components/map/ResultsMap";
+import type { MapMarker } from "@/components/map/Map";
 import { distanceKm } from "@/lib/geo";
 import { workerScore, isSponsored, workerBoost } from "@/lib/ranking";
 import { isPro } from "@/lib/pro";
@@ -21,6 +25,7 @@ type Search = {
   sort?: string;
   lat?: string;
   lng?: string;
+  vista?: string;
 };
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Search> }) {
@@ -86,101 +91,208 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     results.filter((w) => w.sponsored).map((w) => w.userId)
   );
 
+  const mapView = sp.vista === "mapa";
+  // Conserva la búsqueda actual al cambiar de vista o de oficio.
+  const withParams = (patch: Partial<Search>) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries({ ...sp, ...patch })) if (v) p.set(k, String(v));
+    return `/search?${p.toString()}`;
+  };
+  const activeFilters = [sp.city, sp.minRating, sp.maxKm, sp.minExp, sp.sort, sp.verified].filter(Boolean).length;
+
+  const markers: MapMarker[] = results
+    .filter((w) => w.lat != null && w.lng != null)
+    .map((w) => ({
+      id: w.id,
+      lat: w.lat!,
+      lng: w.lng!,
+      label: w.user.name,
+      sublabel: w.profession,
+      href: `/w/${w.userId}`,
+      actionHref: `/hire/${w.userId}`,
+      kind: w.sponsored ? "sponsored" : "worker",
+      avatarUrl: w.user.avatarUrl,
+      rating: w.ratingAvg,
+      ratingCount: w.ratingCount,
+      pro: isPro(w.proUntil),
+      zone: w.zone,
+    }));
+
+  const segment = (active: boolean) =>
+    `inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-bold transition ${
+      active ? "bg-surface shadow-soft text-fg" : "text-muted hover:text-fg"
+    }`;
+
   return (
-    <main className="max-w-lg mx-auto w-full px-4 py-6">
+    <main className="w-full">
       <Suspense fallback={null}>
         <LocationAutoUpdate />
       </Suspense>
-      <h1 className="text-2xl font-bold">Buscar</h1>
 
-      <form className="mt-4 space-y-3">
-        <input name="q" defaultValue={sp.q} placeholder="Profesión, nombre, palabra clave…" className="input" />
+      {/* Encabezado con el buscador */}
+      <section className="relative overflow-hidden bg-hero text-white">
+        <div className="absolute inset-0 bg-dots opacity-60" aria-hidden />
+        <div className="relative max-w-2xl mx-auto px-4 pt-6 pb-16">
+          <h1 className="text-[28px] font-extrabold tracking-tight">Encontrá a tu profesional</h1>
+          <p className="text-sm text-white/80 mt-1">Perfiles verificados, reseñas reales y precios orientativos.</p>
+          <form className="mt-4 flex items-center gap-2 rounded-2xl bg-surface p-1.5 pl-4 shadow-float">
+            <SearchIcon className="w-5 h-5 text-accent shrink-0" aria-hidden />
+            <input
+              name="q"
+              defaultValue={sp.q}
+              placeholder="Plomero, electricista, nombre…"
+              aria-label="Buscar"
+              className="w-full bg-transparent text-fg text-[15px] font-medium outline-none placeholder:text-faint py-2"
+            />
+            {sp.category && <input type="hidden" name="category" value={sp.category} />}
+            {mapView && <input type="hidden" name="vista" value="mapa" />}
+            <button className="btn-primary !py-2.5 !rounded-xl shrink-0">Buscar</button>
+          </form>
+        </div>
+      </section>
 
-        <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <select name="category" defaultValue={sp.category ?? ""} className="input !w-auto">
-            <option value="">Todas las categorías</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.slug}>{c.icon} {c.name}</option>
+      <div className="max-w-2xl mx-auto px-4 -mt-10 relative space-y-4">
+        {/* Oficios */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
+          <Link href={withParams({ category: undefined })} className={`chip shadow-soft ${!sp.category ? "chip-active" : ""}`}>
+            Todos
+          </Link>
+          {categories.map((c) => (
+            <Link
+              key={c.id}
+              href={withParams({ category: c.slug })}
+              className={`chip shadow-soft ${sp.category === c.slug ? "chip-active" : ""}`}
+            >
+              <span aria-hidden>{c.icon}</span> {c.name}
+            </Link>
+          ))}
+        </div>
+
+        {/* Filtros avanzados (plegados para no abrumar) */}
+        <details className="card group">
+          <summary className="list-none cursor-pointer flex items-center justify-between gap-3 p-4">
+            <span className="flex items-center gap-2.5 font-bold text-sm">
+              <span className="icon-tile w-9 h-9 bg-surface-2 text-fg">
+                <SlidersHorizontal className="w-4 h-4" aria-hidden />
+              </span>
+              Filtros y orden
+              {activeFilters > 0 && <span className="badge badge-accent">{activeFilters}</span>}
+            </span>
+            <span className="text-xs font-bold text-accent group-open:hidden">Mostrar</span>
+            <span className="text-xs font-bold text-accent hidden group-open:inline">Ocultar</span>
+          </summary>
+          <form className="px-4 pb-4 space-y-3 border-t border-line pt-4">
+            <input type="hidden" name="q" value={sp.q ?? ""} />
+            {sp.category && <input type="hidden" name="category" value={sp.category} />}
+            {mapView && <input type="hidden" name="vista" value="mapa" />}
+            <input name="city" defaultValue={sp.city} placeholder="Ciudad o barrio" className="input" />
+            <div className="grid grid-cols-2 gap-2">
+              <select name="minRating" defaultValue={sp.minRating ?? ""} className="input" aria-label="Calificación mínima">
+                <option value="">Calificación</option>
+                <option value="4.5">4.5+ ★</option>
+                <option value="4">4.0+ ★</option>
+                <option value="3">3.0+ ★</option>
+              </select>
+              <select name="maxKm" defaultValue={sp.maxKm ?? ""} className="input" aria-label="Distancia máxima">
+                <option value="">Distancia</option>
+                <option value="2">Hasta 2 km</option>
+                <option value="5">Hasta 5 km</option>
+                <option value="10">Hasta 10 km</option>
+                <option value="30">Hasta 30 km</option>
+              </select>
+              <select name="minExp" defaultValue={sp.minExp ?? ""} className="input" aria-label="Experiencia mínima">
+                <option value="">Experiencia</option>
+                <option value="3">3+ años</option>
+                <option value="5">5+ años</option>
+                <option value="10">10+ años</option>
+              </select>
+              <select name="sort" defaultValue={sp.sort ?? ""} className="input" aria-label="Ordenar">
+                <option value="">Recomendados</option>
+                <option value="distance">Más cercanos</option>
+                <option value="jobs">Más trabajos</option>
+                <option value="experience">Más experiencia</option>
+              </select>
+            </div>
+            <label className="flex items-center gap-2.5 text-sm font-medium">
+              <input type="checkbox" name="verified" value="1" defaultChecked={sp.verified === "1"} className="accent-[var(--accent)] w-4 h-4" />
+              Solo profesionales verificados
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href={withParams({ city: undefined, minRating: undefined, maxKm: undefined, minExp: undefined, sort: undefined, verified: undefined })}
+                className="btn-secondary"
+              >
+                Limpiar
+              </Link>
+              <button className="btn-primary">Aplicar</button>
+            </div>
+          </form>
+        </details>
+
+        {/* Cantidad + Lista/Mapa */}
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-muted">
+            <span className="text-fg font-extrabold">{results.length}</span> {results.length === 1 ? "profesional" : "profesionales"}
+          </p>
+          <nav className="flex p-1 rounded-2xl bg-surface-2" aria-label="Vista">
+            <Link href={withParams({ vista: undefined })} aria-current={!mapView ? "page" : undefined} className={segment(!mapView)}>
+              <List className="w-4 h-4" aria-hidden /> Lista
+            </Link>
+            <Link href={withParams({ vista: "mapa" })} aria-current={mapView ? "page" : undefined} className={segment(mapView)}>
+              <MapIcon className="w-4 h-4" aria-hidden /> Mapa
+            </Link>
+          </nav>
+        </div>
+
+        {mapView ? (
+          <div className="h-[calc(100dvh-250px)] min-h-[420px] rounded-[26px] overflow-hidden border border-line shadow-float">
+            <ResultsMap markers={markers} center={[origin.lat, origin.lng]} />
+          </div>
+        ) : (
+          <div className="space-y-2.5 pb-4">
+            {results.map((w) => (
+              <WorkerCard
+                key={w.id}
+                w={{
+                  userId: w.userId,
+                  name: w.user.name,
+                  avatarUrl: w.user.avatarUrl,
+                  profession: w.profession,
+                  zone: w.zone,
+                  ratingAvg: w.ratingAvg,
+                  ratingCount: w.ratingCount,
+                  jobsDone: w.jobsDone,
+                  cancellations: w.cancellations,
+                  verified: w.verified,
+                  sponsored: w.sponsored,
+                  pro: isPro(w.proUntil),
+                  distanceKm: w.distance,
+                  priceHint: w.priceHint,
+                  rank: computeRank({
+                    ratingAvg: w.ratingAvg,
+                    ratingCount: w.ratingCount,
+                    jobsDone: w.jobsDone,
+                    createdAt: w.createdAt,
+                    cancellations: w.cancellations,
+                    claims: w.claims,
+                    avgResponseMins: w.avgResponseMins,
+                    punctualityAvg: w.punctualityAvg,
+                  }),
+                }}
+              />
             ))}
-          </select>
-          <input name="city" defaultValue={sp.city} placeholder="Ciudad o barrio" className="input !w-36" />
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <select name="minRating" defaultValue={sp.minRating ?? ""} className="input">
-            <option value="">Calificación</option>
-            <option value="4.5">4.5+ ★</option>
-            <option value="4">4.0+ ★</option>
-            <option value="3">3.0+ ★</option>
-          </select>
-          <select name="maxKm" defaultValue={sp.maxKm ?? ""} className="input">
-            <option value="">Distancia</option>
-            <option value="2">Hasta 2 km</option>
-            <option value="5">Hasta 5 km</option>
-            <option value="10">Hasta 10 km</option>
-            <option value="30">Hasta 30 km</option>
-          </select>
-          <select name="minExp" defaultValue={sp.minExp ?? ""} className="input">
-            <option value="">Experiencia</option>
-            <option value="3">3+ años</option>
-            <option value="5">5+ años</option>
-            <option value="10">10+ años</option>
-          </select>
-          <select name="sort" defaultValue={sp.sort ?? ""} className="input">
-            <option value="">Mejor calificados</option>
-            <option value="distance">Más cercanos</option>
-            <option value="jobs">Más trabajos</option>
-            <option value="experience">Más experiencia</option>
-          </select>
-        </div>
-
-        <label className="flex items-center gap-2 text-sm text-muted">
-          <input type="checkbox" name="verified" value="1" defaultChecked={sp.verified === "1"} className="accent-fg w-4 h-4" />
-          Solo verificados
-        </label>
-
-        <button className="btn-primary w-full">Aplicar filtros</button>
-      </form>
-
-      <p className="text-sm text-muted mt-6 mb-3">
-        {results.length} {results.length === 1 ? "resultado" : "resultados"}
-      </p>
-
-      <div className="space-y-2.5">
-        {results.map((w) => (
-          <WorkerCard
-            key={w.id}
-            w={{
-              userId: w.userId,
-              name: w.user.name,
-              avatarUrl: w.user.avatarUrl,
-              profession: w.profession,
-              zone: w.zone,
-              ratingAvg: w.ratingAvg,
-              ratingCount: w.ratingCount,
-              jobsDone: w.jobsDone,
-              cancellations: w.cancellations,
-              verified: w.verified,
-              sponsored: w.sponsored,
-              pro: isPro(w.proUntil),
-              distanceKm: w.distance,
-              priceHint: w.priceHint,
-              rank: computeRank({
-                ratingAvg: w.ratingAvg,
-                ratingCount: w.ratingCount,
-                jobsDone: w.jobsDone,
-                createdAt: w.createdAt,
-                cancellations: w.cancellations,
-                claims: w.claims,
-                avgResponseMins: w.avgResponseMins,
-                punctualityAvg: w.punctualityAvg,
-              }),
-            }}
-          />
-        ))}
-        {results.length === 0 && (
-          <div className="card p-8 text-center text-muted text-sm">
-            No encontramos resultados. Probá con otros filtros.
+            {results.length === 0 && (
+              <div className="card p-8 text-center">
+                <span className="icon-tile w-14 h-14 bg-surface-2 text-muted mx-auto">
+                  <SearchX className="w-7 h-7" aria-hidden />
+                </span>
+                <p className="font-bold mt-4">No encontramos profesionales</p>
+                <p className="text-sm text-muted mt-1">Probá con otro oficio o sacá algún filtro.</p>
+                <Link href="/pedidos/nuevo" className="btn-primary mt-4 inline-flex">
+                  Publicá tu pedido y te cotizan
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

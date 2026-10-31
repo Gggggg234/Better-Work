@@ -69,8 +69,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen flex flex-col pb-[72px]">
-      {!onboarding && <AppHeader userId={user.id} />}
+    <div className="min-h-screen flex flex-col pb-[100px]">
+      {!onboarding && <AppHeader user={{ id: user.id, name: user.name, avatarUrl: user.avatarUrl }} />}
       <div className="flex-1 flex flex-col">{children}</div>
       <BottomNav items={NAV[user.role] ?? NAV.CLIENT} onboarding={onboarding} />
     </div>
