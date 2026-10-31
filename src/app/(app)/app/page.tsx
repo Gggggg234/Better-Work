@@ -9,6 +9,7 @@ import { workerScore, isSponsored, activeBoost } from "@/lib/ranking";
 import { computeRank } from "@/lib/rank";
 import { trackSearchAppearances } from "@/lib/track";
 import { openRequestsFor } from "@/lib/openRequests";
+import { aiConfigured } from "@/lib/ai/requestAssistant";
 
 const BA_CENTER: [number, number] = [-34.6037, -58.3816];
 
@@ -155,7 +156,11 @@ export default async function AppHome() {
               <Link href="/pedidos/nuevo" className="card p-4 flex items-center justify-between gap-3 hover:bg-surface-2 transition">
                 <div>
                   <p className="font-semibold text-sm">📣 Pedí presupuestos a varios</p>
-                  <p className="text-xs text-muted">Publicá qué necesitás, los profesionales te cotizan y elegís.</p>
+                  <p className="text-xs text-muted">
+                    {aiConfigured()
+                      ? "Sacale una foto al problema: la IA arma el pedido y los profesionales te cotizan."
+                      : "Publicá qué necesitás, los profesionales te cotizan y elegís."}
+                  </p>
                 </div>
                 <span className="text-lg">→</span>
               </Link>

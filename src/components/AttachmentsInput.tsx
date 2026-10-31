@@ -7,7 +7,7 @@ import { useRef, useState } from "react";
  * (PDF, Word, Excel, texto). Los archivos viajan en el form con name
  * "attachments" y los guarda `requestJob`.
  */
-export function AttachmentsInput() {
+export function AttachmentsInput({ onFilesChange }: { onFilesChange?: (files: File[]) => void } = {}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
 
@@ -17,12 +17,14 @@ export function AttachmentsInput() {
     const next = [...files, ...Array.from(list)].filter((f) => f.size <= 15 * 1024 * 1024).slice(0, 10);
     setFiles(next);
     syncInput(next);
+    onFilesChange?.(next);
   }
 
   function removeAt(i: number) {
     const next = files.filter((_, idx) => idx !== i);
     setFiles(next);
     syncInput(next);
+    onFilesChange?.(next);
   }
 
   // El <input type=file> no es editable por JS con una lista arbitraria salvo

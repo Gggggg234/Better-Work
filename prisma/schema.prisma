@@ -30,6 +30,7 @@ model User {
   jobsAsWorker   Job[]          @relation("WorkerJobs")
   openRequests   OpenRequest[]  @relation("ClientOpenRequests")
   bids           Bid[]          @relation("WorkerBids")
+  aiAnalyses     AiAnalysis[]
   reviewsGiven   Review[]       @relation("Rater")
   reviewsGotten  Review[]       @relation("Rated")
   messages       Message[]
@@ -172,6 +173,18 @@ model Bid {
 
   @@unique([requestId, workerId])
   @@index([workerId])
+}
+
+/** Cada análisis de fotos con IA: limita el uso por persona y mide cuánto se usa. */
+model AiAnalysis {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categorySlug String? // oficio sugerido (null si no se pudo)
+  ok           Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Payment {
