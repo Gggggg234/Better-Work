@@ -44,6 +44,7 @@ export default async function ProfilePage() {
   links.push([`/feed/user/${me.id}`, "Mis publicaciones"]);
   links.push(["/jobs", "Mis trabajos"]);
   links.push(["/chat", "Mensajes"]);
+  links.push(["/notificaciones", "Notificaciones"]);
 
   const wp = me.workerProfile;
   const payPreference: string[] = (() => {

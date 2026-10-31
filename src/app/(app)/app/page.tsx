@@ -13,13 +13,19 @@ import { openRequestsFor } from "@/lib/openRequests";
 import { aiConfigured } from "@/lib/ai/requestAssistant";
 import { escrowActive } from "@/lib/payments";
 import { formatDate } from "@/lib/format";
+import { vapidPublicKey } from "@/lib/notify";
+import { PushToggle } from "@/components/PushToggle";
 
 const BA_CENTER: [number, number] = [-34.6037, -58.3816];
 
 export default async function AppHome() {
   const user = await getCurrentUser();
   const now = new Date();
-  const escrow = await escrowActive();
+  const [escrow, unread, pushKey] = await Promise.all([
+    escrowActive(),
+    user ? db.notification.count({ where: { userId: user.id, readAt: null } }) : Promise.resolve(0),
+    vapidPublicKey().catch(() => ""),
+  ]);
 
   // Pedidos abiertos que puede cotizar (sólo para profesionales).
   const nearbyRequests =
@@ -124,6 +130,21 @@ export default async function AppHome() {
               placeholder="¿Qué necesitás? Plomero, profesor, diseñador…"
               className="w-full py-3 text-sm bg-transparent text-fg outline-none placeholder:text-faint"
             />
+            <Link
+              href="/notificaciones"
+              className="relative shrink-0 p-1.5 -mr-1.5 text-muted hover:text-fg transition"
+              aria-label={unread > 0 ? `Notificaciones (${unread} sin leer)` : "Notificaciones"}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5" aria-hidden>
+                <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" strokeLinecap="round" />
+              </svg>
+              {unread > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold leading-4 text-center">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+            </Link>
           </form>
 
           {/* Categorías */}
@@ -142,6 +163,8 @@ export default async function AppHome() {
         <div className="w-10 h-1 rounded-full bg-line mx-auto mb-4" />
 
         <div className="max-w-lg mx-auto space-y-6">
+          {pushKey && user && <PushToggle publicKey={pushKey} compact />}
+
           {/* Pedido abierto: el cliente publica, varios profesionales cotizan. */}
           {user?.role === "WORKER" ? (
             nearbyRequests.length > 0 && (

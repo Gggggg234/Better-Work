@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { notifyChatMessage } from "@/lib/notify";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
@@ -54,6 +55,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     },
   });
   await db.conversation.update({ where: { id }, data: { updatedAt: new Date() } });
+  after(() =>
+    notifyChatMessage({ conversationId: id, senderId: auth.session.userId, senderName: auth.session.name, type, content })
+  );
 
   return NextResponse.json({ message });
 }

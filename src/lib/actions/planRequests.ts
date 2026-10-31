@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { sendPlanApprovedEmail, sendPlanRejectedEmail } from "@/lib/mail";
+import { notify } from "@/lib/notify";
 
 const DAY = 86_400_000;
 
@@ -60,6 +61,7 @@ export async function approvePlanRequest(requestId: string): Promise<void> {
 
   // El aviso es best-effort: si el email falla, la membresía igual quedó activa.
   await sendPlanApprovedEmail(company.user.email, plan.name, until).catch(() => {});
+  await notify(company.user.id, { title: `Plan ${plan.name} activado`, body: "Aprobamos tu comprobante.", url: "/company/plan" });
 
   revalidatePath("/admin", "layout");
   revalidatePath("/company");
@@ -74,7 +76,7 @@ export async function rejectPlanRequest(requestId: string, formData: FormData): 
 
   const req = await db.planRequest.findUnique({
     where: { id: requestId },
-    include: { company: { include: { user: { select: { email: true } } } } },
+    include: { company: { include: { user: { select: { id: true, email: true } } } } },
   });
   if (!req || req.status !== "PENDING") return;
 
@@ -84,6 +86,11 @@ export async function rejectPlanRequest(requestId: string, formData: FormData): 
   });
 
   await sendPlanRejectedEmail(req.company.user.email, reason).catch(() => {});
+  await notify(req.company.user.id, {
+    title: "No pudimos validar tu comprobante",
+    body: reason || "Revisalo y volvé a enviarlo.",
+    url: "/company/plan",
+  });
 
   revalidatePath("/admin", "layout");
   revalidatePath("/company");

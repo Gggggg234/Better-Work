@@ -34,6 +34,8 @@ model User {
   bids           Bid[]          @relation("WorkerBids")
   aiAnalyses     AiAnalysis[]
   proRequests    ProRequest[]
+  notifications  Notification[]
+  pushSubs       PushSubscription[]
   // Referidos: código propio para invitar, quién lo invitó y trabajos
   // bonificados (sin comisión si es profesional, sin tarifa si contrata).
   referralCode     String?  @unique
@@ -218,6 +220,33 @@ model ProRequest {
   reviewedAt DateTime?
 
   @@index([status, createdAt])
+  @@index([userId])
+}
+
+/** Aviso para un usuario: lo ve en el centro de notificaciones y, si activó push, en el celular. */
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String    @default("")
+  url       String    @default("/") // adónde lleva al tocarla
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/** Suscripción Web Push de un dispositivo (una persona puede tener varias). */
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
   @@index([userId])
 }
 

@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+import { notifyChatMessage } from "@/lib/notify";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -45,4 +47,5 @@ export async function sendMessage(conversationId: string, formData: FormData) {
     data: { conversationId, senderId: user.id, type, content, meta: JSON.stringify(meta) },
   });
   await db.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
+  after(() => notifyChatMessage({ conversationId, senderId: user.id, senderName: user.name, type, content }));
 }

@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { notify } from "@/lib/notify";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireRole, requireUser } from "@/lib/auth";
-import { genCode } from "@/lib/format";
+import { genCode, formatMoney } from "@/lib/format";
 
 /**
  * Negociación por presupuesto.
@@ -18,7 +20,10 @@ import { genCode } from "@/lib/format";
 export async function sendQuote(jobId: string, formData: FormData): Promise<void> {
   const user = await requireRole("WORKER");
 
-  const job = await db.job.findUnique({ where: { id: jobId }, select: { workerId: true, status: true } });
+  const job = await db.job.findUnique({
+    where: { id: jobId },
+    select: { workerId: true, clientId: true, title: true, status: true },
+  });
   if (!job || job.workerId !== user.id || job.status !== "REQUESTED") redirect(`/jobs/${jobId}`);
 
   const price = Math.round(parseFloat(String(formData.get("price") ?? "")) || 0);
@@ -30,6 +35,13 @@ export async function sendQuote(jobId: string, formData: FormData): Promise<void
   await db.quote.create({
     data: { jobId, price, estimatedTime, note, status: "PENDING" },
   });
+  after(() =>
+    notify(job.clientId, {
+      title: `${user.name.split(" ")[0]} te pasó un presupuesto: ${formatMoney(price)}`,
+      body: job.title,
+      url: `/jobs/${jobId}`,
+    })
+  );
 
   revalidatePath(`/jobs/${jobId}`);
   redirect(`/jobs/${jobId}?ok=presupuesto`);
@@ -39,7 +51,10 @@ export async function sendQuote(jobId: string, formData: FormData): Promise<void
 export async function acceptQuote(jobId: string, quoteId: string): Promise<void> {
   const user = await requireUser();
 
-  const job = await db.job.findUnique({ where: { id: jobId }, select: { clientId: true, status: true } });
+  const job = await db.job.findUnique({
+    where: { id: jobId },
+    select: { clientId: true, workerId: true, title: true, status: true },
+  });
   if (!job || job.clientId !== user.id || job.status !== "REQUESTED") redirect(`/jobs/${jobId}`);
 
   const quote = await db.quote.findUnique({ where: { id: quoteId } });
@@ -59,6 +74,13 @@ export async function acceptQuote(jobId: string, quoteId: string): Promise<void>
       },
     }),
   ]);
+  after(() =>
+    notify(job.workerId, {
+      title: `🎉 ${user.name.split(" ")[0]} aceptó tu presupuesto`,
+      body: job.title,
+      url: `/jobs/${jobId}`,
+    })
+  );
 
   revalidatePath(`/jobs/${jobId}`);
 }
@@ -67,13 +89,19 @@ export async function acceptQuote(jobId: string, quoteId: string): Promise<void>
 export async function rejectQuote(jobId: string, quoteId: string): Promise<void> {
   const user = await requireUser();
 
-  const job = await db.job.findUnique({ where: { id: jobId }, select: { clientId: true, status: true } });
+  const job = await db.job.findUnique({
+    where: { id: jobId },
+    select: { clientId: true, workerId: true, title: true, status: true },
+  });
   if (!job || job.clientId !== user.id || job.status !== "REQUESTED") redirect(`/jobs/${jobId}`);
 
   await db.$transaction([
     db.quote.updateMany({ where: { id: quoteId, jobId, status: "PENDING" }, data: { status: "REJECTED" } }),
     db.job.update({ where: { id: jobId }, data: { status: "CANCELLED" } }),
   ]);
+  after(() =>
+    notify(job.workerId, { title: `${user.name.split(" ")[0]} rechazó tu presupuesto`, body: job.title, url: `/jobs/${jobId}` })
+  );
 
   revalidatePath(`/jobs/${jobId}`);
 }
@@ -82,7 +110,10 @@ export async function rejectQuote(jobId: string, quoteId: string): Promise<void>
 export async function requestQuoteChanges(jobId: string, quoteId: string, formData: FormData): Promise<void> {
   const user = await requireUser();
 
-  const job = await db.job.findUnique({ where: { id: jobId }, select: { clientId: true, status: true } });
+  const job = await db.job.findUnique({
+    where: { id: jobId },
+    select: { clientId: true, workerId: true, title: true, status: true },
+  });
   if (!job || job.clientId !== user.id) redirect(`/jobs/${jobId}`);
 
   const clientNote = String(formData.get("clientNote") ?? "").trim().slice(0, 400);
@@ -91,6 +122,13 @@ export async function requestQuoteChanges(jobId: string, quoteId: string, formDa
     where: { id: quoteId, jobId, status: "PENDING" },
     data: { status: "CHANGES", clientNote },
   });
+  after(() =>
+    notify(job.workerId, {
+      title: `${user.name.split(" ")[0]} te pidió cambios en el presupuesto`,
+      body: clientNote || job.title,
+      url: `/jobs/${jobId}`,
+    })
+  );
 
   revalidatePath(`/jobs/${jobId}`);
 }

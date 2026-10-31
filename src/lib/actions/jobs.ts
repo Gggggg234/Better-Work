@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { notify } from "@/lib/notify";
 import { needsPayment, escrowActive } from "@/lib/payments";
 import { saveAttachment } from "@/lib/upload";
 import { releaseForJob, refundForJob } from "@/lib/actions/jobPayments";
@@ -62,8 +64,20 @@ export async function requestJob(formData: FormData) {
       urgencyPct,
     },
   });
+  after(() =>
+    notify(workerId, {
+      title: `${urgent ? "🚨 Urgente: n" : "N"}ueva solicitud de ${firstName(user.name)}`,
+      body: job.title,
+      url: `/jobs/${job.id}`,
+    })
+  );
   // La marca `creada=1` dispara el banner de confirmación en la página del trabajo.
   redirect(`/jobs/${job.id}?creada=1`);
+}
+
+/** "Pablo Pérez" → "Pablo" (para los avisos). */
+function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] ?? name;
 }
 
 /** Registra cuánto tardó el trabajador en responder (señal del rango). */
@@ -83,36 +97,64 @@ async function trackResponseTime(workerId: string, requestedAt: Date) {
 /** Trabajador acepta: se generan los códigos de inicio y finalización. */
 export async function acceptJob(jobId: string) {
   const user = await requireRole("WORKER");
-  const job = await db.job.findUnique({ where: { id: jobId }, select: { requestedAt: true, status: true, workerId: true } });
+  const job = await db.job.findUnique({
+    where: { id: jobId },
+    select: { requestedAt: true, status: true, workerId: true, clientId: true, title: true },
+  });
   await db.job.updateMany({
     where: { id: jobId, workerId: user.id, status: "REQUESTED" },
     data: { status: "ACCEPTED", acceptedAt: new Date(), startCode: genCode(), endCode: genCode() },
   });
   if (job && job.workerId === user.id && job.status === "REQUESTED") {
     await trackResponseTime(user.id, job.requestedAt);
+    after(() =>
+      notify(job.clientId, { title: `${firstName(user.name)} aceptó tu solicitud`, body: job.title, url: `/jobs/${jobId}` })
+    );
   }
   revalidatePath(`/jobs/${jobId}`);
 }
 
 export async function rejectJob(jobId: string) {
   const user = await requireRole("WORKER");
-  const job = await db.job.findUnique({ where: { id: jobId }, select: { requestedAt: true, status: true, workerId: true } });
+  const job = await db.job.findUnique({
+    where: { id: jobId },
+    select: { requestedAt: true, status: true, workerId: true, clientId: true, title: true },
+  });
   await db.job.updateMany({
     where: { id: jobId, workerId: user.id, status: "REQUESTED" },
     data: { status: "REJECTED" },
   });
   if (job && job.workerId === user.id && job.status === "REQUESTED") {
     await trackResponseTime(user.id, job.requestedAt);
+    after(() =>
+      notify(job.clientId, {
+        title: `${firstName(user.name)} no puede tomar el trabajo`,
+        body: `${job.title}. Podés pedirle a otro profesional o publicar un pedido abierto.`,
+        url: `/jobs/${jobId}`,
+      })
+    );
   }
   revalidatePath(`/jobs/${jobId}`);
 }
 
 export async function setEnRoute(jobId: string) {
   const user = await requireRole("WORKER");
-  await db.job.updateMany({
+  const updated = await db.job.updateMany({
     where: { id: jobId, workerId: user.id, status: "ACCEPTED" },
     data: { status: "EN_ROUTE" },
   });
+  if (updated.count === 1) {
+    const job = await db.job.findUnique({ where: { id: jobId }, select: { clientId: true, title: true } });
+    if (job) {
+      after(() =>
+        notify(job.clientId, {
+          title: `🚗 ${firstName(user.name)} está en camino`,
+          body: "Tené a mano el código de inicio para dárselo cuando llegue.",
+          url: `/jobs/${jobId}`,
+        })
+      );
+    }
+  }
   revalidatePath(`/jobs/${jobId}`);
 }
 
@@ -161,6 +203,13 @@ export async function enterEndCode(jobId: string, formData: FormData): Promise<v
   await releaseForJob(jobId);
   // Primer trabajo completado de alguien invitado: se premia a quien lo invitó.
   await rewardInvitersForJob(job);
+  after(() =>
+    notify(job.clientId, {
+      title: "✅ Trabajo terminado",
+      body: `Contanos cómo te fue con ${firstName(user.name)}: tu calificación ayuda a otros.`,
+      url: `/jobs/${jobId}`,
+    })
+  );
   revalidatePath(`/jobs/${jobId}`);
 }
 
@@ -180,6 +229,10 @@ export async function cancelJob(jobId: string) {
       data: { cancellations: { increment: 1 } },
     });
   }
+  const otherId = job.clientId === user.id ? job.workerId : job.clientId;
+  after(() =>
+    notify(otherId, { title: `${firstName(user.name)} canceló el trabajo`, body: job.title, url: `/jobs/${jobId}` })
+  );
   revalidatePath(`/jobs/${jobId}`);
 }
 

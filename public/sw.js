@@ -15,6 +15,40 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
+// Notificación push: llega aunque la app esté cerrada.
+self.addEventListener("push", (e) => {
+  let data = {};
+  try {
+    data = e.data ? e.data.json() : {};
+  } catch {
+    data = { title: "Better Work", body: e.data ? e.data.text() : "" };
+  }
+  e.waitUntil(
+    self.registration.showNotification(data.title || "Better Work", {
+      body: data.body || "",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+// Al tocarla: si la app ya está abierta, la enfoca y navega; si no, la abre.
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = new URL(e.notification.data?.url || "/", self.location.origin).href;
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if (new URL(w.url).origin === self.location.origin && "focus" in w) {
+          return w.focus().then(() => w.navigate(url));
+        }
+      }
+      return self.clients.openWindow(url);
+    })
+  );
+});
+
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   const url = new URL(e.request.url);

@@ -12,6 +12,7 @@ import { saveAttachment } from "@/lib/upload";
 import { MAX_BIDS, expiryFrom, isOpen, withinReach } from "@/lib/openRequests";
 import { isPro, getProConfig, bidsThisMonth } from "@/lib/pro";
 import { sendNewOpenRequestEmail, sendNewBidEmail, sendBidAcceptedEmail, siteUrl } from "@/lib/mail";
+import { notify } from "@/lib/notify";
 
 /** Pedidos abiertos a la vez por cliente: evita el spam de pedidos. */
 const MAX_OPEN_PER_CLIENT = 5;
@@ -83,11 +84,19 @@ export async function createOpenRequest(formData: FormData): Promise<void> {
   after(async () => {
     const workers = await db.workerProfile.findMany({
       where: { categoryId: category.id, visible: true, userId: { not: user.id }, user: { suspended: false } },
-      select: { lat: true, lng: true, radiusKm: true, user: { select: { email: true } } },
+      select: { userId: true, lat: true, lng: true, radiusKm: true, user: { select: { email: true } } },
       take: 300,
     });
     const url = `${await siteUrl()}/pedidos/${req.id}`;
     const targets = workers.filter((w) => withinReach(w, req).ok).slice(0, NOTIFY_LIMIT);
+    await notify(
+      targets.map((w) => w.userId),
+      {
+        title: `${urgent ? "🚨 Urgente: n" : "N"}uevo pedido de ${category.name.toLowerCase()} cerca tuyo`,
+        body: `${title} · ${zone}`,
+        url: `/pedidos/${req.id}`,
+      }
+    );
     await Promise.allSettled(
       targets.map((w) =>
         sendNewOpenRequestEmail(w.user.email, { title, category: category.name, zone, urgent }, url)
@@ -140,6 +149,11 @@ export async function sendBid(requestId: string, formData: FormData): Promise<vo
   });
 
   after(async () => {
+    await notify(req.clientId, {
+      title: `Nuevo presupuesto: ${formatMoney(price)}`,
+      body: `${user.name.split(/\s+/)[0]} cotizó «${req.title}»`,
+      url: back,
+    });
     await sendNewBidEmail(
       req.client.email,
       { workerName: user.name.split(/\s+/)[0], price: formatMoney(price), title: req.title },
@@ -218,6 +232,19 @@ export async function acceptBid(requestId: string, bidId: string): Promise<void>
   if (!jobId) redirect(back);
 
   after(async () => {
+    await notify(bid.workerId, {
+      title: "🎉 ¡Te eligieron!",
+      body: `${req.title}. Entrá para ver la dirección y coordinar.`,
+      url: `/jobs/${jobId}`,
+    });
+    const others = await db.bid.findMany({
+      where: { requestId, status: "REJECTED", id: { not: bid.id } },
+      select: { workerId: true },
+    });
+    await notify(
+      others.map((o) => o.workerId),
+      { title: "El cliente eligió otro presupuesto", body: `${req.title}. ¡Seguí cotizando!`, url: back }
+    );
     await sendBidAcceptedEmail(bid.worker.email, req.title, `${await siteUrl()}/jobs/${jobId}`);
   });
 

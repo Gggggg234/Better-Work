@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth";
 import { trySaveImage } from "@/lib/upload";
 import { PRO_DAYS, extendPro, getProConfig } from "@/lib/pro";
 import { sendProApprovedEmail, sendProRejectedEmail } from "@/lib/mail";
+import { notify } from "@/lib/notify";
 
 /**
  * El profesional envía el comprobante de la transferencia de Pro. No se
@@ -54,6 +55,11 @@ export async function approveProRequest(requestId: string): Promise<void> {
   });
 
   if (until) await sendProApprovedEmail(req.user.email, until).catch(() => {});
+  await notify(req.user.id, {
+    title: "⭐ ¡Ya sos Pro!",
+    body: "Aprobamos tu pago. Ya aparecés más arriba y mandás presupuestos sin límite.",
+    url: "/pro",
+  });
 
   revalidatePath("/admin", "layout");
   revalidatePath("/pro");
@@ -67,7 +73,7 @@ export async function rejectProRequest(requestId: string, formData: FormData): P
 
   const req = await db.proRequest.findUnique({
     where: { id: requestId },
-    include: { user: { select: { email: true } } },
+    include: { user: { select: { id: true, email: true } } },
   });
   if (!req || req.status !== "PENDING") return;
 
@@ -76,6 +82,11 @@ export async function rejectProRequest(requestId: string, formData: FormData): P
     data: { status: "REJECTED", reviewedAt: new Date(), note: reason },
   });
   await sendProRejectedEmail(req.user.email, reason).catch(() => {});
+  await notify(req.user.id, {
+    title: "No pudimos validar tu comprobante de Pro",
+    body: reason || "Revisalo y volvé a enviarlo.",
+    url: "/pro",
+  });
 
   revalidatePath("/admin", "layout");
   revalidatePath("/pro");
