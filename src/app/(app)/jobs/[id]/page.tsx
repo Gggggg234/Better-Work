@@ -107,11 +107,21 @@ export default async function JobDetailPage({
   // Desglose del cobro: el recargo por urgencia quedó fijado al pedir.
   const breakdownFor = (price: number) => priceBreakdown(price, { ...fees, urgencyPct: job.urgencyPct });
   const breakdown = job.price != null && job.price > 0 ? breakdownFor(job.price) : null;
-  // Comisión real si ya se liberó; si no, la estimada con la tarifa vigente.
+  // Trabajos bonificados por referidos de quien mira (se aplican solos).
+  const hasFreeJob = me.freeJobs > 0;
+  // Al cliente con bonificación se le muestra el total sin tarifa de servicio.
+  const payBreakdown =
+    breakdown && isClient && hasFreeJob && breakdown.serviceFee > 0
+      ? { ...breakdown, serviceFee: 0, clientTotal: breakdown.workAmount }
+      : breakdown;
+  // Comisión real si ya se liberó; si no, la estimada (0 si tiene bonificación).
+  const commissionFree = payment?.status === "RELEASED" ? payment.commissionWaived : isWorker && hasFreeJob;
   const workerCut = payment
     ? payment.status === "RELEASED"
       ? { commission: payment.commission, net: payment.amount - payment.commission }
-      : splitAmount(payment.amount, fees.commissionPct)
+      : commissionFree
+        ? { commission: 0, net: payment.amount }
+        : splitAmount(payment.amount, fees.commissionPct)
     : null;
 
   // Negociación por presupuesto: el más reciente es el vigente.
@@ -256,23 +266,25 @@ export default async function JobDetailPage({
           {/* El profesional ve lo que cobra; el cliente, en qué se fue lo que pagó. */}
           {isWorker && workerCut && payment.status !== "REFUNDED" && (
             <p className="text-[11px] text-faint mt-1">
-              Comisión Better Work: {formatMoney(workerCut.commission)} ·{" "}
+              Comisión Better Work: {commissionFree ? "bonificada 🎁" : formatMoney(workerCut.commission)} ·{" "}
               {payment.status === "RELEASED" ? "Cobraste" : "Vas a cobrar"}: {formatMoney(workerCut.net)}
             </p>
           )}
-          {!isWorker && payment.serviceFee > 0 && (
+          {!isWorker && (payment.serviceFee > 0 || payment.feeWaived) && (
             <p className="text-[11px] text-faint mt-1">
-              Trabajo: {formatMoney(payment.amount)} · Tarifa de servicio: {formatMoney(payment.serviceFee)}
+              Trabajo: {formatMoney(payment.amount)} · Tarifa de servicio:{" "}
+              {payment.feeWaived ? "bonificada 🎁" : formatMoney(payment.serviceFee)}
             </p>
           )}
         </div>
       )}
 
       {/* ── El cliente paga (escrow) después de que el trabajador acepta ── */}
-      {isClient && pending && breakdown && ["ACCEPTED", "EN_ROUTE"].includes(job.status) && (
+      {isClient && pending && payBreakdown && ["ACCEPTED", "EN_ROUTE"].includes(job.status) && (
         <PayButton
+          feeWaived={payBreakdown !== breakdown}
           jobId={job.id}
-          breakdown={breakdown}
+          breakdown={payBreakdown}
           urgencyPct={job.urgencyPct}
           serviceFeePct={fees.serviceFeePct}
           workerName={other.name}

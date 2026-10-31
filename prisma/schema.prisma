@@ -31,6 +31,14 @@ model User {
   openRequests   OpenRequest[]  @relation("ClientOpenRequests")
   bids           Bid[]          @relation("WorkerBids")
   aiAnalyses     AiAnalysis[]
+  // Referidos: código propio para invitar, quién lo invitó y trabajos
+  // bonificados (sin comisión si es profesional, sin tarifa si contrata).
+  referralCode     String?  @unique
+  referredById     String?
+  referredBy       User?    @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals        User[]   @relation("Referrals")
+  freeJobs         Int      @default(0)
+  referralRewarded Boolean  @default(false) // ya le dio el premio a quien lo invitó
   reviewsGiven   Review[]       @relation("Rater")
   reviewsGotten  Review[]       @relation("Rated")
   messages       Message[]
@@ -47,6 +55,8 @@ model User {
   campaigns      Campaign[]
   authTokens     AuthToken[]
   adWallet       AdWallet?
+
+  @@index([referredById])
 }
 
 /**
@@ -193,6 +203,8 @@ model Payment {
   job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
   amount      Float    // importe del trabajo (presupuesto + urgencia); base de la comisión
   serviceFee  Float    @default(0) // tarifa de servicio que paga el cliente encima (ingreso de Better Work)
+  feeWaived        Boolean @default(false) // tarifa bonificada por referidos
+  commissionWaived Boolean @default(false) // comisión bonificada por referidos
   commission  Float    @default(0) // comisión de Better Work, calculada al liberar
   status      String   @default("PENDING") // PENDING | HELD | RELEASED | REFUNDED
   method      String   @default("simulated") // id del proveedor (mercadopago | simulated)

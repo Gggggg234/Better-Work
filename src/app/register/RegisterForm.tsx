@@ -20,7 +20,15 @@ const ROLES = [
   { value: "COMPANY", title: "Empresa", desc: "Busco personal" },
 ];
 
-export function RegisterForm({ google, initialRole = "CLIENT" }: { google: boolean; initialRole?: string }) {
+export function RegisterForm({
+  google,
+  initialRole = "CLIENT",
+  invitedBy,
+}: {
+  google: boolean;
+  initialRole?: string;
+  invitedBy?: string;
+}) {
   const [state, action, pending] = useActionState(register, undefined);
   const [resendState, resendAction, resending] = useActionState(resendVerification, undefined);
   const [role, setRole] = useState(initialRole);
@@ -60,6 +68,17 @@ export function RegisterForm({ google, initialRole = "CLIENT" }: { google: boole
         <Brand href="/" />
         <h1 className="text-2xl font-bold mt-8">Creá tu cuenta</h1>
         <p className="text-sm text-muted mt-1">Elegí cómo querés usar Better Work.</p>
+
+        {invitedBy && (
+          <div className="card p-4 mt-5 bg-fg text-bg !border-fg">
+            <p className="text-sm font-semibold">🎁 {invitedBy} te invitó</p>
+            <p className="text-xs text-bg/70 mt-0.5">
+              {role === "WORKER"
+                ? "Tu primer trabajo va sin comisión."
+                : "Tu primer trabajo va sin tarifa de servicio."}
+            </p>
+          </div>
+        )}
 
         <form action={action} className="space-y-4 mt-8">
           <input type="hidden" name="role" value={role} />

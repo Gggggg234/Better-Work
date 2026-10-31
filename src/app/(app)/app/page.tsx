@@ -232,6 +232,24 @@ export default async function AppHome() {
             </div>
           )}
 
+          {user && user.role !== "ADMIN" && (
+            <Link href="/invitar" className="card p-4 flex items-center justify-between gap-3 hover:bg-surface-2 transition">
+              <div>
+                <p className="font-semibold text-sm">
+                  🎁 {user.freeJobs > 0
+                    ? `Tenés ${user.freeJobs} ${user.freeJobs === 1 ? "trabajo bonificado" : "trabajos bonificados"}`
+                    : "Invitá y ganá"}
+                </p>
+                <p className="text-xs text-muted">
+                  {user.role === "WORKER"
+                    ? "Por cada colega que se sume y trabaje, ganás 2 trabajos sin comisión."
+                    : "Por cada amigo que se sume y contrate, ganás 2 trabajos sin tarifa de servicio."}
+                </p>
+              </div>
+              <span className="text-lg">→</span>
+            </Link>
+          )}
+
           {user?.role === "WORKER" && (
             <Link href="/dashboard" className="card p-4 flex items-center justify-between hover:bg-surface-2 transition">
               <div>

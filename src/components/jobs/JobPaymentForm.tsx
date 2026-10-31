@@ -41,6 +41,7 @@ export function PayButton({
   serviceFeePct,
   workerName,
   mpReady,
+  feeWaived = false,
 }: {
   jobId: string;
   breakdown: PriceBreakdown;
@@ -48,6 +49,8 @@ export function PayButton({
   serviceFeePct: number;
   workerName: string;
   mpReady: boolean;
+  /** Trabajo bonificado por referidos: la tarifa de servicio no se cobra. */
+  feeWaived?: boolean;
 }) {
   const amount = b.clientTotal;
   return (
@@ -66,11 +69,18 @@ export function PayButton({
             <dd>{formatMoney(b.surcharge)}</dd>
           </div>
         )}
-        {b.serviceFee > 0 && (
+        {feeWaived ? (
           <div className="flex justify-between">
-            <dt className="text-muted">Tarifa de servicio ({serviceFeePct}%)</dt>
-            <dd>{formatMoney(b.serviceFee)}</dd>
+            <dt className="text-muted">Tarifa de servicio</dt>
+            <dd>🎁 Bonificada</dd>
           </div>
+        ) : (
+          b.serviceFee > 0 && (
+            <div className="flex justify-between">
+              <dt className="text-muted">Tarifa de servicio ({serviceFeePct}%)</dt>
+              <dd>{formatMoney(b.serviceFee)}</dd>
+            </div>
+          )
         )}
         <div className="flex justify-between border-t border-line pt-1 font-semibold">
           <dt>Total</dt>

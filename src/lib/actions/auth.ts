@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { createSession, destroySession, getSession } from "@/lib/auth";
 import { createEmailToken, verifyUrl } from "@/lib/tokens";
 import { sendVerificationEmail, mailConfigured, siteUrl } from "@/lib/mail";
+import { applyReferralOnSignup } from "@/lib/referrals";
 import {
   registerSchema,
   loginSchema,
@@ -92,6 +93,8 @@ export async function register(_prev: ActionState, formData: FormData): Promise<
   if (role === "COMPANY") {
     await db.companyProfile.create({ data: { userId: user.id, companyName: name } });
   }
+  // Si llegó con un link de invitación, queda vinculado y arranca bonificado.
+  await applyReferralOnSignup(user.id);
 
   const devLink = await issueVerification(user);
 

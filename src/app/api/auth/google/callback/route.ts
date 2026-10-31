@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { createSession } from "@/lib/auth";
 import { googleEnabled, exchangeCode } from "@/lib/oauth/google";
+import { applyReferralOnSignup } from "@/lib/referrals";
 
 /**
  * Vuelta de Google.
@@ -77,6 +78,8 @@ export async function GET(request: Request) {
       onboarded: false,
     },
   });
+  // Si llegó con un link de invitación, queda vinculado y arranca bonificado.
+  await applyReferralOnSignup(user.id);
 
   await createSession({ userId: user.id, role: user.role, name: user.name });
   return NextResponse.redirect(new URL("/onboarding", origin));

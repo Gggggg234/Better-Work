@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { giveBackFreeJob } from "@/lib/referrals";
 import { getMpPayment } from "@/lib/payments/mercadopago";
 
 /**
@@ -42,8 +43,14 @@ export async function POST(request: Request) {
         data: { status: "HELD", heldAt: new Date(), providerRef: info.paymentId },
       });
     } else if (info.status === "rejected" && payment.status === "PENDING") {
-      // Pago rechazado: se descarta para que el cliente pueda reintentar.
-      await db.payment.delete({ where: { jobId: info.jobId } }).catch(() => {});
+      // Pago rechazado: se descarta para que el cliente pueda reintentar. Si
+      // usaba una bonificación por referidos, se le devuelve (una sola vez:
+      // MP puede reenviar la misma notificación).
+      const removed = await db.payment.deleteMany({ where: { jobId: info.jobId, status: "PENDING" } });
+      if (removed.count === 1 && payment.feeWaived) {
+        const job = await db.job.findUnique({ where: { id: info.jobId }, select: { clientId: true } });
+        if (job) await giveBackFreeJob(job.clientId);
+      }
     }
 
     return NextResponse.json({ ok: true });

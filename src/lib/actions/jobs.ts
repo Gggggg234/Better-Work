@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { needsPayment } from "@/lib/payments";
 import { saveAttachment } from "@/lib/upload";
 import { releaseForJob, refundForJob } from "@/lib/actions/jobPayments";
+import { rewardInvitersForJob } from "@/lib/referrals";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
@@ -157,6 +158,8 @@ export async function enterEndCode(jobId: string, formData: FormData): Promise<v
   });
   // Recién ahora se libera el dinero al profesional (con la comisión descontada).
   await releaseForJob(jobId);
+  // Primer trabajo completado de alguien invitado: se premia a quien lo invitó.
+  await rewardInvitersForJob(job);
   revalidatePath(`/jobs/${jobId}`);
 }
 

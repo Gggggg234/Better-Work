@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { getPaymentProvider } from "@/lib/payments";
 import { splitAmount, priceBreakdown } from "@/lib/payments/escrow";
 import { getCommissionPct, getFeeConfig } from "@/lib/settings";
+import { takeFreeJob, giveBackFreeJob } from "@/lib/referrals";
 
 /**
  * Acciones del pago retenido (escrow) de un trabajo.
@@ -37,15 +38,23 @@ export async function startPayment(jobId: string): Promise<void> {
   const fees = await getFeeConfig();
   const b = priceBreakdown(job.price, { ...fees, urgencyPct: job.urgencyPct });
 
+  // Trabajo bonificado por referidos: sin tarifa de servicio. Un reintento de
+  // pago reusa la bonificación que ya tenía, sin gastar otra.
+  const feeWaived =
+    b.serviceFee > 0 && (job.payment?.feeWaived === true || (await takeFreeJob(user.id)));
+  const serviceFee = feeWaived ? 0 : b.serviceFee;
+
   let result;
   try {
     result = await provider.createCheckout({
       jobId: job.id,
-      amount: b.clientTotal,
+      amount: b.workAmount + serviceFee,
       title: `Better Work — ${job.title}${job.urgent ? " (urgente)" : ""}`,
       payerEmail: user.email,
     });
   } catch {
+    // No se cobró: si recién se usó una bonificación, se devuelve.
+    if (feeWaived && !job.payment?.feeWaived) await giveBackFreeJob(user.id);
     redirect(`/jobs/${jobId}?pago=error`);
   }
 
@@ -58,7 +67,8 @@ export async function startPayment(jobId: string): Promise<void> {
     create: {
       jobId: job.id,
       amount: b.workAmount,
-      serviceFee: b.serviceFee,
+      serviceFee,
+      feeWaived,
       method: provider.id,
       providerRef: result.providerRef,
       status: held ? "HELD" : "PENDING",
@@ -66,7 +76,8 @@ export async function startPayment(jobId: string): Promise<void> {
     },
     update: {
       amount: b.workAmount,
-      serviceFee: b.serviceFee,
+      serviceFee,
+      feeWaived,
       method: provider.id,
       providerRef: result.providerRef,
       status: held ? "HELD" : "PENDING",
@@ -85,15 +96,17 @@ export async function startPayment(jobId: string): Promise<void> {
  * Se llama SOLO desde `enterEndCode`: el trabajador nunca cobra antes.
  */
 export async function releaseForJob(jobId: string): Promise<void> {
-  const payment = await db.payment.findUnique({ where: { jobId } });
+  const payment = await db.payment.findUnique({ where: { jobId }, include: { job: { select: { workerId: true } } } });
   if (!payment || payment.status !== "HELD") return;
 
   const pct = await getCommissionPct();
   const { commission } = splitAmount(payment.amount, pct);
+  // Trabajo bonificado por referidos: el profesional cobra sin comisión.
+  const commissionWaived = commission > 0 && (await takeFreeJob(payment.job.workerId));
 
   await db.payment.update({
     where: { jobId },
-    data: { status: "RELEASED", releasedAt: new Date(), commission },
+    data: { status: "RELEASED", releasedAt: new Date(), commission: commissionWaived ? 0 : commission, commissionWaived },
   });
 }
 
@@ -112,8 +125,13 @@ export async function refundForJob(jobId: string): Promise<void> {
     }
   }
 
-  await db.payment.update({
-    where: { jobId },
+  const refunded = await db.payment.updateMany({
+    where: { jobId, status: { in: ["PENDING", "HELD"] } },
     data: { status: "REFUNDED", refundedAt: new Date() },
   });
+  // Se canceló: la bonificación de la tarifa vuelve a estar disponible.
+  if (refunded.count === 1 && payment.feeWaived) {
+    const job = await db.job.findUnique({ where: { id: jobId }, select: { clientId: true } });
+    if (job) await giveBackFreeJob(job.clientId);
+  }
 }
