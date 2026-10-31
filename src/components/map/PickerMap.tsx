@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useRef, useSyncExternalStore } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, AttributionControl, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
+import { TILE_URL, TILE_ATTRIBUTION, TILE_MAX_ZOOM } from "./tiles";
 import "leaflet/dist/leaflet.css";
 
 function useIsDark() {
@@ -59,9 +60,6 @@ export default function PickerMap({
   const dark = useIsDark();
   const mapRef = useRef<L.Map | null>(null);
 
-  const tiles = dark
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
   function locateMe() {
     if (!("geolocation" in navigator)) return;
@@ -83,11 +81,12 @@ export default function PickerMap({
         ref={mapRef}
         center={value ?? center}
         zoom={value ? 16 : 13}
-        className="h-full w-full"
+        className={`h-full w-full ${dark ? "map-dark" : ""}`}
         zoomControl={false}
         attributionControl={false}
       >
-        <TileLayer key={dark ? "dark" : "light"} url={tiles} />
+        <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} maxZoom={TILE_MAX_ZOOM} />
+        <AttributionControl position="bottomright" prefix={false} />
         <ClickToPlace onPick={onChange} />
         {value && (
           <Marker

@@ -18,7 +18,7 @@ export async function deleteAccountIfEmpty(userId: string): Promise<{ ok: true }
   if (!user) return { ok: false, reason: "No encontramos la cuenta." };
   if (user.role === "ADMIN") return { ok: false, reason: "Las cuentas de administrador no se pueden eliminar." };
 
-  const [jobs, reviews, messages, conversations, reports, applications, planRequests, topUps, campaigns] =
+  const [jobs, reviews, messages, conversations, reports, applications, planRequests, topUps, campaigns, supplyOrders] =
     await Promise.all([
       db.job.count({ where: { OR: [{ clientId: userId }, { workerId: userId }] } }),
       db.review.count({ where: { OR: [{ raterId: userId }, { ratedId: userId }] } }),
@@ -31,14 +31,16 @@ export async function deleteAccountIfEmpty(userId: string): Promise<{ ok: true }
         : Promise.resolve(0),
       db.walletTopUp.count({ where: { wallet: { userId } } }),
       db.campaign.count({ where: { userId } }),
+      // Pedidos de materiales: como comprador o como proveedor.
+      db.supplyOrder.count({ where: { OR: [{ buyerId: userId }, { supplier: { userId } }] } }),
     ]);
 
   const hasHistory =
-    jobs + reviews + messages + conversations + reports + applications + planRequests + topUps + campaigns > 0;
+    jobs + reviews + messages + conversations + reports + applications + planRequests + topUps + campaigns + supplyOrders > 0;
   if (hasHistory) {
     return {
       ok: false,
-      reason: "La cuenta ya tiene trabajos, pagos, mensajes, reseñas o denuncias asociadas.",
+      reason: "La cuenta ya tiene trabajos, pedidos, pagos, mensajes, reseñas o denuncias asociadas.",
     };
   }
 

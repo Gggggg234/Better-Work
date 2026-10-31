@@ -26,6 +26,13 @@ const ROLES = [
     desc: "Busco personal y publico oportunidades de trabajo.",
     next: "Seguís con los datos de tu empresa y el plan.",
   },
+  {
+    value: "SUPPLIER",
+    icon: "🧱",
+    title: "Proveedor",
+    desc: "Vendo materiales: corralón, ferretería, sanitarios, pinturería…",
+    next: "Seguís con los datos de tu comercio y cargás tus productos.",
+  },
 ];
 
 /**

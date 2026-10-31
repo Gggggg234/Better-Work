@@ -19,7 +19,7 @@ export async function chooseRole(formData: FormData): Promise<void> {
   const user = await requireUser();
   const role = String(formData.get("role") ?? "");
 
-  if (!["CLIENT", "WORKER", "COMPANY"].includes(role)) {
+  if (!["CLIENT", "WORKER", "COMPANY", "SUPPLIER"].includes(role)) {
     redirect("/onboarding?error=rol");
   }
   // Sólo aplica a cuentas que todavía no terminaron el alta.
@@ -38,11 +38,16 @@ export async function chooseRole(formData: FormData): Promise<void> {
   if (role === "COMPANY" && !user.companyProfile) {
     await db.companyProfile.create({ data: { userId: user.id, companyName: user.name } });
   }
+  if (role === "SUPPLIER" && !user.supplierProfile) {
+    await db.supplierProfile.create({ data: { userId: user.id, businessName: user.name } });
+  }
 
   // La sesión lleva el rol: hay que reemitirla o seguiría siendo CLIENT.
   await createSession({ userId: user.id, role, name: user.name });
 
   revalidatePath("/", "layout");
   // Cada rol continúa donde debe completar sus datos.
-  redirect(role === "WORKER" ? "/worker/profile" : role === "COMPANY" ? "/company" : "/app");
+  redirect(
+    role === "WORKER" ? "/worker/profile" : role === "COMPANY" ? "/company" : role === "SUPPLIER" ? "/proveedor/perfil" : "/app"
+  );
 }

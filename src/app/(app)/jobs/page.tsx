@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { Avatar } from "@/components/Avatar";
-import { JOB_STATUS_LABEL, formatDateTime, formatMoney } from "@/lib/format";
+import { JOB_STATUS_LABEL, JOB_STATUS_TONE, toneBadge, formatDateTime, formatMoney } from "@/lib/format";
 
 const ACTIVE = ["REQUESTED", "ACCEPTED", "EN_ROUTE", "WORKING"];
 
@@ -48,13 +48,7 @@ export default async function JobsPage() {
           </p>
         </div>
         <div className="text-right shrink-0">
-          <span
-            className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-medium ${
-              isActive ? "bg-fg text-bg" : "bg-surface-2 text-muted"
-            }`}
-          >
-            {JOB_STATUS_LABEL[job.status]}
-          </span>
+          <span className={toneBadge(JOB_STATUS_TONE[job.status] ?? "neutral")}>{JOB_STATUS_LABEL[job.status]}</span>
           {job.price != null && <p className="text-xs text-muted mt-1">{formatMoney(job.price)}</p>}
         </div>
       </Link>

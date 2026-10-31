@@ -3,8 +3,8 @@ import { JOB_FLOW, JOB_STATUS_LABEL } from "@/lib/format";
 export function StatusTimeline({ status }: { status: string }) {
   if (status === "CANCELLED" || status === "REJECTED") {
     return (
-      <div className="card p-4 text-center">
-        <p className="font-semibold">{JOB_STATUS_LABEL[status]}</p>
+      <div className="card p-4 flex items-center gap-3 border-danger/30">
+        <span className="badge badge-danger">{JOB_STATUS_LABEL[status]}</span>
         <p className="text-sm text-muted">Este trabajo no sigue activo.</p>
       </div>
     );
@@ -19,13 +19,17 @@ export function StatusTimeline({ status }: { status: string }) {
             {i > 0 && (
               <span
                 className={`absolute top-[9px] right-1/2 w-full h-0.5 ${
-                  i <= currentIdx ? "bg-fg" : "bg-line"
+                  i <= currentIdx ? (status === "COMPLETED" ? "bg-success" : "bg-accent") : "bg-line"
                 }`}
               />
             )}
             <span
               className={`relative z-10 w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] ${
-                done ? "bg-fg border-fg text-bg" : "bg-surface border-line"
+                done
+                  ? status === "COMPLETED"
+                    ? "bg-success border-success text-white"
+                    : "bg-accent border-accent text-accent-fg"
+                  : "bg-surface border-line"
               }`}
             >
               {done ? "✓" : ""}

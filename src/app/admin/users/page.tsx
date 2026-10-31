@@ -9,6 +9,7 @@ const ROLE_LABEL: Record<string, string> = {
   CLIENT: "Cliente",
   WORKER: "Trabajador",
   COMPANY: "Empresa",
+  SUPPLIER: "Proveedor",
   ADMIN: "Admin",
 };
 
@@ -46,6 +47,7 @@ export default async function AdminUsersPage({
           <option value="CLIENT">Clientes</option>
           <option value="WORKER">Trabajadores</option>
           <option value="COMPANY">Empresas</option>
+          <option value="SUPPLIER">Proveedores</option>
         </select>
         <button className="btn-primary shrink-0">Filtrar</button>
       </form>

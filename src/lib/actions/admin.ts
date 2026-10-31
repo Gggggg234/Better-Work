@@ -196,6 +196,26 @@ export async function toggleWorkerVerified(profileId: string) {
   revalidatePath("/admin/users");
 }
 
+/** Insignia de proveedor verificado. */
+export async function toggleSupplierVerified(profileId: string) {
+  await requireRole("ADMIN");
+  const p = await db.supplierProfile.findUnique({ where: { id: profileId } });
+  if (!p) return;
+  await db.supplierProfile.update({ where: { id: profileId }, data: { verified: !p.verified } });
+  revalidatePath("/admin/proveedores");
+  revalidatePath("/materiales", "layout");
+}
+
+/** Moderación: oculta o vuelve a mostrar un producto del catálogo. */
+export async function toggleProductHidden(productId: string) {
+  await requireRole("ADMIN");
+  const p = await db.product.findUnique({ where: { id: productId } });
+  if (!p) return;
+  await db.product.update({ where: { id: productId }, data: { hidden: !p.hidden } });
+  revalidatePath("/admin/proveedores");
+  revalidatePath("/materiales", "layout");
+}
+
 export async function toggleCompanyVerified(profileId: string) {
   await requireRole("ADMIN");
   const p = await db.companyProfile.findUnique({ where: { id: profileId } });

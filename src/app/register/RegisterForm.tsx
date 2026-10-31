@@ -18,6 +18,7 @@ const ROLES = [
   { value: "CLIENT", title: "Cliente", desc: "Quiero contratar" },
   { value: "WORKER", title: "Trabajador", desc: "Ofrezco servicios" },
   { value: "COMPANY", title: "Empresa", desc: "Busco personal" },
+  { value: "SUPPLIER", title: "Proveedor", desc: "Vendo materiales" },
 ];
 
 export function RegisterForm({
@@ -94,7 +95,7 @@ export function RegisterForm({
 
           <div>
             <span className="label">Tipo de cuenta</span>
-            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Tipo de cuenta">
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tipo de cuenta">
               {ROLES.map((r) => (
                 <button
                   key={r.value}
@@ -115,7 +116,7 @@ export function RegisterForm({
           </div>
 
           <Field
-            label={role === "COMPANY" ? "Nombre de la empresa" : "Nombre y apellido"}
+            label={role === "COMPANY" ? "Nombre de la empresa" : role === "SUPPLIER" ? "Nombre del comercio" : "Nombre y apellido"}
             name="name"
             error={state?.fields?.name}
           >
@@ -123,9 +124,9 @@ export function RegisterForm({
               id="name"
               name="name"
               required
-              autoComplete={role === "COMPANY" ? "organization" : "name"}
+              autoComplete={role === "COMPANY" || role === "SUPPLIER" ? "organization" : "name"}
               className="input"
-              placeholder={role === "COMPANY" ? "Mi Empresa S.A." : "Juan Pérez"}
+              placeholder={role === "COMPANY" ? "Mi Empresa S.A." : role === "SUPPLIER" ? "Corralón San Martín" : "Juan Pérez"}
               defaultValue={state?.values?.name ?? ""}
               aria-invalid={state?.fields?.name ? true : undefined}
             />

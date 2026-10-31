@@ -15,17 +15,31 @@ import { escrowActive } from "@/lib/payments";
 import { formatDate } from "@/lib/format";
 import { vapidPublicKey } from "@/lib/notify";
 import { PushToggle } from "@/components/PushToggle";
+import { redirect } from "next/navigation";
+import {
+  Search,
+  ClipboardList,
+  Briefcase,
+  Package,
+  Pencil,
+  Building2,
+  Sparkles,
+  BarChart3,
+  Gift,
+  Users,
+  Megaphone,
+  MessageCircle,
+} from "lucide-react";
+import { QuickAction, ActionRow, SectionTitle, IconTile } from "@/components/ui/ActionCards";
 
 const BA_CENTER: [number, number] = [-34.6037, -58.3816];
 
 export default async function AppHome() {
   const user = await getCurrentUser();
+  // El proveedor tiene su propio panel como inicio.
+  if (user?.role === "SUPPLIER") redirect("/proveedor");
   const now = new Date();
-  const [escrow, unread, pushKey] = await Promise.all([
-    escrowActive(),
-    user ? db.notification.count({ where: { userId: user.id, readAt: null } }) : Promise.resolve(0),
-    vapidPublicKey().catch(() => ""),
-  ]);
+  const [escrow, pushKey] = await Promise.all([escrowActive(), vapidPublicKey().catch(() => "")]);
 
   // Pedidos abiertos que puede cotizar (sólo para profesionales).
   const nearbyRequests =
@@ -110,96 +124,120 @@ export default async function AppHome() {
     })),
   ];
 
+  const firstName = user?.name.trim().split(/\s+/)[0] ?? "";
+  const workerPro = isPro(user?.workerProfile?.proUntil);
+
   return (
     <main className="relative flex-1 flex flex-col">
-      {/* Mapa protagonista */}
-      <div className="relative h-[52vh] min-h-[320px]">
+      {/* Mapa con buscador flotante */}
+      <div className="relative h-[38vh] min-h-[260px]">
         <div className="absolute inset-0">
           <MapView center={BA_CENTER} zoom={12} markers={markers} locate />
         </div>
 
-        {/* Buscador flotante */}
-        <div className="absolute top-4 inset-x-4 z-[999]">
-          <form action="/search" className="flex items-center gap-2 bg-surface rounded-2xl shadow-lg border border-line px-4 py-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-faint shrink-0">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.5-3.5" strokeLinecap="round" />
-            </svg>
+        <div className="absolute top-3 inset-x-3 z-[999]">
+          <form action="/search" className="flex items-center gap-2.5 bg-surface rounded-2xl shadow-lg border border-line px-4">
+            <Search className="w-[18px] h-[18px] text-faint shrink-0" aria-hidden />
             <input
               name="q"
-              placeholder="¿Qué necesitás? Plomero, profesor, diseñador…"
-              className="w-full py-3 text-sm bg-transparent text-fg outline-none placeholder:text-faint"
+              placeholder="¿Qué necesitás? Plomero, electricista…"
+              aria-label="Buscar profesionales"
+              className="w-full py-3.5 text-sm bg-transparent text-fg outline-none placeholder:text-faint"
             />
-            <Link
-              href="/notificaciones"
-              className="relative shrink-0 p-1.5 -mr-1.5 text-muted hover:text-fg transition"
-              aria-label={unread > 0 ? `Notificaciones (${unread} sin leer)` : "Notificaciones"}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5" aria-hidden>
-                <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" strokeLinecap="round" />
-              </svg>
-              {unread > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold leading-4 text-center">
-                  {unread > 9 ? "9+" : unread}
-                </span>
-              )}
-            </Link>
           </form>
 
-          {/* Categorías */}
-          <div className="flex gap-2 mt-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* Oficios: un toque y busca */}
+          <div className="flex gap-2 mt-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {categories.map((c) => (
-              <Link key={c.id} href={`/search?category=${c.slug}`} className="chip shadow-sm">
-                <span>{c.icon}</span> {c.name}
+              <Link key={c.id} href={`/search?category=${c.slug}`} className="chip shadow-sm !py-1.5">
+                <span aria-hidden>{c.icon}</span> {c.name}
               </Link>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Panel inferior */}
-      <section className="flex-1 bg-bg rounded-t-3xl -mt-5 z-[500] relative shadow-[0_-8px_30px_rgba(0,0,0,0.08)] px-4 pt-3 pb-6">
-        <div className="w-10 h-1 rounded-full bg-line mx-auto mb-4" />
+      {/* Panel */}
+      <section className="flex-1 bg-bg rounded-t-3xl -mt-5 z-[500] relative shadow-[0_-8px_30px_rgba(0,0,0,0.08)] px-4 pt-5 pb-8">
+        <div className="max-w-lg mx-auto space-y-7">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Hola{firstName ? `, ${firstName}` : ""} 👋</h1>
+            <p className="text-sm text-muted mt-0.5">
+              {user?.role === "WORKER" ? "Esto es lo que podés hacer hoy." : "¿Qué necesitás hoy?"}
+            </p>
+          </div>
 
-        <div className="max-w-lg mx-auto space-y-6">
+          {/* Accesos rápidos: qué es cada cosa y para qué sirve */}
+          <div className="grid grid-cols-2 gap-3">
+            {user?.role === "WORKER" ? (
+              <>
+                <QuickAction
+                  href="/pedidos"
+                  icon={ClipboardList}
+                  title="Pedidos cerca"
+                  desc={nearbyRequests.length > 0 ? "Clientes esperando tu presupuesto" : "Clientes de tu zona buscando tu oficio"}
+                  tone="warning"
+                  badge={nearbyRequests.length}
+                />
+                <QuickAction href="/jobs" icon={Briefcase} title="Mis trabajos" desc="Solicitudes, presupuestos y trabajos en curso" tone="accent" />
+                <QuickAction href="/materiales" icon={Package} title="Materiales" desc="Comprá lo que necesitás para tus trabajos" tone="success" />
+                <QuickAction href="/worker/profile" icon={Pencil} title="Mi perfil" desc="Un perfil completo consigue más trabajos" tone="neutral" />
+              </>
+            ) : (
+              <>
+                <QuickAction href="/search" icon={Search} title="Buscar profesional" desc="Perfiles, precios y reseñas reales" tone="accent" />
+                <QuickAction
+                  href="/pedidos/nuevo"
+                  icon={ClipboardList}
+                  title="Pedir presupuestos"
+                  desc={aiConfigured() ? "Sacá una foto y te cotizan varios" : "Publicá y te cotizan varios profesionales"}
+                  tone="warning"
+                />
+                <QuickAction href="/materiales" icon={Package} title="Materiales" desc="Corralones y ferreterías cerca tuyo" tone="success" />
+                {user?.role === "COMPANY" ? (
+                  <QuickAction href="/company" icon={Building2} title="Mi empresa" desc="Empleos, postulantes y membresía" tone="neutral" />
+                ) : (
+                  <QuickAction href="/jobs" icon={Briefcase} title="Mis trabajos" desc="Seguí lo que contrataste, paso a paso" tone="neutral" />
+                )}
+              </>
+            )}
+          </div>
+
           {pushKey && user && <PushToggle publicKey={pushKey} compact />}
 
-          {/* Pedido abierto: el cliente publica, varios profesionales cotizan. */}
-          {user?.role === "WORKER" ? (
-            nearbyRequests.length > 0 && (
-              <Link href="/pedidos" className="card p-4 bg-fg text-bg !border-fg flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-sm">
-                    📣 {nearbyRequests.length}{" "}
-                    {nearbyRequests.length === 1 ? "pedido esperando presupuesto" : "pedidos esperando presupuesto"}
-                  </p>
-                  <p className="text-xs text-bg/70">Clientes de tu zona buscando {user.workerProfile?.profession.toLowerCase()}.</p>
-                </div>
-                <span className="text-lg">→</span>
-              </Link>
-            )
-          ) : (
-            user?.role !== "ADMIN" && (
-              <Link href="/pedidos/nuevo" className="card p-4 flex items-center justify-between gap-3 hover:bg-surface-2 transition">
-                <div>
-                  <p className="font-semibold text-sm">📣 Pedí presupuestos a varios</p>
-                  <p className="text-xs text-muted">
-                    {aiConfigured()
-                      ? "Sacale una foto al problema: la IA arma el pedido y los profesionales te cotizan."
-                      : "Publicá qué necesitás, los profesionales te cotizan y elegís."}
-                  </p>
-                </div>
-                <span className="text-lg">→</span>
-              </Link>
-            )
+          {/* Para el profesional: Pro, rendimiento e invitaciones */}
+          {user?.role === "WORKER" && (
+            <div className="space-y-2.5">
+              <ActionRow
+                href="/pro"
+                icon={Sparkles}
+                tone="accent"
+                highlight={!workerPro}
+                title={workerPro ? `Sos Pro hasta el ${formatDate(user.workerProfile!.proUntil!)}` : "Pasate a Better Work Pro"}
+                desc={workerPro ? "Aparecés más arriba y mandás presupuestos sin límite." : "Aparecé más arriba y mandá presupuestos sin límite."}
+              />
+              <ActionRow href="/dashboard" icon={BarChart3} title="Mi rendimiento" desc="Calificación, rango, visitas y evolución." />
+              <ActionRow
+                href="/invitar"
+                icon={Gift}
+                tone="success"
+                title="Invitá y ganá"
+                desc={escrow ? "Por cada colega que se sume y trabaje, ganás 2 trabajos sin comisión." : "Por cada colega o cliente que trabaje, ganás 30 días de Pro."}
+              />
+            </div>
+          )}
+          {user && user.role !== "WORKER" && user.role !== "ADMIN" && escrow && (
+            <ActionRow
+              href="/invitar"
+              icon={Gift}
+              tone="success"
+              title={user.freeJobs > 0 ? `Tenés ${user.freeJobs} ${user.freeJobs === 1 ? "trabajo bonificado" : "trabajos bonificados"}` : "Invitá y ganá"}
+              desc="Por cada amigo que se sume y contrate, ganás 2 trabajos sin tarifa de servicio."
+            />
           )}
 
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-lg">Cerca tuyo</h2>
-              <Link href="/search" className="text-sm text-muted hover:text-fg transition">Ver todos →</Link>
-            </div>
+            <SectionTitle title="Profesionales cerca tuyo" href="/search" linkLabel="Ver todos" />
             <div className="space-y-2.5">
               {shown.map((w) => (
                 <WorkerCard
@@ -231,20 +269,18 @@ export default async function AppHome() {
                 />
               ))}
               {shown.length === 0 && (
-                <div className="card p-6 text-center text-sm text-faint">
-                  Todavía no hay profesionales en el mapa.
-                </div>
+                <div className="card p-6 text-center text-sm text-muted">Todavía no hay profesionales en el mapa.</div>
               )}
             </div>
           </div>
 
           {sortedCompanies.length > 0 && (
             <div>
-              <h2 className="font-bold text-lg mb-3">Empresas en tu zona</h2>
+              <SectionTitle title="Empresas en tu zona" href="/offers" linkLabel="Ver empleos" />
               <div className="space-y-2.5">
                 {sortedCompanies.map((c) => (
                   <div key={c.id} className="card p-4 flex items-center gap-3.5">
-                    <div className="w-[52px] h-[52px] rounded-xl bg-surface-2 flex items-center justify-center text-xl shrink-0">🏢</div>
+                    <IconTile icon={Building2} tone="neutral" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold text-sm">{c.companyName}</p>
@@ -261,55 +297,20 @@ export default async function AppHome() {
             </div>
           )}
 
-          {/* Better Work Pro: la suscripción del profesional. */}
-          {user?.role === "WORKER" && (
-            <Link href="/pro" className="card p-4 flex items-center justify-between gap-3 hover:bg-surface-2 transition">
-              <div>
-                <p className="font-semibold text-sm">
-                  {isPro(user.workerProfile?.proUntil)
-                    ? `⭐ Sos Pro hasta el ${formatDate(user.workerProfile!.proUntil!)}`
-                    : "⭐ Pasate a Better Work Pro"}
-                </p>
-                <p className="text-xs text-muted">
-                  {isPro(user.workerProfile?.proUntil)
-                    ? "Aparecés más arriba y mandás presupuestos sin límite."
-                    : "Aparecé más arriba en las búsquedas y mandá presupuestos sin límite."}
-                </p>
-              </div>
-              <span className="text-lg">→</span>
-            </Link>
-          )}
-
-          {/* Referidos: con pago directo el premio es Pro (sólo profesionales). */}
-          {user && user.role !== "ADMIN" && (escrow || user.role === "WORKER") && (
-            <Link href="/invitar" className="card p-4 flex items-center justify-between gap-3 hover:bg-surface-2 transition">
-              <div>
-                <p className="font-semibold text-sm">
-                  🎁 {escrow && user.freeJobs > 0
-                    ? `Tenés ${user.freeJobs} ${user.freeJobs === 1 ? "trabajo bonificado" : "trabajos bonificados"}`
-                    : "Invitá y ganá"}
-                </p>
-                <p className="text-xs text-muted">
-                  {!escrow
-                    ? "Por cada colega o cliente que se sume y complete un trabajo, ganás 30 días de Pro."
-                    : user.role === "WORKER"
-                      ? "Por cada colega que se sume y trabaje, ganás 2 trabajos sin comisión."
-                      : "Por cada amigo que se sume y contrate, ganás 2 trabajos sin tarifa de servicio."}
-                </p>
-              </div>
-              <span className="text-lg">→</span>
-            </Link>
-          )}
-
-          {user?.role === "WORKER" && (
-            <Link href="/dashboard" className="card p-4 flex items-center justify-between hover:bg-surface-2 transition">
-              <div>
-                <p className="font-semibold text-sm">Mirá tu rendimiento</p>
-                <p className="text-xs text-muted">Calificación, rango, visitas y evolución de tus trabajos.</p>
-              </div>
-              <span className="text-lg">→</span>
-            </Link>
-          )}
+          {/* Más secciones (salieron del menú inferior para que sea más simple) */}
+          <div>
+            <SectionTitle title="Más en Better Work" />
+            <div className="flex flex-wrap gap-2">
+              <Link href="/feed" className="chip"><Users className="w-4 h-4" aria-hidden /> Comunidad</Link>
+              {user?.role === "WORKER" && (
+                <Link href="/offers" className="chip"><Megaphone className="w-4 h-4" aria-hidden /> Empleos</Link>
+              )}
+              <Link href="/pedidos" className="chip">
+                <ClipboardList className="w-4 h-4" aria-hidden /> {user?.role === "WORKER" ? "Mis presupuestos" : "Mis pedidos"}
+              </Link>
+              <Link href="/chat" className="chip"><MessageCircle className="w-4 h-4" aria-hidden /> Mensajes</Link>
+            </div>
+          </div>
         </div>
       </section>
     </main>

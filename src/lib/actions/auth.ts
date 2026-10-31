@@ -94,6 +94,9 @@ export async function register(_prev: ActionState, formData: FormData): Promise<
   if (role === "COMPANY") {
     await db.companyProfile.create({ data: { userId: user.id, companyName: name } });
   }
+  if (role === "SUPPLIER") {
+    await db.supplierProfile.create({ data: { userId: user.id, businessName: name } });
+  }
   // Si llegó con un link de invitación, queda vinculado y arranca bonificado.
   await applyReferralOnSignup(user.id);
 

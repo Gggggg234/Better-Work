@@ -36,6 +36,9 @@ model User {
   proRequests    ProRequest[]
   notifications  Notification[]
   pushSubs       PushSubscription[]
+  supplierProfile SupplierProfile?
+  supplyOrders    SupplyOrder[]    @relation("SupplyBuyer")
+  supplierReviews SupplierReview[]
   // Referidos: código propio para invitar, quién lo invitó y trabajos
   // bonificados (sin comisión si es profesional, sin tarifa si contrata).
   referralCode     String?  @unique
@@ -248,6 +251,116 @@ model PushSubscription {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+/**
+ * Proveedor de materiales (corralón, ferretería, sanitarios…): vende productos
+ * a clientes y profesionales. El pago es directo entre las partes (al retirar
+ * o al recibir), como el resto de la app.
+ */
+model SupplierProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName     String
+  description      String   @default("")
+  logoUrl          String?
+  phone            String   @default("")
+  whatsapp         String   @default("")
+  address          String   @default("")
+  city             String   @default("")
+  zone             String   @default("")
+  lat              Float?
+  lng              Float?
+  hours            String   @default("") // ej. "Lun a Vie 8 a 18 · Sáb 8 a 13"
+  rubros           String   @default("[]") // JSON string[] de PRODUCT_CATEGORIES
+  pickup           Boolean  @default(true) // retiro en el local
+  delivery         Boolean  @default(false) // hace envíos
+  deliveryRadiusKm Float    @default(10)
+  deliveryFee      String   @default("") // texto libre: "Gratis desde $50.000", "$3.000"
+  minOrder         Float? // pedido mínimo (opcional)
+  payMethods       String   @default("[]") // JSON string[] de SUPPLY_PAY_METHODS
+  payAlias         String   @default("") // para transferencias
+  verified         Boolean  @default(false)
+  visible          Boolean  @default(true)
+  ratingAvg        Float    @default(0)
+  ratingCount      Int      @default(0)
+  createdAt        DateTime @default(now())
+  products         Product[]
+  orders           SupplyOrder[]
+  reviews          SupplierReview[]
+}
+
+/** Producto del catálogo de un proveedor. */
+model Product {
+  id             String          @id @default(cuid())
+  supplierId     String
+  supplier       SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  name           String
+  description    String          @default("")
+  category       String // slug de PRODUCT_CATEGORIES
+  brand          String          @default("")
+  unit           String          @default("unidad")
+  price          Float
+  compareAtPrice Float? // precio anterior: si es mayor que price, está en oferta
+  stock          Int? // null = sin control de stock ("consultar")
+  sku            String          @default("")
+  images         String          @default("[]") // JSON string[] de URLs
+  active         Boolean         @default(true) // el proveedor lo publica o lo pausa
+  hidden         Boolean         @default(false) // moderación del Super Admin
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+
+  @@index([category, active])
+  @@index([supplierId])
+}
+
+/**
+ * Pedido de materiales a UN proveedor. Los ítems se guardan como foto del
+ * momento (nombre y precio), así un cambio de precio no altera lo pedido.
+ * Ciclo: PENDING → CONFIRMED → READY (retiro) / SHIPPED (envío) → DELIVERED;
+ * también CANCELLED (comprador) o REJECTED (proveedor).
+ */
+model SupplyOrder {
+  id           String          @id @default(cuid())
+  buyerId      String
+  buyer        User            @relation("SupplyBuyer", fields: [buyerId], references: [id], onDelete: Restrict)
+  supplierId   String
+  supplier     SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  items        String          @default("[]") // JSON [{productId,name,price,qty,unit,image}]
+  subtotal     Float
+  total        Float? // total final que confirma el proveedor (con envío)
+  delivery     String          @default("PICKUP") // PICKUP | DELIVERY
+  address      String          @default("")
+  note         String          @default("")
+  payMethod    String          @default("")
+  status       String          @default("PENDING")
+  supplierNote String          @default("")
+  stockApplied Boolean         @default(false) // ya se descontó el stock (al confirmar)
+  createdAt    DateTime        @default(now())
+  confirmedAt  DateTime?
+  completedAt  DateTime?
+  cancelledAt  DateTime?
+  review       SupplierReview?
+
+  @@index([supplierId, status])
+  @@index([buyerId])
+}
+
+/** Reseña de un proveedor, una por pedido entregado. */
+model SupplierReview {
+  id         String          @id @default(cuid())
+  supplierId String
+  supplier   SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  orderId    String          @unique
+  order      SupplyOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  stars      Int
+  comment    String          @default("")
+  createdAt  DateTime        @default(now())
+
+  @@index([supplierId])
 }
 
 model Payment {

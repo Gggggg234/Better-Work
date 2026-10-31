@@ -77,7 +77,7 @@ export const getCurrentUser = cache(async () => {
   if (!session) return null;
   const user = await db.user.findUnique({
     where: { id: session.userId },
-    include: { workerProfile: true, companyProfile: true },
+    include: { workerProfile: true, companyProfile: true, supplierProfile: true },
   });
   if (!user || user.suspended) return null;
   return user;

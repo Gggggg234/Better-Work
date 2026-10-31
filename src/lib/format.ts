@@ -55,6 +55,28 @@ export const JOB_STATUS_LABEL: Record<string, string> = {
   REJECTED: "Rechazado",
 };
 
+/**
+ * Tono de color de cada estado (ver clases .badge-* en globals.css). El color
+ * dice de un vistazo si hay que hacer algo (ámbar), si está en marcha (azul),
+ * si salió bien (verde) o si se cortó (rojo).
+ */
+export type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
+
+export const JOB_STATUS_TONE: Record<string, Tone> = {
+  REQUESTED: "warning",
+  ACCEPTED: "accent",
+  EN_ROUTE: "accent",
+  WORKING: "accent",
+  COMPLETED: "success",
+  CANCELLED: "danger",
+  REJECTED: "danger",
+};
+
+/** Clase de badge para un tono. */
+export function toneBadge(tone: Tone): string {
+  return `badge badge-${tone}`;
+}
+
 export const JOB_FLOW = ["REQUESTED", "ACCEPTED", "EN_ROUTE", "WORKING", "COMPLETED"] as const;
 
 export function genCode(): string {

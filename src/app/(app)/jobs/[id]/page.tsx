@@ -26,6 +26,9 @@ import { PayButton } from "@/components/jobs/JobPaymentForm";
 import { SendQuoteForm, QuoteReview } from "@/components/jobs/QuoteForms";
 import { Attachments, parseAttachments } from "@/components/jobs/Attachments";
 import { CopyField } from "@/components/CopyField";
+import { ActionRow } from "@/components/ui/ActionCards";
+import { Package } from "lucide-react";
+import { TRADE_TO_RUBRO } from "@/lib/supplies";
 
 function CodeCard({ code, title, hint }: { code: string; title: string; hint: string }) {
   return (
@@ -167,6 +170,13 @@ export default async function JobDetailPage({
   const cancel = cancelJob.bind(null, job.id);
   const rate = rateJob.bind(null, job.id);
   const chat = openConversation.bind(null, other.id);
+
+  // Para el profesional: catálogo de materiales filtrado por el rubro de su oficio.
+  const tradeSlug =
+    isWorker && job.worker.workerProfile?.categoryId
+      ? (await db.category.findUnique({ where: { id: job.worker.workerProfile.categoryId }, select: { slug: true } }))?.slug
+      : undefined;
+  const materialsHref = `/materiales${tradeSlug && TRADE_TO_RUBRO[tradeSlug] ? `?rubro=${TRADE_TO_RUBRO[tradeSlug]}` : ""}`;
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 space-y-5 animate-fade-up">
@@ -351,6 +361,16 @@ export default async function JobDetailPage({
             terminar.
           </p>
         </div>
+      )}
+
+      {isWorker && ["ACCEPTED", "EN_ROUTE", "WORKING"].includes(job.status) && (
+        <ActionRow
+          href={materialsHref}
+          icon={Package}
+          tone="success"
+          title="Comprar materiales para este trabajo"
+          desc="Corralones y ferreterías cerca, con retiro o envío."
+        />
       )}
 
       {job.lat != null && job.lng != null && (

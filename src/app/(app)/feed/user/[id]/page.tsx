@@ -10,6 +10,7 @@ const ROLE_LABEL: Record<string, string> = {
   CLIENT: "Cliente",
   WORKER: "Trabajador",
   COMPANY: "Empresa",
+  SUPPLIER: "Proveedor",
   ADMIN: "Better Work",
 };
 

@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, AttributionControl, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
+import { TILE_URL, TILE_ATTRIBUTION, TILE_MAX_ZOOM } from "./tiles";
 import "leaflet/dist/leaflet.css";
 import Link from "next/link";
 
@@ -110,9 +111,6 @@ export default function Map({
   const mapRef = useRef<L.Map | null>(null);
   const [me, setMe] = useState<[number, number] | null>(null);
 
-  const tiles = dark
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
   /** Vuelve a mi ubicación (o la pide si todavía no la tengo). */
   function recenter() {
@@ -138,11 +136,12 @@ export default function Map({
         ref={mapRef}
         center={center}
         zoom={zoom}
-        className={className}
+        className={`${className ?? ""} ${dark ? "map-dark" : ""}`}
         zoomControl={false}
         attributionControl={false}
       >
-        <TileLayer key={dark ? "dark" : "light"} url={tiles} />
+        <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} maxZoom={TILE_MAX_ZOOM} />
+        <AttributionControl position="bottomright" prefix={false} />
         {markers.map((m) => (
           <Marker key={m.id} position={[m.lat, m.lng]} icon={icon(m.kind)}>
             <Popup>

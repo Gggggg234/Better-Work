@@ -3,7 +3,12 @@ import { RegisterForm } from "./RegisterForm";
 import { inviterFromCookie } from "@/lib/referrals";
 import { escrowActive } from "@/lib/payments";
 
-const ROLE_PARAM: Record<string, string> = { cliente: "CLIENT", trabajador: "WORKER", empresa: "COMPANY" };
+const ROLE_PARAM: Record<string, string> = {
+  cliente: "CLIENT",
+  trabajador: "WORKER",
+  empresa: "COMPANY",
+  proveedor: "SUPPLIER",
+};
 
 /** `?rol=trabajador` preselecciona el tipo de cuenta (enlaces de las páginas de servicios). */
 export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ rol?: string }> }) {
