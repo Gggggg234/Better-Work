@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireRole, requireUser } from "@/lib/auth";
 import { setSetting } from "@/lib/settings";
+import { deleteAccountIfEmpty } from "@/lib/accountDeletion";
 /**
  * Guarda un plan de empresa (Super Admin).
  *
@@ -146,6 +148,18 @@ export async function toggleSuspended(userId: string) {
   if (!user || user.role === "ADMIN") return;
   await db.user.update({ where: { id: userId }, data: { suspended: !user.suspended } });
   revalidatePath("/admin/users");
+}
+
+/**
+ * Elimina una cuenta desde el panel admin. Sólo si no tiene actividad
+ * (trabajos, pagos, reseñas, mensajes, denuncias, membresías, publicidad);
+ * si ya tiene, se rechaza y hay que darla de baja a mano (suspender).
+ */
+export async function adminDeleteUser(userId: string) {
+  await requireRole("ADMIN");
+  const result = await deleteAccountIfEmpty(userId);
+  revalidatePath("/admin/users");
+  if (!result.ok) redirect(`/admin/users?deleteError=${encodeURIComponent(result.reason)}`);
 }
 
 export async function toggleWorkerVerified(profileId: string) {

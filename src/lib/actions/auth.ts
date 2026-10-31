@@ -7,6 +7,7 @@ import { createSession, destroySession, getSession } from "@/lib/auth";
 import { createEmailToken, verifyUrl } from "@/lib/tokens";
 import { sendVerificationEmail, mailConfigured, siteUrl } from "@/lib/mail";
 import { applyReferralOnSignup } from "@/lib/referrals";
+import { deleteAccountIfEmpty } from "@/lib/accountDeletion";
 import {
   registerSchema,
   loginSchema,
@@ -198,4 +199,33 @@ export async function changePassword(_prev: ActionState, formData: FormData): Pr
     data: { passwordHash: await bcrypt.hash(parsed.data.next, 10) },
   });
   return { ok: "Contraseña actualizada." };
+}
+
+/**
+ * Elimina la cuenta del usuario logueado (pide la contraseña para confirmar).
+ * Sólo se borra si no tiene actividad; si ya tiene trabajos, pagos, reseñas,
+ * etc. se rechaza y se pide escribir a soporte para una baja manual.
+ */
+export async function deleteAccount(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { error: "Iniciá sesión para eliminar tu cuenta." };
+
+  const user = await db.user.findUnique({ where: { id: session.userId } });
+  if (!user) return { error: "No encontramos tu cuenta." };
+
+  if (user.passwordHash) {
+    const password = String(formData.get("password") ?? "");
+    if (!password) return { fields: { password: "Ingresá tu contraseña para confirmar." } };
+    if (!(await bcrypt.compare(password, user.passwordHash))) {
+      return { fields: { password: "La contraseña no es correcta." } };
+    }
+  }
+
+  const result = await deleteAccountIfEmpty(user.id);
+  if (!result.ok) {
+    return { error: `${result.reason} Escribinos a soporte para darla de baja.` };
+  }
+
+  await destroySession();
+  redirect("/");
 }

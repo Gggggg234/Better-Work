@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { toggleSuspended, toggleWorkerVerified, toggleCompanyVerified } from "@/lib/actions/admin";
+import { toggleSuspended, toggleWorkerVerified, toggleCompanyVerified, adminDeleteUser } from "@/lib/actions/admin";
 import { Avatar } from "@/components/Avatar";
+import { ConfirmDeleteButton } from "@/components/admin/ConfirmDeleteButton";
 import { formatDate } from "@/lib/format";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -11,7 +12,11 @@ const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Admin",
 };
 
-export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ q?: string; role?: string }> }) {
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; role?: string; deleteError?: string }>;
+}) {
   const sp = await searchParams;
 
   const users = await db.user.findMany({
@@ -27,6 +32,12 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">Usuarios</h1>
+
+      {sp.deleteError && (
+        <div className="card p-3.5 border-red-200 bg-red-50 text-red-700 text-sm">
+          No se pudo eliminar: {sp.deleteError} Suspendela en su lugar, o escribile para resolverlo.
+        </div>
+      )}
 
       <form className="flex gap-2">
         <input name="q" defaultValue={sp.q} placeholder="Buscar por nombre o email…" className="input" />
@@ -81,6 +92,12 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                       {u.suspended ? "Reactivar" : "Suspender"}
                     </button>
                   </form>
+                )}
+                {u.role !== "ADMIN" && (
+                  <ConfirmDeleteButton
+                    action={adminDeleteUser.bind(null, u.id)}
+                    confirmText={`¿Eliminar la cuenta de ${u.name} para siempre? Sólo funciona si no tiene trabajos, pagos, reseñas ni mensajes.`}
+                  />
                 )}
               </div>
             </div>

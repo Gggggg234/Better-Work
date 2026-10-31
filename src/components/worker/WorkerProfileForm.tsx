@@ -389,20 +389,24 @@ export function WorkerProfileForm({
       >
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
-            <label className="label">Alias o CBU/CVU para cobrar</label>
+            <label className="label">Alias o CBU/CVU para cobrar *</label>
             <input
               name="payAlias"
+              required
               value={payAlias}
               onChange={(e) => setPayAlias(e.target.value)}
               placeholder="mi.alias.mp"
               className="input"
             />
-            <p className="text-xs text-faint mt-1">A esta cuenta te llega el dinero al liberarse cada trabajo.</p>
+            <p className="text-xs text-faint mt-1">
+              Obligatorio: a esta cuenta te llega el dinero al liberarse cada trabajo. Sin esto no podemos pagarte.
+            </p>
           </div>
           <div>
-            <label className="label">Titular de la cuenta</label>
+            <label className="label">Titular de la cuenta *</label>
             <input
               name="payHolder"
+              required
               value={payHolder}
               onChange={(e) => setPayHolder(e.target.value)}
               placeholder="Tu nombre completo"

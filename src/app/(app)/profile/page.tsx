@@ -8,6 +8,7 @@ import { RankBadge } from "@/components/Badges";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { InstallButton } from "@/components/InstallButton";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
+import { DeleteAccountForm } from "@/components/DeleteAccountForm";
 import { rankBreakdown } from "@/lib/rank";
 import { ProgressBar } from "@/components/charts/Charts";
 
@@ -118,6 +119,12 @@ export default async function ProfilePage() {
       <form action={logout} className="mt-6">
         <button className="btn-secondary w-full text-red-600 !border-red-200 hover:!bg-red-500/10">Cerrar sesión</button>
       </form>
+
+      {me.role !== "ADMIN" && (
+        <div className="mt-3">
+          <DeleteAccountForm hasPassword={!!me.passwordHash} />
+        </div>
+      )}
     </main>
   );
 }
