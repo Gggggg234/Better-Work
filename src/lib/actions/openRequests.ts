@@ -10,6 +10,7 @@ import { isPlanActive } from "@/lib/plans";
 import { getFeeConfig } from "@/lib/settings";
 import { saveAttachment } from "@/lib/upload";
 import { MAX_BIDS, expiryFrom, isOpen, withinReach } from "@/lib/openRequests";
+import { isPro, getProConfig, bidsThisMonth } from "@/lib/pro";
 import { sendNewOpenRequestEmail, sendNewBidEmail, sendBidAcceptedEmail, siteUrl } from "@/lib/mail";
 
 /** Pedidos abiertos a la vez por cliente: evita el spam de pedidos. */
@@ -125,6 +126,11 @@ export async function sendBid(requestId: string, formData: FormData): Promise<vo
   if (!existing || existing.status !== "PENDING") {
     const pending = await db.bid.count({ where: { requestId, status: "PENDING" } });
     if (pending >= MAX_BIDS) redirect(`${back}?error=lleno`);
+  }
+  // Sin Pro hay un tope de presupuestos nuevos por mes (Pro: ilimitados).
+  if (!existing && !isPro(profile.proUntil)) {
+    const [{ freeBids }, used] = await Promise.all([getProConfig(), bidsThisMonth(user.id)]);
+    if (used >= freeBids) redirect(`${back}?error=limite`);
   }
 
   await db.bid.upsert({

@@ -22,8 +22,8 @@ export function Breadcrumbs({ items }: { items: { href?: string; label: string }
 const STEPS = [
   ["Contá qué necesitás", "Describí el trabajo, sumá fotos o documentos y marcá el lugar en el mapa. Pedir es gratis."],
   ["Recibí el presupuesto", "El profesional te pasa precio y tiempo estimado. Lo aceptás, le pedís cambios o lo rechazás."],
-  ["Pagá protegido", "El dinero queda retenido por Better Work hasta que el trabajo esté terminado."],
-  ["Confirmá y calificá", "El trabajo empieza y termina con códigos de 4 dígitos. Recién ahí se libera el pago."],
+  ["Elegí con confianza", "Compará precios, tiempos y calificaciones de clientes reales antes de decidir."],
+  ["Confirmá y calificá", "El trabajo empieza y termina con códigos de 4 dígitos. Al final, ambos se califican."],
 ] as const;
 
 export function HowItWorks() {
@@ -73,7 +73,7 @@ export function JoinCta({ singular, place }: { singular: string; place?: string 
       <h2 className="text-lg font-bold">¿Sos {singular}?</h2>
       <p className="text-sm text-bg/70 mt-1">
         Sumate gratis a Better Work y recibí pedidos de clientes{place ? ` de ${place}` : " de tu zona"}. Pasás tu
-        propio presupuesto y cobrás seguro: el pago queda retenido hasta que terminás el trabajo.
+        propio presupuesto y el cliente te paga directo: Better Work no te cobra comisión por trabajo.
       </p>
       <Link href="/register?rol=trabajador" className="btn-secondary mt-4 inline-flex">
         Quiero recibir trabajos

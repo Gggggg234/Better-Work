@@ -21,19 +21,24 @@ export function BidForm({
   current,
   urgencyPct,
   commissionPct,
+  escrow = false,
 }: {
   requestId: string;
   current?: { price: number; estimatedTime: string; note: string } | null;
   urgencyPct: number;
   commissionPct: number;
+  /** Pago protegido activo (si no, el cliente le paga directo al profesional). */
+  escrow?: boolean;
 }) {
   return (
     <form action={sendBid.bind(null, requestId)} className="card p-5 border-fg space-y-3">
       <div>
         <p className="font-semibold text-sm">{current ? "Actualizá tu presupuesto" : "Pasá tu presupuesto"}</p>
         <p className="text-xs text-muted mt-0.5">
-          El cliente compara los presupuestos y elige uno. Los demás profesionales no ven tu precio. Al terminar
-          cobrás el presupuesto menos la comisión de Better Work ({commissionPct}%).
+          El cliente compara los presupuestos y elige uno. Los demás profesionales no ven tu precio.{" "}
+          {escrow
+            ? `Al terminar cobrás el presupuesto menos la comisión de Better Work (${commissionPct}%).`
+            : "Si te elige, te paga directo al terminar: Better Work no cobra comisión."}
         </p>
       </div>
 

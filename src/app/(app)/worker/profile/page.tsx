@@ -5,6 +5,7 @@ import { updateWorkerProfile } from "@/lib/actions/profile";
 import { logout } from "@/lib/actions/auth";
 import { WorkerProfileForm, type WorkerFormInitial } from "@/components/worker/WorkerProfileForm";
 import { BackButton } from "@/components/BackButton";
+import { escrowActive } from "@/lib/payments";
 
 function parseArr(json: string): string[] {
   try {
@@ -78,7 +79,12 @@ export default async function WorkerProfileEditPage() {
           Elegí de las opciones: cuanto más completo, mejor aparecés y más confianza generás.
         </p>
       )}
-      <WorkerProfileForm initial={initial} categories={categories} action={updateWorkerProfile} />
+      <WorkerProfileForm
+        initial={initial}
+        categories={categories}
+        action={updateWorkerProfile}
+        escrow={await escrowActive()}
+      />
     </main>
   );
 }

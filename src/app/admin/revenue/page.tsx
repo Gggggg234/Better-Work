@@ -5,6 +5,7 @@ import { formatMoney, formatDateTime } from "@/lib/format";
 
 const KIND_LABEL: Record<string, string> = {
   COMPANY_PLAN: "Plan de empresa",
+  WORKER_PRO: "Better Work Pro",
   CAMPAIGN: "Campaña de publicidad",
 };
 
@@ -32,16 +33,18 @@ export default async function AdminRevenuePage() {
 
   const planIncome = promotions.filter((p) => p.kind === "COMPANY_PLAN").reduce((s, p) => s + p.amount, 0);
   const adsIncome = promotions.filter((p) => p.kind === "CAMPAIGN").reduce((s, p) => s + p.amount, 0);
+  const proIncome = promotions.filter((p) => p.kind === "WORKER_PRO").reduce((s, p) => s + p.amount, 0);
 
   // Comisión + tarifa de servicio de los trabajos liberados (escrow).
-  const [activeCompanies, activeCampaigns, commissionAgg, completedPaid] = await Promise.all([
+  const [activeCompanies, activeCampaigns, commissionAgg, completedPaid, activePros] = await Promise.all([
     db.companyProfile.count({ where: { planActiveUntil: { gt: new Date() } } }),
     db.campaign.count({ where: { status: "ACTIVE" } }),
     db.payment.aggregate({ where: { status: "RELEASED" }, _sum: { commission: true, serviceFee: true } }),
     db.payment.count({ where: { status: "RELEASED" } }),
+    db.workerProfile.count({ where: { proUntil: { gt: new Date() } } }),
   ]);
   const commissionIncome = (commissionAgg._sum.commission ?? 0) + (commissionAgg._sum.serviceFee ?? 0);
-  const total = planIncome + adsIncome + commissionIncome;
+  const total = proIncome + planIncome + adsIncome + commissionIncome;
 
   const byMonth = lastMonths(6).map((m) => ({
     label: m.label,
@@ -53,7 +56,7 @@ export default async function AdminRevenuePage() {
       <div>
         <h1 className="text-xl font-bold">Ingresos</h1>
         <p className="text-sm text-muted mt-0.5">
-          Membresías de empresa, campañas de publicidad y la comisión de los trabajos completados.
+          Better Work Pro, membresías de empresa, publicidad y, con pago protegido, la comisión de los trabajos.
         </p>
       </div>
 
@@ -63,9 +66,15 @@ export default async function AdminRevenuePage() {
           <p className="text-xs text-faint">Ingresos totales</p>
         </div>
         <div className="card p-4">
-          <p className="text-lg font-bold">{formatMoney(commissionIncome)}</p>
-          <p className="text-xs text-faint">Comisión y tarifas de trabajos ({completedPaid})</p>
+          <p className="text-lg font-bold">{formatMoney(proIncome)}</p>
+          <p className="text-xs text-faint">Better Work Pro ({activePros} activos)</p>
         </div>
+        {commissionIncome > 0 && (
+          <div className="card p-4">
+            <p className="text-lg font-bold">{formatMoney(commissionIncome)}</p>
+            <p className="text-xs text-faint">Comisión y tarifas de trabajos ({completedPaid})</p>
+          </div>
+        )}
         <div className="card p-4">
           <p className="text-lg font-bold">{formatMoney(planIncome)}</p>
           <p className="text-xs text-faint">Membresías</p>

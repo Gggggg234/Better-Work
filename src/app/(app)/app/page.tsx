@@ -5,17 +5,21 @@ import { MapView } from "@/components/map/MapView";
 import type { MapMarker } from "@/components/map/Map";
 import { WorkerCard } from "@/components/WorkerCard";
 import { SponsoredBadge } from "@/components/Badges";
-import { workerScore, isSponsored, activeBoost } from "@/lib/ranking";
+import { workerScore, isSponsored, workerBoost } from "@/lib/ranking";
+import { isPro } from "@/lib/pro";
 import { computeRank } from "@/lib/rank";
 import { trackSearchAppearances } from "@/lib/track";
 import { openRequestsFor } from "@/lib/openRequests";
 import { aiConfigured } from "@/lib/ai/requestAssistant";
+import { escrowActive } from "@/lib/payments";
+import { formatDate } from "@/lib/format";
 
 const BA_CENTER: [number, number] = [-34.6037, -58.3816];
 
 export default async function AppHome() {
   const user = await getCurrentUser();
   const now = new Date();
+  const escrow = await escrowActive();
 
   // Pedidos abiertos que puede cotizar (sólo para profesionales).
   const nearbyRequests =
@@ -41,6 +45,7 @@ export default async function AppHome() {
         priceHint: true,
         sponsoredUntil: true,
         sponsorBoost: true,
+        proUntil: true,
         createdAt: true,
         cancellations: true,
         claims: true,
@@ -61,8 +66,8 @@ export default async function AppHome() {
   // Ranking combinado: calidad + reputación + empuje de la campaña activa.
   const sorted = [...workers].sort(
     (a, b) =>
-      workerScore({ boost: activeBoost(b.sponsoredUntil, b.sponsorBoost), ratingAvg: b.ratingAvg, ratingCount: b.ratingCount, jobsDone: b.jobsDone, verified: b.verified, distanceKm: null }) -
-      workerScore({ boost: activeBoost(a.sponsoredUntil, a.sponsorBoost), ratingAvg: a.ratingAvg, ratingCount: a.ratingCount, jobsDone: a.jobsDone, verified: a.verified, distanceKm: null })
+      workerScore({ boost: workerBoost(b), ratingAvg: b.ratingAvg, ratingCount: b.ratingCount, jobsDone: b.jobsDone, verified: b.verified, distanceKm: null }) -
+      workerScore({ boost: workerBoost(a), ratingAvg: a.ratingAvg, ratingCount: a.ratingCount, jobsDone: a.jobsDone, verified: a.verified, distanceKm: null })
   );
   const shown = sorted.slice(0, 6);
 
@@ -187,6 +192,7 @@ export default async function AppHome() {
                     jobsDone: w.jobsDone,
                     verified: w.verified,
                     sponsored: isSponsored(w.sponsoredUntil),
+                    pro: isPro(w.proUntil),
                     priceHint: w.priceHint,
                     rank: computeRank({
                       ratingAvg: w.ratingAvg,
@@ -232,18 +238,40 @@ export default async function AppHome() {
             </div>
           )}
 
-          {user && user.role !== "ADMIN" && (
+          {/* Better Work Pro: la suscripción del profesional. */}
+          {user?.role === "WORKER" && (
+            <Link href="/pro" className="card p-4 flex items-center justify-between gap-3 hover:bg-surface-2 transition">
+              <div>
+                <p className="font-semibold text-sm">
+                  {isPro(user.workerProfile?.proUntil)
+                    ? `⭐ Sos Pro hasta el ${formatDate(user.workerProfile!.proUntil!)}`
+                    : "⭐ Pasate a Better Work Pro"}
+                </p>
+                <p className="text-xs text-muted">
+                  {isPro(user.workerProfile?.proUntil)
+                    ? "Aparecés más arriba y mandás presupuestos sin límite."
+                    : "Aparecé más arriba en las búsquedas y mandá presupuestos sin límite."}
+                </p>
+              </div>
+              <span className="text-lg">→</span>
+            </Link>
+          )}
+
+          {/* Referidos: con pago directo el premio es Pro (sólo profesionales). */}
+          {user && user.role !== "ADMIN" && (escrow || user.role === "WORKER") && (
             <Link href="/invitar" className="card p-4 flex items-center justify-between gap-3 hover:bg-surface-2 transition">
               <div>
                 <p className="font-semibold text-sm">
-                  🎁 {user.freeJobs > 0
+                  🎁 {escrow && user.freeJobs > 0
                     ? `Tenés ${user.freeJobs} ${user.freeJobs === 1 ? "trabajo bonificado" : "trabajos bonificados"}`
                     : "Invitá y ganá"}
                 </p>
                 <p className="text-xs text-muted">
-                  {user.role === "WORKER"
-                    ? "Por cada colega que se sume y trabaje, ganás 2 trabajos sin comisión."
-                    : "Por cada amigo que se sume y contrate, ganás 2 trabajos sin tarifa de servicio."}
+                  {!escrow
+                    ? "Por cada colega o cliente que se sume y complete un trabajo, ganás 30 días de Pro."
+                    : user.role === "WORKER"
+                      ? "Por cada colega que se sume y trabaje, ganás 2 trabajos sin comisión."
+                      : "Por cada amigo que se sume y contrate, ganás 2 trabajos sin tarifa de servicio."}
                 </p>
               </div>
               <span className="text-lg">→</span>

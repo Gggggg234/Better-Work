@@ -5,7 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { openConversation } from "@/lib/actions/chat";
 import { Avatar } from "@/components/Avatar";
 import { Stars } from "@/components/Stars";
-import { VerifiedBadge, SponsoredBadge } from "@/components/Badges";
+import { VerifiedBadge, SponsoredBadge, ProBadge } from "@/components/Badges";
+import { isPro } from "@/lib/pro";
 import { MapView } from "@/components/map/MapView";
 import { rankBreakdown } from "@/lib/rank";
 import { isSponsored } from "@/lib/ranking";
@@ -63,6 +64,7 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold">{profile.user.name}</h1>
             {profile.verified && <VerifiedBadge />}
+            {isPro(profile.proUntil) && <ProBadge />}
             {sponsored && <SponsoredBadge />}
           </div>
           <p className="text-muted">{profile.profession}</p>

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { getAdRules, estimateCampaign } from "@/lib/ads";
-import { saveAdRules, saveTransferInfo, saveFeeSettings } from "@/lib/actions/admin";
-import { getTransferInfo, getFeeConfig } from "@/lib/settings";
+import { saveAdRules, saveTransferInfo, saveFeeSettings, savePaymentMode, saveProSettings } from "@/lib/actions/admin";
+import { getTransferInfo, getFeeConfig, getPaymentMode } from "@/lib/settings";
+import { paymentsConfigured } from "@/lib/payments";
+import { getProConfig } from "@/lib/pro";
 import { priceBreakdown } from "@/lib/payments/escrow";
 import { formatMoney } from "@/lib/format";
 
@@ -15,7 +17,14 @@ function PctInput({ name, value }: { name: string; value: number }) {
 }
 
 export default async function AdminSettingsPage() {
-  const [rules, transfer, fees] = await Promise.all([getAdRules(), getTransferInfo(), getFeeConfig()]);
+  const [rules, transfer, fees, mode, pro] = await Promise.all([
+    getAdRules(),
+    getTransferInfo(),
+    getFeeConfig(),
+    getPaymentMode(),
+    getProConfig(),
+  ]);
+  const mpReady = paymentsConfigured();
 
   // Ejemplo con las tarifas actuales: un trabajo urgente de $10.000.
   const example = priceBreakdown(10_000, fees);
@@ -27,16 +36,85 @@ export default async function AdminSettingsPage() {
     <div className="space-y-8 max-w-lg">
       <div>
         <h1 className="text-xl font-bold">Ajustes</h1>
-        <p className="text-sm text-muted mt-0.5">Datos de cobro y reglas de la publicidad.</p>
+        <p className="text-sm text-muted mt-0.5">Pagos, suscripciones y reglas de la publicidad.</p>
       </div>
 
-      {/* Tarifas de Better Work (escrow) */}
+      {/* Cómo se pagan los trabajos */}
+      <form action={savePaymentMode} className="card p-5 space-y-3">
+        <div>
+          <h2 className="font-semibold text-sm">Pago de los trabajos</h2>
+          <p className="text-xs text-muted mt-0.5">Define cómo le paga el cliente al profesional.</p>
+        </div>
+        {[
+          {
+            value: "direct",
+            title: "Pago directo",
+            desc: "Cliente y profesional arreglan entre ellos (efectivo o transferencia). Better Work no cobra por trabajo: gana con Pro, membresías y publicidad.",
+          },
+          {
+            value: "escrow",
+            title: "Pago protegido (Mercado Pago)",
+            desc: "El cliente paga por la app, el dinero queda retenido hasta el código de finalización y se cobran la comisión y la tarifa de servicio.",
+          },
+        ].map((o) => (
+          <label
+            key={o.value}
+            className="flex items-start gap-3 rounded-xl border border-line p-3 cursor-pointer has-[:checked]:border-fg"
+          >
+            <input type="radio" name="payment_mode" value={o.value} defaultChecked={mode === o.value} className="mt-1" />
+            <span>
+              <span className="block text-sm font-medium">{o.title}</span>
+              <span className="block text-xs text-muted mt-0.5">{o.desc}</span>
+            </span>
+          </label>
+        ))}
+        {mode === "escrow" && !mpReady && (
+          <p className="text-xs text-red-600">
+            ⚠ El pago protegido está elegido pero falta MP_ACCESS_TOKEN: en producción se sigue usando el pago directo
+            hasta que cargues la credencial de Mercado Pago.
+          </p>
+        )}
+        <button className="btn-primary">Guardar</button>
+      </form>
+
+      {/* Better Work Pro */}
+      <form action={saveProSettings} className="card p-5 space-y-4">
+        <div>
+          <h2 className="font-semibold text-sm">Better Work Pro</h2>
+          <p className="text-xs text-muted mt-0.5">
+            Suscripción mensual de los profesionales. Se paga por transferencia y se aprueba desde{" "}
+            <strong>Pagos</strong>. Los cambios aplican a las solicitudes nuevas.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label" htmlFor="pro_price">Precio por mes</label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted text-sm">$</span>
+              <input id="pro_price" name="pro_price" type="number" min="0" step="1" defaultValue={pro.price} className="input pl-7" />
+            </div>
+          </div>
+          <div>
+            <label className="label" htmlFor="pro_free_bids">Presupuestos gratis/mes</label>
+            <input id="pro_free_bids" name="pro_free_bids" type="number" min="0" step="1" defaultValue={pro.freeBids} className="input" />
+          </div>
+        </div>
+        <p className="text-xs text-faint">
+          Sin Pro, un profesional puede mandar hasta esa cantidad de presupuestos nuevos por mes a pedidos abiertos.
+          Con Pro son ilimitados, y además aparece más arriba en búsquedas y mapa.
+        </p>
+        <button className="btn-primary">Guardar Pro</button>
+      </form>
+
+      {/* Tarifas por trabajo (sólo con pago protegido) */}
       <form action={saveFeeSettings} className="card p-5 space-y-4">
         <div>
           <h2 className="font-semibold text-sm">Tarifas por trabajo</h2>
           <p className="text-xs text-muted mt-0.5">
-            Se aplican a los pagos nuevos; lo ya cobrado no cambia. El recargo por urgencia queda fijado al momento del
-            pedido.
+            {mode === "escrow"
+              ? "Se aplican a los pagos nuevos; lo ya cobrado no cambia."
+              : "La comisión y la tarifa de servicio sólo se cobran con pago protegido. El recargo por urgencia aplica siempre (lo paga el cliente al profesional)."}{" "}
+            El recargo por urgencia queda fijado al momento del pedido.
           </p>
         </div>
 
@@ -68,10 +146,10 @@ export default async function AdminSettingsPage() {
       {/* Datos de transferencia para las membresías */}
       <form action={saveTransferInfo} className="card p-5 space-y-4">
         <div>
-          <h2 className="font-semibold text-sm">Cobro de membresías</h2>
+          <h2 className="font-semibold text-sm">Datos de transferencia de Better Work</h2>
           <p className="text-xs text-muted mt-0.5">
-            Estos datos se le muestran a la empresa cuando elige un plan. El pago es por transferencia y se aprueba a
-            mano desde <strong>Pagos</strong>.
+            Se muestran cuando un profesional activa Pro o una empresa elige un plan. El pago es por transferencia y
+            se aprueba a mano desde <strong>Pagos</strong>.
           </p>
         </div>
 
@@ -171,10 +249,10 @@ export default async function AdminSettingsPage() {
       <div className="card p-4 text-xs text-muted space-y-1">
         <p className="font-medium text-fg">Nota técnica</p>
         <p>
-          Ingresos de Better Work: membresías de empresa (<code>lib/plans.ts</code>), campañas de publicidad
-          (<code>lib/ads.ts</code>) y la comisión de cada trabajo, retenida por el escrow y liberada con el pago
-          (<code>lib/payments/</code>). El proveedor de pago es Mercado Pago si está <code>MP_ACCESS_TOKEN</code>; si
-          no, uno simulado para probar el flujo.
+          Ingresos de Better Work: Better Work Pro (<code>lib/pro.ts</code>), membresías de empresa
+          (<code>lib/plans.ts</code>) y campañas de publicidad (<code>lib/ads.ts</code>), todo por transferencia con
+          comprobante. Con pago protegido se suman la comisión y la tarifa de cada trabajo (<code>lib/payments/</code>),
+          que sólo corre con <code>MP_ACCESS_TOKEN</code>.
         </p>
       </div>
     </div>

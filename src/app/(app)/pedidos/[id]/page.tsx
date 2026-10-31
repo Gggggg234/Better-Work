@@ -7,6 +7,8 @@ import { computeRank } from "@/lib/rank";
 import { formatMoney, formatDateTime, timeAgo } from "@/lib/format";
 import { formatKm } from "@/lib/geo";
 import { priceBreakdown } from "@/lib/payments/escrow";
+import { escrowActive } from "@/lib/payments";
+import { isPro, getProConfig, bidsThisMonth } from "@/lib/pro";
 import { isOpen, requestStatusLabel, withinReach, BID_STATUS_LABEL, MAX_BIDS } from "@/lib/openRequests";
 import { acceptBid, cancelOpenRequest, withdrawBid } from "@/lib/actions/openRequests";
 import { Avatar } from "@/components/Avatar";
@@ -20,6 +22,7 @@ const ERRORS: Record<string, string> = {
   cerrado: "Este pedido ya no recibe presupuestos.",
   lleno: `Este pedido ya tiene ${MAX_BIDS} presupuestos, el máximo.`,
   precio: "Poné un precio válido.",
+  limite: "Llegaste al límite de presupuestos gratis de este mes.",
 };
 
 export default async function OpenRequestPage({
@@ -34,7 +37,7 @@ export default async function OpenRequestPage({
   const { id } = await params;
   const sp = await searchParams;
 
-  const [req, fees] = await Promise.all([
+  const [req, fees, escrow] = await Promise.all([
     db.openRequest.findUnique({
       where: { id },
       include: {
@@ -59,6 +62,7 @@ export default async function OpenRequestPage({
                     claims: true,
                     avgResponseMins: true,
                     punctualityAvg: true,
+                    proUntil: true,
                   },
                 },
               },
@@ -68,6 +72,7 @@ export default async function OpenRequestPage({
       },
     }),
     getFeeConfig(),
+    escrowActive(),
   ]);
   if (!req) notFound();
 
@@ -85,6 +90,16 @@ export default async function OpenRequestPage({
   }
 
   const open = isOpen(req);
+
+  // Tope mensual de presupuestos para profesionales sin Pro.
+  const workerIsPro = isPro(me.workerProfile?.proUntil);
+  const quota =
+    !isOwner && !workerIsPro
+      ? await Promise.all([getProConfig(), bidsThisMonth(me.id)]).then(([c, used]) => ({
+          free: c.freeBids,
+          left: Math.max(0, c.freeBids - used),
+        }))
+      : null;
   const attachments = parseAttachments(req.attachments);
   const pendingBids = req.bids.filter((b) => b.status === "PENDING");
   const cheapest = pendingBids[0]?.price;
@@ -199,8 +214,10 @@ export default async function OpenRequestPage({
               .filter((b) => b.status !== "WITHDRAWN")
               .map((b) => {
                 const wp = b.worker.workerProfile;
-                const total = priceBreakdown(b.price, { ...fees, urgencyPct: req.urgencyPct }).clientTotal;
-                const rank = wp ? computeRank({ ...wp }) : null;
+                const bd = priceBreakdown(b.price, { ...fees, urgencyPct: req.urgencyPct });
+                // Con pago directo se le paga al profesional; con protegido, más la tarifa.
+                const total = escrow ? bd.clientTotal : bd.workAmount;
+                const rank = wp ? computeRank(wp) : null;
                 return (
                   <article
                     key={b.id}
@@ -215,6 +232,9 @@ export default async function OpenRequestPage({
                           </Link>
                           {wp?.verified && (
                             <span className="rounded-full bg-fg text-bg px-1.5 py-px text-[10px] font-semibold">✓</span>
+                          )}
+                          {isPro(wp?.proUntil) && (
+                            <span className="rounded-full border border-fg px-1.5 py-px text-[10px] font-bold">PRO</span>
                           )}
                           {b.status === "PENDING" && b.price === cheapest && pendingBids.length > 1 && (
                             <span className="rounded-full border border-fg px-1.5 py-px text-[10px] font-semibold">
@@ -243,7 +263,7 @@ export default async function OpenRequestPage({
                     {b.status === "PENDING" && open ? (
                       <form action={acceptBid.bind(null, req.id, b.id)} className="mt-3">
                         <FormSubmitButton pendingLabel="Eligiendo…" className="!py-2.5 !text-sm">
-                          Elegir · pagás {formatMoney(total)}
+                          Elegir · {escrow ? "pagás" : "total"} {formatMoney(total)}
                         </FormSubmitButton>
                       </form>
                     ) : (
@@ -255,9 +275,9 @@ export default async function OpenRequestPage({
 
             {pendingBids.length > 0 && open && (
               <p className="text-[11px] text-faint">
-                El total incluye {req.urgent ? `el ${req.urgencyPct}% de urgencia y ` : ""}la tarifa de servicio del{" "}
-                {fees.serviceFeePct}%. Pagás después de elegir, y el dinero queda retenido hasta que el trabajo esté
-                terminado.
+                {escrow
+                  ? `El total incluye ${req.urgent ? `el ${req.urgencyPct}% de urgencia y ` : ""}la tarifa de servicio del ${fees.serviceFeePct}%. Pagás después de elegir, y el dinero queda retenido hasta que el trabajo esté terminado.`
+                  : `${req.urgent ? `El total incluye el ${req.urgencyPct}% de urgencia. ` : ""}Le pagás directo al profesional que elijas, al terminar, en efectivo o por transferencia.`}
               </p>
             )}
           </section>
@@ -277,7 +297,9 @@ export default async function OpenRequestPage({
             <Link href={`/jobs/${req.jobId}`} className="card p-4 bg-fg text-bg flex items-center justify-between">
               <div>
                 <p className="font-semibold text-sm">🎉 ¡Te eligieron!</p>
-                <p className="text-xs text-bg/70">Cuando el cliente pague, podés arrancar el trabajo.</p>
+                <p className="text-xs text-bg/70">
+                  {escrow ? "Cuando el cliente pague, podés arrancar el trabajo." : "Coordiná con el cliente y arrancá el trabajo."}
+                </p>
               </div>
               <span className="text-lg">→</span>
             </Link>
@@ -289,12 +311,36 @@ export default async function OpenRequestPage({
                   : `${pendingBids.length} ${pendingBids.length === 1 ? "profesional ya cotizó" : "profesionales ya cotizaron"}.`}
                 {" "}La dirección exacta la ves si te eligen.
               </p>
-              <BidForm
-                requestId={req.id}
-                current={myBid?.status === "PENDING" ? myBid : null}
-                urgencyPct={req.urgencyPct}
-                commissionPct={fees.commissionPct}
-              />
+              {/* Sin Pro: tope mensual de presupuestos nuevos (actualizar el propio no cuenta). */}
+              {quota && !myBid && quota.left === 0 ? (
+                <div className="card p-5 text-center">
+                  <p className="text-sm font-medium">
+                    {quota.free === 1
+                      ? "Usaste tu presupuesto gratis de este mes"
+                      : `Usaste tus ${quota.free} presupuestos gratis de este mes`}
+                  </p>
+                  <p className="text-xs text-muted mt-1">
+                    Con Better Work Pro mandás presupuestos sin límite y aparecés más arriba en las búsquedas.
+                  </p>
+                  <Link href="/pro" className="btn-primary !py-2.5 !text-sm mt-3 inline-flex">Pasate a Pro</Link>
+                </div>
+              ) : (
+                <>
+                  {quota && !myBid && (
+                    <p className="text-[11px] text-faint">
+                      Te {quota.left === 1 ? "queda" : "quedan"} {quota.left} de {quota.free} presupuestos gratis este
+                      mes. <Link href="/pro" className="underline">Con Pro son ilimitados</Link>.
+                    </p>
+                  )}
+                  <BidForm
+                    requestId={req.id}
+                    current={myBid?.status === "PENDING" ? myBid : null}
+                    urgencyPct={req.urgencyPct}
+                    commissionPct={fees.commissionPct}
+                    escrow={escrow}
+                  />
+                </>
+              )}
               {myBid?.status === "PENDING" && (
                 <form action={withdrawBid.bind(null, req.id)} className="text-center">
                   <button className="btn-ghost !text-sm text-red-600">Retirar mi presupuesto</button>

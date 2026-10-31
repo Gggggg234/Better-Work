@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { logout } from "@/lib/actions/auth";
-import { updateAvatar } from "@/lib/actions/profile";
+import { updateAvatar, updatePayPreference } from "@/lib/actions/profile";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { RankBadge } from "@/components/Badges";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -11,6 +11,7 @@ import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { DeleteAccountForm } from "@/components/DeleteAccountForm";
 import { rankBreakdown } from "@/lib/rank";
 import { ProgressBar } from "@/components/charts/Charts";
+import { PAY_PREFERENCE_OPTIONS } from "@/lib/payments/types";
 
 const ROLE_LABEL: Record<string, string> = {
   CLIENT: "Cliente",
@@ -45,6 +46,13 @@ export default async function ProfilePage() {
   links.push(["/chat", "Mensajes"]);
 
   const wp = me.workerProfile;
+  const payPreference: string[] = (() => {
+    try {
+      return JSON.parse(me.payPreference || "[]");
+    } catch {
+      return [];
+    }
+  })();
 
   return (
     <main className="max-w-lg mx-auto w-full px-4 py-6 animate-fade-up">
@@ -101,6 +109,22 @@ export default async function ProfilePage() {
           </Link>
         ))}
       </div>
+
+      {(me.role === "CLIENT" || me.role === "COMPANY") && (
+        <div className="card p-5 mt-6">
+          <h2 className="font-semibold text-sm">Cómo preferís pagar</h2>
+          <p className="text-xs text-muted mt-0.5">Para que el profesional sepa qué esperar antes de coordinar.</p>
+          <form action={updatePayPreference} className="mt-3 space-y-2.5">
+            {PAY_PREFERENCE_OPTIONS.map((m) => (
+              <label key={m} className="flex items-center gap-2.5 text-sm">
+                <input type="checkbox" name="payPreference" value={m} defaultChecked={payPreference.includes(m)} />
+                {m}
+              </label>
+            ))}
+            <button className="btn-secondary w-full !py-2 !text-sm mt-1">Guardar</button>
+          </form>
+        </div>
+      )}
 
       <div className="mt-6">
         <h2 className="label !mb-2">Apariencia</h2>

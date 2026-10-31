@@ -34,6 +34,8 @@ export default async function AdminDashboard() {
   const income = (kind: string) => promotions.find((p) => p.kind === kind)?._sum.amount ?? 0;
   const planIncome = income("COMPANY_PLAN");
   const adsIncome = income("CAMPAIGN");
+  const proIncome = income("WORKER_PRO");
+  const activePros = await db.workerProfile.count({ where: { proUntil: { gt: now } } });
 
   const stats: [string, string][] = [
     [String(users), "Usuarios"],
@@ -62,8 +64,8 @@ export default async function AdminDashboard() {
             </p>
             <p className="text-sm text-bg/70 mt-0.5">
               {pendingPayments === 1
-                ? "Una empresa envió un comprobante y espera la activación de su plan."
-                : "Hay empresas esperando que valides sus comprobantes para activar su plan."}
+                ? "Hay un comprobante esperando tu validación (Pro, membresía o publicidad)."
+                : "Hay comprobantes esperando tu validación (Pro, membresías o publicidad)."}
             </p>
           </div>
           <span className="text-xl shrink-0">→</span>
@@ -81,11 +83,19 @@ export default async function AdminDashboard() {
 
       <div className="grid sm:grid-cols-2 gap-3">
         <div className="card p-5">
+          <h2 className="font-semibold text-sm">Better Work Pro</h2>
+          <p className="text-2xl font-bold mt-1">{formatMoney(proIncome)}</p>
+          <p className="text-xs text-faint mt-1">
+            {activePros} {activePros === 1 ? "profesional Pro activo" : "profesionales Pro activos"}.
+          </p>
+          <Link href="/admin/settings" className="btn-secondary w-full mt-4 !py-2 !text-xs">Precio y beneficios</Link>
+        </div>
+
+        <div className="card p-5">
           <h2 className="font-semibold text-sm">Membresías de empresa</h2>
           <p className="text-2xl font-bold mt-1">{formatMoney(planIncome)}</p>
           <p className="text-xs text-faint mt-1">
-            {payingCompanies} {payingCompanies === 1 ? "empresa" : "empresas"} con plan activo. Los trabajadores
-            usan Better Work gratis.
+            {payingCompanies} {payingCompanies === 1 ? "empresa" : "empresas"} con plan activo.
           </p>
           <Link href="/admin/plans" className="btn-secondary w-full mt-4 !py-2 !text-xs">Editar planes</Link>
         </div>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Avatar } from "./Avatar";
 import { Stars } from "./Stars";
-import { RankBadge, VerifiedBadge, SponsoredBadge } from "./Badges";
+import { RankBadge, VerifiedBadge, SponsoredBadge, ProBadge } from "./Badges";
 import { formatKm } from "@/lib/geo";
 
 export type WorkerCardData = {
@@ -18,6 +18,7 @@ export type WorkerCardData = {
   cancellations?: number;
   verified: boolean;
   sponsored?: boolean;
+  pro?: boolean;
   distanceKm?: number | null;
   priceHint?: string | null;
 };
@@ -33,6 +34,7 @@ export function WorkerCard({ w }: { w: WorkerCardData }) {
         <div className="flex items-center gap-2 flex-wrap">
           <p className="font-semibold text-sm truncate">{w.name}</p>
           {w.verified && <VerifiedBadge />}
+          {w.pro && <ProBadge />}
           {w.sponsored && <SponsoredBadge />}
         </div>
         <p className="text-sm text-muted truncate">{w.profession}</p>

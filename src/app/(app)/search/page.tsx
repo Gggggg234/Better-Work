@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { WorkerCard } from "@/components/WorkerCard";
 import { LocationAutoUpdate } from "@/components/LocationAutoUpdate";
 import { distanceKm } from "@/lib/geo";
-import { workerScore, isSponsored, activeBoost } from "@/lib/ranking";
+import { workerScore, isSponsored, workerBoost } from "@/lib/ranking";
+import { isPro } from "@/lib/pro";
 import { computeRank } from "@/lib/rank";
 import { trackSearchAppearances } from "@/lib/track";
 
@@ -73,8 +74,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         return b.experience - a.experience;
       default:
         return (
-          workerScore({ boost: activeBoost(b.sponsoredUntil, b.sponsorBoost), ratingAvg: b.ratingAvg, ratingCount: b.ratingCount, jobsDone: b.jobsDone, verified: b.verified, distanceKm: b.distance }) -
-          workerScore({ boost: activeBoost(a.sponsoredUntil, a.sponsorBoost), ratingAvg: a.ratingAvg, ratingCount: a.ratingCount, jobsDone: a.jobsDone, verified: a.verified, distanceKm: a.distance })
+          workerScore({ boost: workerBoost(b), ratingAvg: b.ratingAvg, ratingCount: b.ratingCount, jobsDone: b.jobsDone, verified: b.verified, distanceKm: b.distance }) -
+          workerScore({ boost: workerBoost(a), ratingAvg: a.ratingAvg, ratingCount: a.ratingCount, jobsDone: a.jobsDone, verified: a.verified, distanceKm: a.distance })
         );
     }
   });
@@ -161,6 +162,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               cancellations: w.cancellations,
               verified: w.verified,
               sponsored: w.sponsored,
+              pro: isPro(w.proUntil),
               distanceKm: w.distance,
               priceHint: w.priceHint,
               rank: computeRank({

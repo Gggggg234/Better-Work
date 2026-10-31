@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createSession } from "@/lib/auth";
+import { welcomeInvitedWorker } from "@/lib/referrals";
 
 /**
  * Elección de rol para las cuentas creadas con Google.
@@ -31,6 +32,8 @@ export async function chooseRole(formData: FormData): Promise<void> {
 
   if (role === "WORKER" && !user.workerProfile) {
     await db.workerProfile.create({ data: { userId: user.id, profession: "Sin definir" } });
+    // Si vino con un link de invitación, arranca con días de Pro.
+    await welcomeInvitedWorker(user.id);
   }
   if (role === "COMPANY" && !user.companyProfile) {
     await db.companyProfile.create({ data: { userId: user.id, companyName: user.name } });

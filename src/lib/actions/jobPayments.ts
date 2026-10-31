@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { getPaymentProvider } from "@/lib/payments";
+import { getPaymentProvider, escrowActive } from "@/lib/payments";
 import { splitAmount, priceBreakdown } from "@/lib/payments/escrow";
 import { getCommissionPct, getFeeConfig } from "@/lib/settings";
 import { takeFreeJob, giveBackFreeJob } from "@/lib/referrals";
@@ -27,6 +27,8 @@ export async function startPayment(jobId: string): Promise<void> {
     include: { payment: true, worker: { select: { name: true } } },
   });
   if (!job || job.clientId !== user.id) redirect("/jobs");
+  // Con pago directo no se cobra nada por la app.
+  if (!(await escrowActive())) redirect(`/jobs/${jobId}`);
   if (!job.price || job.price <= 0) redirect(`/jobs/${jobId}?pago=sinprecio`);
   // Se paga tras aceptar y antes de empezar; si ya está retenido, no se repite.
   if (!["ACCEPTED", "EN_ROUTE"].includes(job.status)) redirect(`/jobs/${jobId}?pago=estado`);

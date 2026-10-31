@@ -22,6 +22,8 @@ model User {
   // Alta con Google (OAuth). `onboarded` marca si ya eligió rol y completó el perfil.
   googleId      String?  @unique
   onboarded     Boolean  @default(true)
+  // Cómo prefiere pagar quien contrata (cliente o empresa). Informativo.
+  payPreference String   @default("[]") // JSON string[] ej ["Efectivo","Transferencia","Mercado Pago"]
   createdAt    DateTime @default(now())
 
   workerProfile  WorkerProfile?
@@ -31,6 +33,7 @@ model User {
   openRequests   OpenRequest[]  @relation("ClientOpenRequests")
   bids           Bid[]          @relation("WorkerBids")
   aiAnalyses     AiAnalysis[]
+  proRequests    ProRequest[]
   // Referidos: código propio para invitar, quién lo invitó y trabajos
   // bonificados (sin comisión si es profesional, sin tarifa si contrata).
   referralCode     String?  @unique
@@ -197,6 +200,27 @@ model AiAnalysis {
   @@index([userId, createdAt])
 }
 
+/**
+ * Suscripción a Better Work Pro de un profesional, pagada por transferencia.
+ * Queda PENDING hasta que el Super Admin valida el comprobante; recién ahí se
+ * extiende `WorkerProfile.proUntil`. Guarda el precio del momento.
+ */
+model ProRequest {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount     Float
+  days       Int       @default(30)
+  receiptUrl String
+  status     String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  note       String    @default("")
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
 model Payment {
   id          String   @id @default(cuid())
   jobId       String   @unique
@@ -333,6 +357,7 @@ model WorkerProfile {
   verified     Boolean   @default(false)
   visible      Boolean   @default(true)
   // Publicidad (denormalizado desde la campaña activa, para el ranking)
+  proUntil     DateTime? // Better Work Pro vigente hasta (null = no es Pro)
   sponsoredUntil DateTime?
   sponsorBoost Float     @default(0)
   // Métricas

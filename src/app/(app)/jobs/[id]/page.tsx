@@ -18,13 +18,14 @@ import { Stars } from "@/components/Stars";
 import { MapView } from "@/components/map/MapView";
 import { formatMoney, formatDateTime, TZ } from "@/lib/format";
 import { needsPayment, PAYMENT_LABEL, PAYMENT_HINT, PAYMENT_HINT_WORKER } from "@/lib/payments";
-import { paymentsConfigured } from "@/lib/payments";
+import { paymentsConfigured, escrowActive } from "@/lib/payments";
 import { priceBreakdown, splitAmount } from "@/lib/payments/escrow";
 import { getFeeConfig } from "@/lib/settings";
 import { BackButton } from "@/components/BackButton";
 import { PayButton } from "@/components/jobs/JobPaymentForm";
 import { SendQuoteForm, QuoteReview } from "@/components/jobs/QuoteForms";
 import { Attachments, parseAttachments } from "@/components/jobs/Attachments";
+import { CopyField } from "@/components/CopyField";
 
 function CodeCard({ code, title, hint }: { code: string; title: string; hint: string }) {
   return (
@@ -76,7 +77,7 @@ export default async function JobDetailPage({
   const me = await getCurrentUser();
   if (!me) redirect("/login");
 
-  const [job, fees] = await Promise.all([
+  const [job, fees, escrow] = await Promise.all([
     db.job.findUnique({
       where: { id },
       include: {
@@ -88,6 +89,7 @@ export default async function JobDetailPage({
       },
     }),
     getFeeConfig(),
+    escrowActive(),
   ]);
   if (!job) notFound();
   const isClient = job.clientId === me.id;
@@ -99,9 +101,10 @@ export default async function JobDetailPage({
   const theirReview = job.reviews.find((r) => r.ratedId === me.id);
   const codeError = sp.error === "codigo";
 
-  // Escrow: el pago retenido habilita el inicio del trabajo.
+  // Con pago protegido, el pago retenido habilita el inicio del trabajo. Con
+  // pago directo, cliente y profesional lo arreglan entre ellos.
   const payment = job.payment;
-  const pending = needsPayment(job.price, payment);
+  const pending = escrow && needsPayment(job.price, payment);
   const mpReady = paymentsConfigured();
 
   // Desglose del cobro: el recargo por urgencia quedó fijado al pedir.
@@ -123,6 +126,16 @@ export default async function JobDetailPage({
         ? { commission: 0, net: payment.amount }
         : splitAmount(payment.amount, fees.commissionPct)
     : null;
+
+  // Cómo prefiere pagar el cliente (lo ve el profesional con pago directo).
+  const clientPrefers: string[] = (() => {
+    try {
+      const v = JSON.parse(job.client.payPreference || "[]");
+      return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+    } catch {
+      return [];
+    }
+  })();
 
   // Negociación por presupuesto: el más reciente es el vigente.
   const latestQuote = job.quotes[0];
@@ -230,13 +243,52 @@ export default async function JobDetailPage({
         <div className="p-4 flex justify-between text-sm">
           <span className="text-muted">Pago</span>
           <span className="font-medium text-right">
-            {payment ? PAYMENT_LABEL[payment.status] : "Retenido por Better Work"}
+            {payment
+              ? PAYMENT_LABEL[payment.status]
+              : escrow
+                ? "Retenido por Better Work"
+                : "Directo al profesional"}
           </span>
         </div>
       </div>
 
       {/* Adjuntos de la solicitud */}
       <Attachments items={attachments} />
+
+      {/* ── Pago directo: se arregla entre las partes, sin pasar por la app ── */}
+      {!escrow && !payment && breakdown && ["ACCEPTED", "EN_ROUTE", "WORKING", "COMPLETED"].includes(job.status) && (
+        <div className="card p-5 space-y-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-faint">
+              {isWorker ? "Cobrás directo al cliente" : `Le pagás directo a ${other.name.split(/\s+/)[0]}`}
+            </p>
+            <p className="text-2xl font-bold mt-0.5">{formatMoney(breakdown.workAmount)}</p>
+            {breakdown.surcharge > 0 && (
+              <p className="text-[11px] text-faint">
+                Presupuesto {formatMoney(breakdown.price)} + urgencia {formatMoney(breakdown.surcharge)}
+              </p>
+            )}
+          </div>
+          <p className="text-xs text-muted">
+            {isWorker
+              ? "El cliente te paga al terminar, en efectivo o por transferencia, como acuerden."
+              : "Pagás al terminar, en efectivo o por transferencia, como acuerden. Better Work no cobra comisión por el trabajo."}
+          </p>
+          {isClient && job.worker.workerProfile?.payAlias && (
+            <div className="space-y-2">
+              <CopyField label="Alias para transferir" value={job.worker.workerProfile.payAlias} />
+              {job.worker.workerProfile.payHolder && (
+                <p className="text-[11px] text-faint">Titular: {job.worker.workerProfile.payHolder}</p>
+              )}
+            </div>
+          )}
+          {isWorker && clientPrefers.length > 0 && (
+            <p className="text-sm">
+              <span className="text-muted">Prefiere pagar con:</span> <strong>{clientPrefers.join(", ")}</strong>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Estado del pago retenido (escrow) */}
       {payment && (
@@ -329,6 +381,7 @@ export default async function JobDetailPage({
               changeNote={changesRequested ? latestQuote?.clientNote : undefined}
               urgencyPct={job.urgencyPct}
               commissionPct={fees.commissionPct}
+              escrow={escrow}
             />
           )}
           {!quotePending && (
@@ -358,6 +411,7 @@ export default async function JobDetailPage({
               }}
               workerName={other.name}
               breakdown={breakdownFor(latestQuote.price)}
+              escrow={escrow}
             />
           ) : changesRequested ? (
             <p className="text-sm text-muted text-center">

@@ -24,7 +24,8 @@ function SubmitReceipt({ disabled }: { disabled: boolean }) {
 
 /**
  * Paso de pago del plan: se despliega al elegirlo para no llenar la pantalla
- * con tres formularios de subida a la vez.
+ * con tres formularios de subida a la vez. Sirve para las membresías de
+ * empresa (por defecto) y para Better Work Pro (pasando su `action`).
  */
 export function PlanCheckout({
   planKey,
@@ -33,13 +34,15 @@ export function PlanCheckout({
   alias,
   blocked,
   label,
+  action = requestPlan,
 }: {
-  planKey: string;
+  planKey?: string;
   planName: string;
   price: number;
   alias: string;
   blocked: boolean;
   label: string;
+  action?: (formData: FormData) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -61,8 +64,8 @@ export function PlanCheckout({
   }
 
   return (
-    <form action={requestPlan} className="mt-4 rounded-xl border border-line p-4">
-      <input type="hidden" name="planKey" value={planKey} />
+    <form action={action} className="mt-4 rounded-xl border border-line p-4">
+      {planKey && <input type="hidden" name="planKey" value={planKey} />}
 
       <ol className="space-y-2 text-sm">
         <li className="flex gap-2.5">

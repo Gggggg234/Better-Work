@@ -84,6 +84,32 @@ export async function saveFeeSettings(formData: FormData) {
   revalidatePath("/admin/settings");
 }
 
+/**
+ * Cómo se pagan los trabajos: "direct" (entre las partes) o "escrow" (pago
+ * protegido por Mercado Pago). El protegido sólo corre si además hay
+ * credenciales de Mercado Pago: ver `escrowActive()`.
+ */
+export async function savePaymentMode(formData: FormData) {
+  await requireRole("ADMIN");
+  const mode = String(formData.get("payment_mode") ?? "");
+  if (mode !== "direct" && mode !== "escrow") return;
+  await setSetting("payment_mode", mode);
+  revalidatePath("/", "layout");
+}
+
+/** Precio mensual de Better Work Pro y tope de presupuestos gratis por mes. */
+export async function saveProSettings(formData: FormData) {
+  await requireRole("ADMIN");
+  const price = parseFloat(String(formData.get("pro_price") ?? ""));
+  const freeBids = parseInt(String(formData.get("pro_free_bids") ?? ""), 10);
+  if (Number.isFinite(price) && price >= 0 && price <= 10_000_000) await setSetting("pro_price", String(price));
+  if (Number.isFinite(freeBids) && freeBids >= 0 && freeBids <= 1000) {
+    await setSetting("pro_free_bids", String(freeBids));
+  }
+  revalidatePath("/admin/settings");
+  revalidatePath("/pro");
+}
+
 /** Guarda las reglas con las que se estiman los resultados de una campaña. */
 export async function saveAdRules(formData: FormData) {
   await requireRole("ADMIN");

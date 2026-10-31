@@ -11,6 +11,9 @@
  * necesita cambiar.
  */
 
+/** Opciones de preferencia de pago que declara quien contrata (cliente o empresa). */
+export const PAY_PREFERENCE_OPTIONS = ["Efectivo", "Transferencia", "Mercado Pago"] as const;
+
 /** Estados del dinero retenido (escrow). */
 export type EscrowStatus =
   | "PENDING" //  el cobro se inició, esperando confirmación del proveedor

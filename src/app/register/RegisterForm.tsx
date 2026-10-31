@@ -24,10 +24,13 @@ export function RegisterForm({
   google,
   initialRole = "CLIENT",
   invitedBy,
+  escrow = false,
 }: {
   google: boolean;
   initialRole?: string;
   invitedBy?: string;
+  /** Pago protegido activo: cambia qué gana quien llega invitado. */
+  escrow?: boolean;
 }) {
   const [state, action, pending] = useActionState(register, undefined);
   const [resendState, resendAction, resending] = useActionState(resendVerification, undefined);
@@ -73,9 +76,13 @@ export function RegisterForm({
           <div className="card p-4 mt-5 bg-fg text-bg !border-fg">
             <p className="text-sm font-semibold">🎁 {invitedBy} te invitó</p>
             <p className="text-xs text-bg/70 mt-0.5">
-              {role === "WORKER"
-                ? "Tu primer trabajo va sin comisión."
-                : "Tu primer trabajo va sin tarifa de servicio."}
+              {escrow
+                ? role === "WORKER"
+                  ? "Tu primer trabajo va sin comisión."
+                  : "Tu primer trabajo va sin tarifa de servicio."
+                : role === "WORKER"
+                  ? "Arrancás con 14 días de Better Work Pro gratis."
+                  : "Encontrá profesionales de confianza cerca tuyo."}
             </p>
           </div>
         )}

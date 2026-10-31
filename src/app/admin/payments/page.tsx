@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { approvePlanRequest, rejectPlanRequest } from "@/lib/actions/planRequests";
 import { approveTopUp, rejectTopUp } from "@/lib/actions/wallet";
+import { approveProRequest, rejectProRequest } from "@/lib/actions/pro";
 import { PLAN_REQUEST_STATUS } from "@/lib/planRequests";
 import { formatMoney, formatDateTime } from "@/lib/format";
 import { RejectRequest } from "@/components/admin/RejectRequest";
@@ -22,7 +23,7 @@ function Receipt({ url, alt }: { url: string; alt: string }) {
 }
 
 export default async function AdminPaymentsPage() {
-  const [planReqs, topUps, reviewed, plans] = await Promise.all([
+  const [planReqs, topUps, reviewed, plans, proReqs] = await Promise.all([
     db.planRequest.findMany({
       where: { status: "PENDING" },
       include: { company: { include: { user: { select: { name: true, email: true } } } } },
@@ -40,18 +41,23 @@ export default async function AdminPaymentsPage() {
       take: 20,
     }),
     db.plan.findMany({ select: { key: true, name: true } }),
+    db.proRequest.findMany({
+      where: { status: "PENDING" },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
 
   const planName = (key: string) => plans.find((p) => p.key === key)?.name ?? key;
-  const total = planReqs.length + topUps.length;
+  const total = planReqs.length + topUps.length + proReqs.length;
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-xl font-bold">Pagos pendientes</h1>
         <p className="text-sm text-muted mt-0.5">
-          Membresías de empresa y cargas de presupuesto publicitario. El pago de los trabajos se cobra y libera solo
-          por Mercado Pago (escrow), no requiere tu aprobación.
+          Suscripciones Pro, membresías de empresa y cargas de presupuesto publicitario. El pago de los trabajos
+          no pasa por acá.
         </p>
       </div>
 
@@ -66,6 +72,42 @@ export default async function AdminPaymentsPage() {
           <strong className="text-fg">{total}</strong> {total === 1 ? "comprobante" : "comprobantes"} esperando
           revisión.
         </p>
+      )}
+
+      {/* ── Suscripciones Better Work Pro ── */}
+      {proReqs.length > 0 && (
+        <section>
+          <h2 className="font-semibold mb-3">
+            Better Work Pro{" "}
+            <span className="rounded-full bg-fg text-bg px-2 py-0.5 text-xs">{proReqs.length}</span>
+          </h2>
+          <div className="space-y-3">
+            {proReqs.map((r) => (
+              <div key={r.id} className="card p-5">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="font-semibold">{r.user.name}</p>
+                    <p className="text-xs text-muted">{r.user.email} · Profesional</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-bold">{formatMoney(r.amount)}</p>
+                    <p className="text-xs text-muted">Pro · {r.days} días</p>
+                  </div>
+                </div>
+                <p className="text-xs text-faint mt-2">Enviado el {formatDateTime(r.createdAt)}</p>
+
+                <Receipt url={r.receiptUrl} alt={`Comprobante de ${r.user.name}`} />
+
+                <div className="flex gap-2 mt-4">
+                  <form action={approveProRequest.bind(null, r.id)} className="flex-1">
+                    <button className="btn-primary w-full !py-2.5 !text-sm">Activar Pro</button>
+                  </form>
+                  <RejectRequest requestId={r.id} action={rejectProRequest} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* ── Cargas de presupuesto publicitario ── */}

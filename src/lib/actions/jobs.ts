@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { needsPayment } from "@/lib/payments";
+import { needsPayment, escrowActive } from "@/lib/payments";
 import { saveAttachment } from "@/lib/upload";
 import { releaseForJob, refundForJob } from "@/lib/actions/jobPayments";
 import { rewardInvitersForJob } from "@/lib/referrals";
@@ -123,8 +123,9 @@ export async function enterStartCode(jobId: string, formData: FormData): Promise
   const job = await db.job.findUnique({ where: { id: jobId }, include: { payment: true } });
   if (!job || job.workerId !== user.id) return;
   if (!["ACCEPTED", "EN_ROUTE"].includes(job.status)) return;
-  // No arranca hasta que el pago esté retenido por Better Work.
-  if (needsPayment(job.price, job.payment)) {
+  // Con pago protegido, no arranca hasta que el pago esté retenido. Con pago
+  // directo se arregla entre las partes y no hay nada que esperar.
+  if ((await escrowActive()) && needsPayment(job.price, job.payment)) {
     redirect(`/jobs/${jobId}?error=pago`);
   }
   if (job.startCode !== code) {

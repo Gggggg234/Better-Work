@@ -10,6 +10,7 @@ import { AttachmentsInput } from "@/components/AttachmentsInput";
 import { HOURS } from "@/lib/worker";
 import { todayAR } from "@/lib/format";
 import { getFeeConfig } from "@/lib/settings";
+import { escrowActive } from "@/lib/payments";
 import { BackButton } from "@/components/BackButton";
 
 export default async function HirePage({ params }: { params: Promise<{ workerId: string }> }) {
@@ -18,12 +19,13 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
   if (!me) redirect("/login");
   if (me.id === workerId) redirect(`/w/${workerId}`);
 
-  const [profile, fees] = await Promise.all([
+  const [profile, fees, escrow] = await Promise.all([
     db.workerProfile.findUnique({
       where: { userId: workerId },
       include: { user: true, category: { select: { slug: true } } },
     }),
     getFeeConfig(),
+    escrowActive(),
   ]);
   if (!profile) notFound();
 
@@ -132,16 +134,29 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
         </div>
 
         <div className="card p-3.5 bg-surface-2 !border-line">
-          <p className="text-sm font-medium">Cómo sigue — Pago protegido</p>
-          <p className="text-xs text-muted mt-0.5">
-            Cuando el profesional acepte (o te pase un presupuesto), pagás a través de Better Work. El dinero queda
-            <strong className="text-fg"> retenido</strong> y se libera al profesional recién cuando confirmás el
-            código de finalización. El trabajo se inicia y termina con códigos de 4 dígitos.
-          </p>
-          <p className="text-xs text-muted mt-1.5">
-            Al pagar se suma una tarifa de servicio del {fees.serviceFeePct}% que cubre la protección del pago. Si el
-            trabajo se cancela antes de empezar, se te devuelve todo.
-          </p>
+          {escrow ? (
+            <>
+              <p className="text-sm font-medium">Cómo sigue — Pago protegido</p>
+              <p className="text-xs text-muted mt-0.5">
+                Cuando el profesional acepte (o te pase un presupuesto), pagás a través de Better Work. El dinero queda
+                <strong className="text-fg"> retenido</strong> y se libera al profesional recién cuando confirmás el
+                código de finalización. El trabajo se inicia y termina con códigos de 4 dígitos.
+              </p>
+              <p className="text-xs text-muted mt-1.5">
+                Al pagar se suma una tarifa de servicio del {fees.serviceFeePct}% que cubre la protección del pago. Si
+                el trabajo se cancela antes de empezar, se te devuelve todo.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-medium">Cómo sigue</p>
+              <p className="text-xs text-muted mt-0.5">
+                El profesional acepta tu solicitud o te pasa un presupuesto. El trabajo se inicia y termina con códigos
+                de 4 dígitos, y al terminar le pagás directo, en efectivo o por transferencia.
+              </p>
+              <p className="text-xs text-muted mt-1.5">Pedir es gratis y Better Work no cobra comisión por el trabajo.</p>
+            </>
+          )}
         </div>
 
         <FormSubmitButton pendingLabel="Enviando solicitud…">Enviar solicitud</FormSubmitButton>

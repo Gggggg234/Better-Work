@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole, requireUser } from "@/lib/auth";
 import { trySaveImage, deleteUpload } from "@/lib/upload";
+import { PAY_PREFERENCE_OPTIONS } from "@/lib/payments/types";
 
 /** Cambia la foto de perfil de cualquier usuario (archivo, no URL). */
 export async function updateAvatar(formData: FormData): Promise<void> {
@@ -110,6 +111,18 @@ export async function updateWorkerProfile(formData: FormData) {
 
   revalidatePath("/worker/profile");
   revalidatePath("/app");
+}
+
+/** Preferencia de pago de quien contrata (cliente o empresa). Informativo. */
+export async function updatePayPreference(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "CLIENT" && user.role !== "COMPANY") return;
+
+  const options: readonly string[] = PAY_PREFERENCE_OPTIONS;
+  const methods = formData.getAll("payPreference").map(String).filter((m) => options.includes(m));
+
+  await db.user.update({ where: { id: user.id }, data: { payPreference: JSON.stringify(methods) } });
+  revalidatePath("/profile");
 }
 
 export async function updateCompanyProfile(formData: FormData) {

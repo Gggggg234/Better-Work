@@ -73,6 +73,39 @@ function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
 
+/** Al profesional: se aprobó su pago de Better Work Pro. */
+export async function sendProApprovedEmail(to: string, until: Date): Promise<MailResult> {
+  const date = until.toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+  return sendMail(
+    to,
+    "Ya sos Pro — Better Work",
+    layout(
+      "Better Work Pro activado",
+      `<p>Aprobamos tu comprobante: sos Pro hasta el <strong>${date}</strong>. Ya aparecés más arriba en las
+       búsquedas y podés mandar presupuestos sin límite.</p>`
+    )
+  );
+}
+
+/** Al profesional: no se pudo validar su comprobante de Pro. */
+export async function sendProRejectedEmail(to: string, reason: string): Promise<MailResult> {
+  return sendMail(
+    to,
+    "No pudimos validar tu comprobante — Better Work",
+    layout(
+      "Necesitamos revisar tu pago",
+      `<p>No pudimos validar el comprobante de Better Work Pro que enviaste.</p>
+       ${reason ? `<p><strong>Motivo:</strong> ${esc(reason)}</p>` : ""}
+       <p>Podés volver a enviarlo desde la sección Pro de tu perfil.</p>`
+    )
+  );
+}
+
 /** Pedido abierto nuevo cerca de un profesional de ese oficio. */
 export async function sendNewOpenRequestEmail(
   to: string,
@@ -117,8 +150,7 @@ export async function sendBidAcceptedEmail(to: string, title: string, url: strin
     "¡Te eligieron! — Better Work",
     layout(
       "El cliente eligió tu presupuesto",
-      `<p>Te eligieron para «${esc(title)}». Cuando el cliente pague, el dinero queda retenido y podés arrancar
-       el trabajo.</p>`,
+      `<p>Te eligieron para «${esc(title)}». Entrá para ver la dirección y coordinar con el cliente.</p>`,
       { href: url, label: "Ver el trabajo" }
     )
   );

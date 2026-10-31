@@ -1,6 +1,7 @@
 import type { PaymentProvider } from "./types";
 import { mercadoPagoProvider } from "./mercadopago";
 import { simulatedProvider } from "./simulated";
+import { getPaymentMode } from "@/lib/settings";
 
 /**
  * Registro de proveedores de pago.
@@ -28,6 +29,17 @@ export function paymentsConfigured(): boolean {
 export function getPaymentProvider(): PaymentProvider {
   if (process.env.MP_ACCESS_TOKEN) return PROVIDERS[mercadoPagoProvider.id];
   return PROVIDERS[simulatedProvider.id];
+}
+
+/**
+ * ¿Los trabajos se pagan con pago protegido? Sólo si el Super Admin lo
+ * activó Y hay una pasarela real. En producción nunca corre el simulado: sin
+ * Mercado Pago, el pago es directo entre las partes. (En desarrollo el
+ * simulado sirve para probar el flujo.)
+ */
+export async function escrowActive(): Promise<boolean> {
+  if ((await getPaymentMode()) !== "escrow") return false;
+  return paymentsConfigured() || process.env.NODE_ENV !== "production";
 }
 
 /** Busca un proveedor por id (para reconciliar un pago con su origen). */

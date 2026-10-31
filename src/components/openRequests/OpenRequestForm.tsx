@@ -37,6 +37,7 @@ export function OpenRequestForm({
   today,
   timeOptions,
   aiEnabled,
+  escrow = false,
 }: {
   categories: Category[];
   preselected: string;
@@ -44,6 +45,8 @@ export function OpenRequestForm({
   today: string;
   timeOptions: string[];
   aiEnabled: boolean;
+  /** Pago protegido activo (si no, el pago es directo al profesional). */
+  escrow?: boolean;
 }) {
   const [categoryId, setCategoryId] = useState(preselected);
   const [title, setTitle] = useState("");
@@ -262,7 +265,9 @@ export function OpenRequestForm({
 
       <FormSubmitButton pendingLabel="Publicando pedido…">Publicar pedido</FormSubmitButton>
       <p className="text-xs text-faint text-center">
-        Pagás recién cuando elegís un presupuesto, y el dinero queda protegido hasta que el trabajo esté terminado.
+        {escrow
+          ? "Pagás recién cuando elegís un presupuesto, y el dinero queda protegido hasta que el trabajo esté terminado."
+          : "Pedir es gratis. Al profesional que elijas le pagás directo al terminar el trabajo."}
       </p>
     </form>
   );

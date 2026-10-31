@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!data) return {};
   const { category, copy, city, workers } = data;
   const title = `${capitalize(copy.plural)} en ${city.name}`;
-  const description = `${workers.length} ${workers.length === 1 ? copy.singular : copy.plural} en ${city.name}. Pedí presupuesto gratis y pagá con el dinero protegido hasta que el trabajo esté terminado.`;
+  const description = `${workers.length} ${workers.length === 1 ? copy.singular : copy.plural} en ${city.name}. Pedí presupuesto gratis y elegí con calificaciones reales.`;
   const path = `/servicios/${category.slug}/${city.slug}`;
   return { title, description, alternates: { canonical: path }, openGraph: { title, description, url: path } };
 }
@@ -73,7 +73,7 @@ export default async function TradeCityPage({ params }: Props) {
           {workers.length === 1
             ? `Hay 1 ${copy.singular} en ${city.name} en Better Work.`
             : `Hay ${workers.length} ${copy.plural} en ${city.name} en Better Work.`}{" "}
-          Contá qué necesitás, recibí el presupuesto y pagá recién cuando lo aceptás.
+          Contá qué necesitás, recibí el presupuesto y elegí con calificaciones reales.
         </p>
         <Link href="/register" className="btn-primary !px-6 !py-3 mt-6 inline-flex">Pedir presupuesto gratis</Link>
       </section>

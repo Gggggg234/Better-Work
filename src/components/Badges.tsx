@@ -17,6 +17,18 @@ export function VerifiedBadge() {
   );
 }
 
+/** Better Work Pro (suscripción del profesional). */
+export function ProBadge() {
+  return (
+    <span
+      className="inline-flex items-center rounded-full border border-fg px-2 py-0.5 text-[11px] font-bold text-fg"
+      title="Profesional con Better Work Pro"
+    >
+      PRO
+    </span>
+  );
+}
+
 export function SponsoredBadge() {
   return (
     <span className="inline-flex items-center rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-muted">

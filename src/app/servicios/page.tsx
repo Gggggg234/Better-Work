@@ -8,7 +8,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Servicios y oficios cerca tuyo",
   description:
-    "Plomeros, electricistas, albañiles, pintores, profesores y más. Pedí presupuesto gratis y pagá con el dinero protegido hasta que el trabajo esté terminado.",
+    "Plomeros, electricistas, albañiles, pintores, profesores y más. Pedí presupuesto gratis y elegí con calificaciones reales.",
   alternates: { canonical: "/servicios" },
 };
 
@@ -22,8 +22,8 @@ export default async function ServiciosPage() {
       <section>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Servicios y oficios cerca tuyo</h1>
         <p className="text-muted mt-3 max-w-xl">
-          Elegí qué necesitás, pedí presupuesto gratis y pagá recién cuando lo aceptás. El dinero queda protegido
-          hasta que el trabajo esté terminado.
+          Elegí qué necesitás, pedí presupuesto gratis y compará antes de decidir. Calificaciones reales y
+          confirmación del trabajo con códigos.
         </p>
       </section>
 

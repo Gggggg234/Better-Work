@@ -9,24 +9,26 @@ import { db } from "./db";
  */
 
 /**
- * Lo que espera aprobación manual del Super Admin: membresías y cargas de saldo
- * publicitario. Los pagos de trabajos NO entran acá: son directos entre cliente
- * y profesional, sin intermediación.
+ * Lo que espera aprobación manual del Super Admin: membresías de empresa,
+ * suscripciones Pro y cargas de saldo publicitario. Los pagos de trabajos NO
+ * entran acá: son directos entre cliente y profesional.
  */
 export async function countPendingApprovals(): Promise<{
   plans: number;
+  pros: number;
   topUps: number;
   total: number;
 }> {
   try {
-    const [plans, topUps] = await Promise.all([
+    const [plans, pros, topUps] = await Promise.all([
       db.planRequest.count({ where: { status: "PENDING" } }),
+      db.proRequest.count({ where: { status: "PENDING" } }),
       db.walletTopUp.count({ where: { status: "PENDING" } }),
     ]);
-    return { plans, topUps, total: plans + topUps };
+    return { plans, pros, topUps, total: plans + pros + topUps };
   } catch {
     // El contador nunca debe romper el layout del panel.
-    return { plans: 0, topUps: 0, total: 0 };
+    return { plans: 0, pros: 0, topUps: 0, total: 0 };
   }
 }
 

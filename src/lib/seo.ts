@@ -88,7 +88,7 @@ const COPY: Record<string, TradeCopy> = {
     singular: "electricista",
     plural: "electricistas",
     intro:
-      "Cortes, enchufes que no andan, tableros o una instalación nueva: encontrá un electricista cerca tuyo y pagá recién cuando acordás el presupuesto.",
+      "Cortes, enchufes que no andan, tableros o una instalación nueva: encontrá un electricista cerca tuyo y acordá el presupuesto antes de que empiece.",
     tasks: [
       "Reparación de cortes y fallas eléctricas",
       "Instalación de enchufes, llaves y luminarias",
@@ -108,7 +108,7 @@ const COPY: Record<string, TradeCopy> = {
     singular: "plomero",
     plural: "plomeros",
     intro:
-      "Pérdidas, canillas, destapaciones o un baño nuevo: pedile presupuesto a un plomero de tu zona y pagá con el dinero protegido hasta que el trabajo esté terminado.",
+      "Pérdidas, canillas, destapaciones o un baño nuevo: pedile presupuesto gratis a un plomero de tu zona y elegí con calificaciones reales.",
     tasks: [
       "Reparación de pérdidas de agua",
       "Destapación de cañerías, piletas e inodoros",
@@ -148,7 +148,7 @@ const COPY: Record<string, TradeCopy> = {
     singular: "técnico",
     plural: "técnicos",
     intro:
-      "Electrodomésticos, aires acondicionados o equipos que dejaron de andar: encontrá un técnico de tu zona y pagá recién cuando aceptás el presupuesto.",
+      "Electrodomésticos, aires acondicionados o equipos que dejaron de andar: encontrá un técnico de tu zona y conocé el presupuesto antes de que empiece.",
     tasks: [
       "Reparación de lavarropas y heladeras",
       "Instalación y service de aire acondicionado",
@@ -160,7 +160,7 @@ const COPY: Record<string, TradeCopy> = {
     faq: [
       {
         q: "¿El técnico me cobra la visita para diagnosticar?",
-        a: "Cada técnico define sus condiciones y te las aclara en el presupuesto. En Better Work no pagás nada hasta aceptarlo.",
+        a: "Cada técnico define sus condiciones y te las aclara en el presupuesto, antes de que aceptes.",
       },
     ],
   },
@@ -168,7 +168,7 @@ const COPY: Record<string, TradeCopy> = {
     singular: "programador",
     plural: "programadores",
     intro:
-      "Una página web, una app o automatizar algo de tu negocio: describí el proyecto y recibí presupuesto de programadores, con el pago protegido hasta la entrega.",
+      "Una página web, una app o automatizar algo de tu negocio: describí el proyecto y compará presupuestos de programadores.",
     tasks: [
       "Páginas web y tiendas online",
       "Aplicaciones web y móviles",
@@ -179,8 +179,8 @@ const COPY: Record<string, TradeCopy> = {
     ],
     faq: [
       {
-        q: "¿Cómo me aseguro de recibir el trabajo antes de pagar?",
-        a: "El pago queda retenido por Better Work y se libera recién cuando confirmás el código de finalización. Si se cancela antes de empezar, te devolvemos el dinero.",
+        q: "¿Cómo sé que el programador cumple?",
+        a: "Antes de elegir ves sus calificaciones de clientes reales y sus trabajos realizados. Acordá por el chat entregas parciales y el momento del pago.",
       },
     ],
   },
@@ -260,7 +260,7 @@ const COPY: Record<string, TradeCopy> = {
     faq: [
       {
         q: "¿Puedo contratar un mantenimiento cada semana?",
-        a: "Sí: coordinalo con el profesional por el chat. Cada visita se pide y se paga como un trabajo, con el pago protegido.",
+        a: "Sí: coordinalo con el profesional por el chat. Cada visita se pide como un trabajo y queda en tu historial.",
       },
     ],
   },
@@ -290,11 +290,11 @@ const COPY: Record<string, TradeCopy> = {
 const SHARED_FAQ: Faq[] = [
   {
     q: "¿Cuánto cuesta?",
-    a: "Lo define cada profesional. Pedir es gratis: te pasan un presupuesto y lo podés aceptar, pedir cambios o rechazar. Recién pagás cuando lo aceptás.",
+    a: "Lo define cada profesional. Pedir es gratis: te pasan un presupuesto y lo podés aceptar, pedir cambios o rechazar. Better Work no te cobra nada por contratar.",
   },
   {
-    q: "¿Cómo protege Better Work mi pago?",
-    a: "El dinero queda retenido por Better Work y se le libera al profesional recién cuando confirmás que terminó, con un código de finalización. Si el trabajo se cancela antes de empezar, te lo devolvemos.",
+    q: "¿Cómo le pago al profesional?",
+    a: "Directo al profesional, en efectivo o por transferencia, como acuerden. El trabajo empieza y termina con códigos de 4 dígitos, así queda registrado que se hizo.",
   },
   {
     q: "¿Cómo sé que el profesional es confiable?",
@@ -331,6 +331,7 @@ export type PublicWorker = {
   ratingCount: number;
   jobsDone: number;
   verified: boolean;
+  pro: boolean;
   priceHint: string | null;
 };
 
@@ -385,6 +386,7 @@ export const getTrade = cache(async (slug: string) => {
       jobsDone: true,
       verified: true,
       priceHint: true,
+      proUntil: true,
       user: { select: { name: true, avatarUrl: true } },
     },
   });
@@ -401,10 +403,13 @@ export const getTrade = cache(async (slug: string) => {
       ratingCount: w.ratingCount,
       jobsDone: w.jobsDone,
       verified: w.verified,
+      pro: !!w.proUntil && w.proUntil > new Date(),
       priceHint: w.priceHint,
       citySlug: slugify(w.city),
     })
   );
+  // Los Pro primero (beneficio de la suscripción); dentro de cada grupo, por calificación.
+  workers.sort((a, b) => Number(b.pro) - Number(a.pro));
 
   // Ciudades con al menos un profesional. El nombre visible es la primera
   // escritura encontrada (la ciudad es texto libre en el perfil).

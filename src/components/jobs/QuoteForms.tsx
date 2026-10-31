@@ -24,19 +24,24 @@ export function SendQuoteForm({
   changeNote,
   urgencyPct = 0,
   commissionPct,
+  escrow = false,
 }: {
   jobId: string;
   changeNote?: string;
   urgencyPct?: number;
   commissionPct: number;
+  /** Pago protegido activo (si no, el cliente le paga directo al profesional). */
+  escrow?: boolean;
 }) {
   return (
     <form action={sendQuote.bind(null, jobId)} className="card p-5 border-fg space-y-3">
       <div>
         <p className="font-semibold text-sm">{changeNote ? "Enviá un nuevo presupuesto" : "Pasá tu presupuesto"}</p>
         <p className="text-xs text-muted mt-0.5">
-          El cliente lo va a poder aceptar, rechazar o pedirte cambios. El precio no es automático: lo ponés vos.
-          Al terminar cobrás el presupuesto menos la comisión de Better Work ({commissionPct}%).
+          El cliente lo va a poder aceptar, rechazar o pedirte cambios. El precio no es automático: lo ponés vos.{" "}
+          {escrow
+            ? `Al terminar cobrás el presupuesto menos la comisión de Better Work (${commissionPct}%).`
+            : "El cliente te paga directo al terminar: Better Work no cobra comisión."}
         </p>
       </div>
 
@@ -90,11 +95,14 @@ export function QuoteReview({
   quote,
   workerName,
   breakdown: b,
+  escrow = false,
 }: {
   jobId: string;
   quote: { id: string; price: number; estimatedTime: string; note: string };
   workerName: string;
   breakdown: PriceBreakdown;
+  /** Pago protegido activo (si no, el pago es directo al profesional). */
+  escrow?: boolean;
 }) {
   const [changing, setChanging] = useState(false);
 
@@ -108,7 +116,7 @@ export function QuoteReview({
       {!changing ? (
         <div className="space-y-2 mt-4">
           <form action={acceptQuote.bind(null, jobId, quote.id)}>
-            <Submit pendingLabel="Aceptando…">Aceptar y continuar al pago</Submit>
+            <Submit pendingLabel="Aceptando…">{escrow ? "Aceptar y continuar al pago" : "Aceptar presupuesto"}</Submit>
           </form>
           <div className="flex gap-2">
             <button
@@ -142,15 +150,23 @@ export function QuoteReview({
         </form>
       )}
 
-      <p className="text-[11px] text-faint mt-3">
-        Al aceptar vas a pagar {formatMoney(b.clientTotal)}
-        {b.surcharge > 0 || b.serviceFee > 0
-          ? ` (presupuesto${b.surcharge > 0 ? ` + ${formatMoney(b.surcharge)} de urgencia` : ""}${
-              b.serviceFee > 0 ? ` + ${formatMoney(b.serviceFee)} de tarifa de servicio` : ""
-            })`
-          : ""}
-        , que queda retenido por Better Work hasta que confirmes el final del trabajo.
-      </p>
+      {escrow ? (
+        <p className="text-[11px] text-faint mt-3">
+          Al aceptar vas a pagar {formatMoney(b.clientTotal)}
+          {b.surcharge > 0 || b.serviceFee > 0
+            ? ` (presupuesto${b.surcharge > 0 ? ` + ${formatMoney(b.surcharge)} de urgencia` : ""}${
+                b.serviceFee > 0 ? ` + ${formatMoney(b.serviceFee)} de tarifa de servicio` : ""
+              })`
+            : ""}
+          , que queda retenido por Better Work hasta que confirmes el final del trabajo.
+        </p>
+      ) : (
+        <p className="text-[11px] text-faint mt-3">
+          Al aceptar, le pagás {formatMoney(b.workAmount)}
+          {b.surcharge > 0 ? ` (presupuesto + ${formatMoney(b.surcharge)} de urgencia)` : ""} directo a {workerName} al
+          terminar, en efectivo o por transferencia.
+        </p>
+      )}
     </div>
   );
 }

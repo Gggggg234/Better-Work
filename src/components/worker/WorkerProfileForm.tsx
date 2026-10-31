@@ -66,10 +66,13 @@ export function WorkerProfileForm({
   initial,
   categories,
   action,
+  escrow = false,
 }: {
   initial: WorkerFormInitial;
   categories: Category[];
   action: (fd: FormData) => void | Promise<void>;
+  /** Pago protegido: Better Work le transfiere el neto, así que el alias es obligatorio. */
+  escrow?: boolean;
 }) {
   const [profession, setProfession] = useState(initial.profession);
   const [query, setQuery] = useState(initial.profession);
@@ -385,28 +388,34 @@ export function WorkerProfileForm({
       {/* Cobro */}
       <Section
         title="Dónde cobrás"
-        hint="El cliente paga a través de Better Work (queda retenido hasta terminar el trabajo). Cuando se libera el pago, te depositamos el neto en este alias."
+        hint={
+          escrow
+            ? "El cliente paga a través de Better Work (queda retenido hasta terminar el trabajo). Cuando se libera el pago, te depositamos el neto en este alias."
+            : "Tus clientes te pagan directo, en efectivo o por transferencia. Si te transfieren, usan estos datos: los ven cuando aceptás un trabajo."
+        }
       >
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
-            <label className="label">Alias o CBU/CVU para cobrar *</label>
+            <label className="label">Alias o CBU/CVU para cobrar{escrow ? " *" : " (opcional)"}</label>
             <input
               name="payAlias"
-              required
+              required={escrow}
               value={payAlias}
               onChange={(e) => setPayAlias(e.target.value)}
               placeholder="mi.alias.mp"
               className="input"
             />
             <p className="text-xs text-faint mt-1">
-              Obligatorio: a esta cuenta te llega el dinero al liberarse cada trabajo. Sin esto no podemos pagarte.
+              {escrow
+                ? "Obligatorio: a esta cuenta te llega el dinero al liberarse cada trabajo. Sin esto no podemos pagarte."
+                : "Si cobrás sólo en efectivo, dejalo vacío."}
             </p>
           </div>
           <div>
-            <label className="label">Titular de la cuenta *</label>
+            <label className="label">Titular de la cuenta{escrow ? " *" : " (opcional)"}</label>
             <input
               name="payHolder"
-              required
+              required={escrow}
               value={payHolder}
               onChange={(e) => setPayHolder(e.target.value)}
               placeholder="Tu nombre completo"

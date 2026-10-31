@@ -19,6 +19,7 @@ export function WorkerCard({ worker: w }: { worker: PublicWorker }) {
           {w.verified && (
             <span className="rounded-full bg-fg text-bg px-1.5 py-px text-[10px] font-semibold">✓ Verificado</span>
           )}
+          {w.pro && <span className="rounded-full border border-fg px-1.5 py-px text-[10px] font-bold">PRO</span>}
         </div>
         <p className="text-xs text-muted">
           {w.profession}

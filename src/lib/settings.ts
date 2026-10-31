@@ -40,6 +40,20 @@ export async function getCommissionPct(): Promise<number> {
   return Number.isFinite(raw) && raw >= 0 && raw <= 100 ? raw : 5;
 }
 
+/**
+ * Cómo se pagan los trabajos:
+ *  - "direct": cliente y profesional arreglan entre ellos (efectivo o
+ *    transferencia). Better Work no toca ese dinero ni cobra por trabajo.
+ *  - "escrow": pago protegido por Mercado Pago (retenido hasta el código de
+ *    finalización, con comisión y tarifa de servicio).
+ * Default "direct". Ver `escrowActive()` en lib/payments.
+ */
+export type PaymentMode = "direct" | "escrow";
+
+export async function getPaymentMode(): Promise<PaymentMode> {
+  return (await getSetting("payment_mode", "direct")) === "escrow" ? "escrow" : "direct";
+}
+
 /** Porcentaje válido (0 a 100) o el default. */
 function pct(raw: string, fallback: number): number {
   const v = parseFloat(raw);

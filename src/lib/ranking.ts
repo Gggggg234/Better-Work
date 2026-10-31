@@ -53,3 +53,16 @@ export function isSponsored(until: Date | null | undefined): boolean {
 export function activeBoost(until: Date | null | undefined, boost: number): number {
   return isSponsored(until) ? boost : 0;
 }
+
+/** Empuje de Better Work Pro: suma, pero menos que la publicidad (que llega a 0.45). */
+export const PRO_BOOST = 0.15;
+
+/** Empuje total de un profesional: campaña vigente + Pro vigente. */
+export function workerBoost(w: {
+  sponsoredUntil: Date | null;
+  sponsorBoost: number;
+  proUntil: Date | null;
+}): number {
+  const pro = !!w.proUntil && w.proUntil.getTime() > Date.now();
+  return activeBoost(w.sponsoredUntil, w.sponsorBoost) + (pro ? PRO_BOOST : 0);
+}

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getFeeConfig } from "@/lib/settings";
 import { aiConfigured } from "@/lib/ai/requestAssistant";
+import { escrowActive } from "@/lib/payments";
 import { OpenRequestForm } from "@/components/openRequests/OpenRequestForm";
 import { BackButton } from "@/components/BackButton";
 import { HOURS } from "@/lib/worker";
@@ -53,6 +54,7 @@ export default async function NewOpenRequestPage({
         today={todayAR()}
         timeOptions={HOURS.slice(6, 24)}
         aiEnabled={aiConfigured()}
+        escrow={await escrowActive()}
       />
     </main>
   );

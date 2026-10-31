@@ -1,22 +1,29 @@
 import { randomInt } from "crypto";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
+import { escrowActive } from "@/lib/payments";
+import { extendPro } from "@/lib/pro";
 
 /**
- * Programa de referidos de los dos lados.
+ * Programa de referidos.
  *
- *  - Quien se registra con un link de invitación arranca con 1 trabajo
- *    bonificado.
- *  - Quien invitó gana 2 cuando el invitado COMPLETA su primer trabajo (con
- *    pago y código de finalización), y sólo si ese trabajo no fue con el
- *    mismo que lo invitó: así no rinde crear cuentas falsas.
+ * El premio llega cuando el invitado COMPLETA su primer trabajo (código de
+ * finalización) y sólo si ese trabajo no fue con quien lo invitó: así no
+ * rinde crear cuentas falsas. Qué se gana depende de cómo se pagan los
+ * trabajos:
  *
- * "Trabajo bonificado" = sin comisión para el profesional (al liberar el
- * pago) o sin tarifa de servicio para quien contrata (al pagar). No sale
- * plata de Better Work por adelantado: se deja de cobrar en un trabajo real.
+ *  - Pago directo (default): días de Better Work Pro. El profesional invitado
+ *    arranca con 14; quien invita, si es profesional, gana 30 por invitado.
+ *  - Pago protegido: trabajos bonificados (sin comisión para el profesional,
+ *    sin tarifa de servicio para quien contrata). El invitado arranca con 1;
+ *    quien invita gana 2.
+ *
+ * En ningún caso sale plata de Better Work por adelantado.
  */
 
 export const REFERRAL_COOKIE = "bw_ref";
+export const WELCOME_PRO_DAYS = 14;
+export const REWARD_PRO_DAYS = 30;
 export const WELCOME_FREE_JOBS = 1;
 export const REWARD_FREE_JOBS = 2;
 /** Tope de trabajos bonificados acumulados por persona. */
@@ -58,11 +65,28 @@ export async function inviterFromCookie(): Promise<{ id: string; name: string } 
 export async function applyReferralOnSignup(newUserId: string): Promise<void> {
   const inviter = await inviterFromCookie();
   if (!inviter || inviter.id === newUserId) return;
+  const escrow = await escrowActive();
   await db.user.update({
     where: { id: newUserId },
-    data: { referredById: inviter.id, freeJobs: WELCOME_FREE_JOBS },
+    data: { referredById: inviter.id, ...(escrow ? { freeJobs: WELCOME_FREE_JOBS } : {}) },
   });
+  if (!escrow) await welcomeInvitedWorker(newUserId);
   (await cookies()).delete(REFERRAL_COOKIE);
+}
+
+/**
+ * Pago directo: un profesional invitado arranca con días de Pro. Se llama al
+ * registrarse y al elegir el rol (las cuentas de Google lo eligen después);
+ * sólo aplica si vino invitado y todavía no tuvo Pro.
+ */
+export async function welcomeInvitedWorker(userId: string): Promise<void> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { referredById: true, workerProfile: { select: { proUntil: true } } },
+  });
+  if (!user?.referredById || !user.workerProfile || user.workerProfile.proUntil) return;
+  if (await escrowActive()) return;
+  await extendPro(userId, WELCOME_PRO_DAYS, true);
 }
 
 /**
@@ -90,12 +114,20 @@ export async function rewardInvitersForJob(job: { clientId: string; workerId: st
     });
     if (marked.count !== 1) continue;
 
-    const inviter = await db.user.findUnique({ where: { id: user.referredById }, select: { freeJobs: true } });
-    if (!inviter) continue;
-    await db.user.update({
+    const inviter = await db.user.findUnique({
       where: { id: user.referredById },
-      data: { freeJobs: Math.min(MAX_FREE_JOBS, inviter.freeJobs + REWARD_FREE_JOBS) },
+      select: { freeJobs: true, workerProfile: { select: { id: true } } },
     });
+    if (!inviter) continue;
+    if (await escrowActive()) {
+      await db.user.update({
+        where: { id: user.referredById },
+        data: { freeJobs: Math.min(MAX_FREE_JOBS, inviter.freeJobs + REWARD_FREE_JOBS) },
+      });
+    } else if (inviter.workerProfile) {
+      // Pago directo: el premio son días de Pro (sólo tiene sentido para profesionales).
+      await extendPro(user.referredById, REWARD_PRO_DAYS, true);
+    }
   }
 }
 
