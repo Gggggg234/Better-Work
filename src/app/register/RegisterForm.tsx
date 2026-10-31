@@ -20,10 +20,10 @@ const ROLES = [
   { value: "COMPANY", title: "Empresa", desc: "Busco personal" },
 ];
 
-export function RegisterForm({ google }: { google: boolean }) {
+export function RegisterForm({ google, initialRole = "CLIENT" }: { google: boolean; initialRole?: string }) {
   const [state, action, pending] = useActionState(register, undefined);
   const [resendState, resendAction, resending] = useActionState(resendVerification, undefined);
-  const [role, setRole] = useState("CLIENT");
+  const [role, setRole] = useState(initialRole);
   const [password, setPassword] = useState("");
 
   const done = state?.needsVerification;

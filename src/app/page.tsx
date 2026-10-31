@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { Brand } from "@/components/Brand";
 import { InstallButton } from "@/components/InstallButton";
+import { getTradeIndex } from "@/lib/seo";
 
 export default async function Landing() {
   const session = await getSession();
   if (session) redirect(session.role === "ADMIN" ? "/admin" : "/app");
+  const trades = await getTradeIndex().catch(() => []);
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -45,10 +47,30 @@ export default async function Landing() {
             </div>
           ))}
         </div>
+
+        {/* Enlaces a las páginas por oficio (también le marcan el camino a Google). */}
+        {trades.length > 0 && (
+          <div className="mt-16 max-w-3xl w-full">
+            <h2 className="text-xl font-bold">¿Qué necesitás?</h2>
+            <div className="flex flex-wrap justify-center gap-2 mt-5">
+              {trades.map((t) => (
+                <Link
+                  key={t.slug}
+                  href={`/servicios/${t.slug}`}
+                  className="rounded-full border border-line px-4 py-2 text-sm hover:border-fg transition"
+                >
+                  {t.icon} {t.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
-      <footer className="text-center text-xs text-faint py-6">
-        Better Work — Conectando personas con profesionales.
+      <footer className="text-center text-xs text-faint py-6 space-x-4">
+        <span>Better Work — Conectando personas con profesionales.</span>
+        <Link href="/servicios" className="hover:text-fg">Servicios</Link>
+        <Link href="/register?rol=trabajador" className="hover:text-fg">Trabajá con nosotros</Link>
       </footer>
     </main>
   );

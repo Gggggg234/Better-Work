@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
+import { siteOrigin } from "@/lib/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -10,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
       // Zonas privadas: no indexar.
       disallow: ["/admin", "/api", "/chat", "/jobs", "/ads", "/dashboard", "/worker/profile"],
     },
-    sitemap: `${base}/sitemap.xml`,
+    sitemap: `${siteOrigin()}/sitemap.xml`,
   };
 }
