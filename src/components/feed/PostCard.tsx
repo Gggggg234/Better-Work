@@ -48,13 +48,13 @@ export function PostCard({ post }: { post: FeedPost }) {
             {post.sponsored && <SponsoredBadge />}
           </div>
           <p className="text-xs text-faint">
-            {postKindIcon(post.kind)} {postKindLabel(post.kind)} · {timeAgo(post.createdAt)}
-            {post.locationLabel && ` · 📍 ${post.locationLabel}`}
+            <span className="grayscale">{postKindIcon(post.kind)}</span> {postKindLabel(post.kind)} · {timeAgo(post.createdAt)}
+            {post.locationLabel && ` · ${post.locationLabel}`}
           </p>
         </div>
         {post.canManage && (
           <form action={remove}>
-            <button className="text-faint hover:text-red-600 transition text-xs" title="Eliminar">✕</button>
+            <button className="text-faint hover:text-danger transition text-xs" title="Eliminar">✕</button>
           </form>
         )}
       </div>

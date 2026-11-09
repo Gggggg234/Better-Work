@@ -71,7 +71,7 @@ export function WorkerProfileForm({
   initial: WorkerFormInitial;
   categories: Category[];
   action: (fd: FormData) => void | Promise<void>;
-  /** Pago protegido: Better Work le transfiere el neto, así que el alias es obligatorio. */
+  /** Pago protegido: Manobra le transfiere el neto, así que el alias es obligatorio. */
   escrow?: boolean;
 }) {
   const [profession, setProfession] = useState(initial.profession);
@@ -266,7 +266,7 @@ export function WorkerProfileForm({
             <option value="">Categoría (automática)</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.icon} {c.name}
+                <span className="grayscale">{c.icon}</span> {c.name}
               </option>
             ))}
           </select>
@@ -334,7 +334,7 @@ export function WorkerProfileForm({
       {/* Zona de trabajo */}
       <Section title="Zona de trabajo" hint="Usamos tu ubicación mientras usás la app; vos elegís el radio.">
         <button type="button" onClick={locate} className="btn-secondary w-full">
-          📍 Usar mi ubicación
+          Usar mi ubicación
         </button>
         {geoMsg && <p className="text-xs text-muted">{geoMsg}</p>}
         <OptionPills
@@ -390,7 +390,7 @@ export function WorkerProfileForm({
         title="Dónde cobrás"
         hint={
           escrow
-            ? "El cliente paga a través de Better Work (queda retenido hasta terminar el trabajo). Cuando se libera el pago, te depositamos el neto en este alias."
+            ? "El cliente paga a través de Manobra (queda retenido hasta terminar el trabajo). Cuando se libera el pago, te depositamos el neto en este alias."
             : "Tus clientes te pagan directo, en efectivo o por transferencia. Si te transfieren, usan estos datos: los ven cuando aceptás un trabajo."
         }
       >

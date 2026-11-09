@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 /**
- * Marca oficial de Better Work: el ícono BW (logo real) + wordmark.
+ * Marca oficial de Manobra: el ícono BW (logo real) + wordmark.
  * Un único lugar para la identidad en toda la app.
  */
 export function Brand({
@@ -19,8 +19,8 @@ export function Brand({
   const inner = (
     <span className="inline-flex items-center gap-2.5">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="Better Work" className={`${box} rounded-[22%] object-cover shrink-0`} />
-      {showText && <span className={`font-bold tracking-tight text-fg ${text}`}>Better Work</span>}
+      <img src="/logo.png" alt="Manobra" className={`${box} rounded-[22%] object-cover shrink-0`} />
+      {showText && <span className={`font-bold tracking-tight text-fg ${text}`}>Manobra</span>}
     </span>
   );
 

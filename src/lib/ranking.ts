@@ -54,7 +54,7 @@ export function activeBoost(until: Date | null | undefined, boost: number): numb
   return isSponsored(until) ? boost : 0;
 }
 
-/** Empuje de Better Work Pro: suma, pero menos que la publicidad (que llega a 0.45). */
+/** Empuje de Manobra Pro: suma, pero menos que la publicidad (que llega a 0.45). */
 export const PRO_BOOST = 0.15;
 
 /** Empuje total de un profesional: campaña vigente + Pro vigente. */

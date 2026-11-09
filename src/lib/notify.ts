@@ -105,10 +105,10 @@ export async function notify(userIds: string | string[], input: NotifyInput): Pr
 }
 
 const MESSAGE_PREVIEW: Record<string, string> = {
-  IMAGE: "📷 Te mandó una foto",
-  FILE: "📎 Te mandó un archivo",
-  LOCATION: "📍 Te mandó una ubicación",
-  BUDGET: "💵 Te mandó un presupuesto",
+  IMAGE: "Te mandó una foto",
+  FILE: "Te mandó un archivo",
+  LOCATION: "Te mandó una ubicación",
+  BUDGET: "Te mandó un presupuesto",
 };
 
 /**
@@ -135,7 +135,7 @@ export async function notifyChatMessage(msg: {
     });
     if (unread !== 1) return;
     await notify(recipient, {
-      title: `💬 ${msg.senderName.trim().split(/\s+/)[0]}`,
+      title: `${msg.senderName.trim().split(/\s+/)[0]}`,
       body: MESSAGE_PREVIEW[msg.type] ?? msg.content.slice(0, 140),
       url: `/chat/${msg.conversationId}`,
     });

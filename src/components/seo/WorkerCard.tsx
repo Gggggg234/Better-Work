@@ -32,7 +32,7 @@ export function WorkerCard({ worker: w }: { worker: PublicWorker }) {
               {w.jobsDone} {w.jobsDone === 1 ? "trabajo" : "trabajos"}
             </>
           ) : (
-            "Nuevo en Better Work"
+            "Nuevo en Manobra"
           )}
         </p>
         {w.priceHint && <p className="text-xs text-muted mt-1">{w.priceHint}</p>}

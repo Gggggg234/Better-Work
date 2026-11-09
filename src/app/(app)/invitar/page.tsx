@@ -37,14 +37,14 @@ export default async function InvitePage() {
   const reward = escrow
     ? `${REWARD_FREE_JOBS} trabajos ${isWorker ? "sin comisión" : "sin tarifa de servicio"}`
     : isWorker
-      ? `${REWARD_PRO_DAYS} días de Better Work Pro`
+      ? `${REWARD_PRO_DAYS} días de Manobra Pro`
       : null;
 
   const message = isWorker
     ? escrow
-      ? "Sumate a Better Work: te llegan pedidos de clientes de tu zona. Con mi link tu primer trabajo va sin comisión:"
-      : `Sumate a Better Work: te llegan pedidos de clientes de tu zona y pasás tus propios presupuestos. Con mi link arrancás con ${WELCOME_PRO_DAYS} días de Pro gratis:`
-    : "Probá Better Work para encontrar profesionales de confianza cerca tuyo, con presupuesto y calificaciones reales:";
+      ? "Sumate a Manobra: te llegan pedidos de clientes de tu zona. Con mi link tu primer trabajo va sin comisión:"
+      : `Sumate a Manobra: te llegan pedidos de clientes de tu zona y pasás tus propios presupuestos. Con mi link arrancás con ${WELCOME_PRO_DAYS} días de Pro gratis:`
+    : "Probá Manobra para encontrar profesionales de confianza cerca tuyo, con presupuesto y calificaciones reales:";
 
   const proUntil = me.workerProfile?.proUntil;
 
@@ -52,18 +52,18 @@ export default async function InvitePage() {
     <main className="max-w-lg mx-auto w-full px-4 py-6 space-y-6 animate-fade-up">
       <div>
         <BackButton fallback="/app" />
-        <h1 className="text-2xl font-bold">{reward ? "Invitá y ganá" : "Recomendá Better Work"}</h1>
+        <h1 className="text-2xl font-bold">{reward ? "Invitá y ganá" : "Recomendá Manobra"}</h1>
         <p className="text-sm text-muted mt-1">
           {reward
             ? `Por cada persona que invites y complete su primer trabajo, ganás ${reward}.`
-            : "Compartí Better Work con quien necesite un profesional de confianza."}
+            : "Compartí Manobra con quien necesite un profesional de confianza."}
         </p>
       </div>
 
       {escrow && me.freeJobs > 0 && (
         <div className="card p-4 bg-fg text-bg !border-fg">
           <p className="text-sm font-semibold">
-            🎁 Tenés {me.freeJobs} {me.freeJobs === 1 ? "trabajo bonificado" : "trabajos bonificados"}
+            Tenés {me.freeJobs} {me.freeJobs === 1 ? "trabajo bonificado" : "trabajos bonificados"}
           </p>
           <p className="text-xs text-bg/70 mt-0.5">
             {isWorker
@@ -74,7 +74,7 @@ export default async function InvitePage() {
       )}
       {!escrow && isWorker && isPro(proUntil) && (
         <Link href="/pro" className="card p-4 bg-fg text-bg !border-fg block">
-          <p className="text-sm font-semibold">⭐ Sos Pro hasta el {formatDate(proUntil!)}</p>
+          <p className="text-sm font-semibold">Sos Pro hasta el {formatDate(proUntil!)}</p>
           <p className="text-xs text-bg/70 mt-0.5">Cada invitado que complete un trabajo te suma {REWARD_PRO_DAYS} días más.</p>
         </Link>
       )}
@@ -108,7 +108,7 @@ export default async function InvitePage() {
                 : "Compartí tu link con profesionales o con gente que necesite contratar.",
               escrow
                 ? `Quien se suma con tu link tiene ${WELCOME_FREE_JOBS === 1 ? "su primer trabajo" : `sus primeros ${WELCOME_FREE_JOBS} trabajos`} sin comisión (si es profesional) o sin tarifa de servicio (si contrata).`
-                : `Si es profesional, arranca con ${WELCOME_PRO_DAYS} días de Better Work Pro gratis.`,
+                : `Si es profesional, arranca con ${WELCOME_PRO_DAYS} días de Manobra Pro gratis.`,
               `Cuando completa su primer trabajo, vos ganás ${reward}.`,
             ].map((step, i) => (
               <li key={step} className="flex gap-2.5">

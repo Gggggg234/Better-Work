@@ -40,7 +40,7 @@ export type AiSuggestion = {
 
 export type AiResult = { ok: true; suggestion: AiSuggestion } | { ok: false; error: string };
 
-const SYSTEM = `Sos el asistente de Better Work, una app argentina para contratar oficios (plomeros, electricistas, albañiles, etc.).
+const SYSTEM = `Sos el asistente de Manobra, una app argentina para contratar oficios (plomeros, electricistas, albañiles, etc.).
 Un cliente te manda fotos de un problema o trabajo que necesita hacer, y a veces un texto. Tu tarea es ayudarlo a armar un pedido claro para que los profesionales le pasen presupuesto.
 
 Devolvé:

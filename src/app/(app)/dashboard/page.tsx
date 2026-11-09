@@ -26,7 +26,7 @@ export default async function DashboardPage() {
     <main className="max-w-lg mx-auto w-full px-4 py-6">
       <BackButton fallback="/app" />
       <h1 className="text-2xl font-bold">Mi rendimiento</h1>
-      <p className="text-sm text-muted mt-1">Cómo viene tu actividad en Better Work.</p>
+      <p className="text-sm text-muted mt-1">Cómo viene tu actividad en Manobra.</p>
 
       {/* Rango */}
       <div className="card p-5 mt-5">
@@ -91,7 +91,7 @@ export default async function DashboardPage() {
 
       <Link href="/ads" className="card p-4 flex items-center justify-between hover:bg-surface-2 transition mt-3">
         <div>
-          <p className="text-sm font-medium">📣 Conseguí más trabajo</p>
+          <p className="text-sm font-medium">Conseguí más trabajo</p>
           <p className="text-xs text-muted">Promocioná tu perfil y medí los resultados.</p>
         </div>
         <span className="text-faint">→</span>

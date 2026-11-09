@@ -34,7 +34,7 @@ function Bubble({ m, mine }: { m: Msg; mine: boolean }) {
         )}
         {m.type === "FILE" && meta.url && (
           <a href={meta.url} target="_blank" rel="noreferrer" className="underline font-medium">
-            📎 {meta.filename || "Archivo adjunto"}
+            {meta.filename || "Archivo adjunto"}
           </a>
         )}
         {m.type === "LOCATION" && (
@@ -44,7 +44,7 @@ function Bubble({ m, mine }: { m: Msg; mine: boolean }) {
             rel="noreferrer"
             className="underline font-medium"
           >
-            📍 Ubicación compartida
+            Ubicación compartida
           </a>
         )}
         {m.type === "BUDGET" && (
@@ -162,10 +162,10 @@ export function ChatThread({ conversationId, meId }: { conversationId: string; m
 
       {menu && (
         <div className="px-4 pb-2 flex gap-2 flex-wrap animate-fade-up">
-          <button onClick={sendImage} className="chip">🖼 Foto</button>
-          <button onClick={sendLocation} className="chip">📍 Ubicación</button>
-          <button onClick={sendFile} className="chip">📎 Archivo</button>
-          <button onClick={sendBudget} className="chip">💰 Presupuesto</button>
+          <button onClick={sendImage} className="chip">Foto</button>
+          <button onClick={sendLocation} className="chip">Ubicación</button>
+          <button onClick={sendFile} className="chip">Archivo</button>
+          <button onClick={sendBudget} className="chip">Presupuesto</button>
         </div>
       )}
 

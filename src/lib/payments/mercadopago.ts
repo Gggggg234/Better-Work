@@ -21,7 +21,7 @@ import { siteUrl } from "@/lib/mail";
  *
  * Nota sobre "retención real": Mercado Pago no expone un escrow nativo para
  * terceros en la API estándar. Hasta habilitar split payments / marketplace,
- * el dinero entra a la cuenta de Better Work y la transferencia al trabajador
+ * el dinero entra a la cuenta de Manobra y la transferencia al trabajador
  * se hace desde ahí (igual que el modelo antiguo documentado). La máquina de
  * estados ya contempla HELD → RELEASED, así que activar el split es cambiar
  * sólo este archivo.
@@ -257,7 +257,7 @@ export async function createOneTimePreference(input: {
       },
       auto_return: "approved",
       notification_url: input.notificationUrl,
-      statement_descriptor: "BETTER WORK",
+      statement_descriptor: "MANOBRA",
     }),
   });
   const url = (isSandbox() ? pref.sandbox_init_point : pref.init_point) ?? pref.init_point;

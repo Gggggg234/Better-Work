@@ -174,7 +174,7 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
         <>
           {onSale.length > 0 && (
             <section>
-              <SectionTitle title="🔥 Ofertas" href={href({ oferta: "1" })} linkLabel="Ver todas" />
+              <SectionTitle title="Ofertas" href={href({ oferta: "1" })} linkLabel="Ver todas" />
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {onSale.map((p) => <ProductCard key={p.id} p={p} />)}
               </div>
@@ -239,7 +239,7 @@ function EmptyCatalog() {
         Estamos sumando corralones, ferreterías y casas de sanitarios. ¿Tenés un comercio? Vendé tus productos a
         profesionales y clientes de tu zona.
       </p>
-      <Link href="/register?rol=proveedor" className="btn-primary mt-4 inline-flex">Quiero vender en Better Work</Link>
+      <Link href="/register?rol=proveedor" className="btn-primary mt-4 inline-flex">Quiero vender en Manobra</Link>
     </div>
   );
 }

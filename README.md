@@ -1,4 +1,4 @@
-# Better Work
+# Manobra
 
 Plataforma que conecta personas que necesitan un servicio con trabajadores y empresas. Experiencia inspirada en Uber: simple, rápida y clara. Funciona como **PWA instalable** y como app web, con una sola base de código.
 
@@ -37,7 +37,7 @@ El esquema ya está aplicado en Supabase. Si arrancás una base nueva:
 La app usa **PostgreSQL (Supabase)** y **Supabase Storage** para las imágenes.
 
 ### Ya está hecho
-- Proyecto Supabase **Better Work** (`oulwejxaorrosqlexnnz`, región `sa-east-1`) con el
+- Proyecto Supabase **Manobra** (`oulwejxaorrosqlexnnz`, región `sa-east-1`) con el
   esquema completo aplicado (20 tablas + índices + claves foráneas).
 - **RLS activo sin políticas** en todas las tablas: la API pública de Supabase no expone
   datos. La app se conecta por Postgres directo (Prisma), que no pasa por RLS.
@@ -86,7 +86,7 @@ impacta el cobro. El usuario vuelve por `/api/pagos/retorno`. Todo es idempotent
 4. El `notification_url` se manda en cada preferencia, así que no hace falta configurar
    el webhook a mano. Necesita que la app esté publicada (MP no llega a `localhost`).
 
-**Limitación conocida (v1):** el dinero entra a la cuenta de Mercado Pago de Better Work.
+**Limitación conocida (v1):** el dinero entra a la cuenta de Mercado Pago de Manobra.
 MP no expone una API para transferir a terceros, así que **la transferencia al trabajador
 es manual**: al finalizar un trabajo, el pago pasa a `RELEASED` y aparece en
 *Admin → Ingresos → Transferencias a trabajadores*, con el alias/CVU de cada uno.
@@ -100,7 +100,7 @@ cuenta MP de cada trabajador), que reparte el dinero en el momento del cobro.
 - **Búsqueda**: por texto, categoría, ciudad; filtros de calificación, distancia, experiencia, verificados; orden por rating/distancia/trabajos/experiencia. Patrocinados aparecen primero.
 - **Perfil del trabajador**: foto (o avatar de iniciales), profesión, experiencia, servicios, galería, zona+radio, horarios, métodos de cobro, alias MP, WhatsApp, precios orientativos, rango, reseñas y mapa.
 - **Flujo del trabajo (estilo Uber)**: Solicitud → Aceptada → En camino → Trabajando → Finalizado. Al aceptar se generan **código de inicio** y **código de finalización** de 4 dígitos: el cliente los comparte en persona y el trabajador los ingresa. El código final libera el pago, habilita calificaciones y actualiza el historial.
-- **Pagos**: “por Better Work” (retiene comisión configurable, demo sin gateway real) o directo (efectivo/transferencia/MP del trabajador).
+- **Pagos**: “por Manobra” (retiene comisión configurable, demo sin gateway real) o directo (efectivo/transferencia/MP del trabajador).
 - **Chat interno**: texto, fotos (URL), ubicación, archivos y presupuestos; polling cada 3 s; no leídos.
 - **Reputación**: calificación mutua 1–5 + puntualidad/calidad/comunicación/cumplimiento; promedio en perfiles.
 - **Rangos**: Principiante → Bronce → Plata → Oro → Platino → Diamante → Elite (trabajos + rating − cancelaciones), con barra de progreso.

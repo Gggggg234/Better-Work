@@ -1,7 +1,7 @@
 /**
  * Contrato del sistema de pagos (desacoplado del proveedor).
  *
- * Better Work actúa como intermediario: el cliente paga, el dinero queda
+ * Manobra actúa como intermediario: el cliente paga, el dinero queda
  * RETENIDO y sólo se libera al trabajador cuando se confirma el código de
  * finalización. Ese ciclo de vida es independiente del proveedor.
  *
@@ -17,7 +17,7 @@ export const PAY_PREFERENCE_OPTIONS = ["Efectivo", "Transferencia", "Mercado Pag
 /** Estados del dinero retenido (escrow). */
 export type EscrowStatus =
   | "PENDING" //  el cobro se inició, esperando confirmación del proveedor
-  | "HELD" //     el dinero está retenido por Better Work
+  | "HELD" //     el dinero está retenido por Manobra
   | "RELEASED" // liberado al trabajador (tras el código de finalización)
   | "REFUNDED"; //devuelto al cliente (cancelación)
 

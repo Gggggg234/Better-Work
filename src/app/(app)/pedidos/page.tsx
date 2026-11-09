@@ -14,7 +14,7 @@ const ERRORS: Record<string, string> = {
 function UrgentBadge() {
   return (
     <span className="inline-block rounded-full bg-fg text-bg px-1.5 py-px text-[10px] font-semibold mr-1.5 align-middle">
-      🚨 Urgente
+      Urgente
     </span>
   );
 }
@@ -25,8 +25,8 @@ export default async function OpenRequestsPage({ searchParams }: { searchParams:
   const sp = await searchParams;
 
   const error = sp.error && ERRORS[sp.error] && (
-    <div className="card p-4 mt-5 border-red-300" role="alert">
-      <p className="text-sm text-red-600">⚠ {ERRORS[sp.error]}</p>
+    <div className="card p-4 mt-5 border-danger/30" role="alert">
+      <p className="text-sm text-danger">⚠ {ERRORS[sp.error]}</p>
     </div>
   );
 
@@ -144,7 +144,7 @@ export default async function OpenRequestsPage({ searchParams }: { searchParams:
                 {r.title}
               </p>
               <p className="text-xs text-muted">
-                {r.category.icon} {r.category.name} · {timeAgo(r.createdAt)}
+                <span className="grayscale">{r.category.icon}</span> {r.category.name} · {timeAgo(r.createdAt)}
               </p>
             </div>
             <div className="text-right shrink-0">
@@ -157,7 +157,7 @@ export default async function OpenRequestsPage({ searchParams }: { searchParams:
         ))}
         {mine.length === 0 && (
           <div className="card p-6 text-center">
-            <p className="text-2xl">📣</p>
+            <p className="text-2xl"><span className="grayscale">📣</span></p>
             <p className="font-semibold mt-2">Pedí presupuestos a varios</p>
             <p className="text-sm text-muted mt-1">
               Contá qué necesitás y los profesionales de tu zona te cotizan. Comparás y elegís. Es gratis.

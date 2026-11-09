@@ -5,7 +5,7 @@ import { formatMoney, formatDateTime } from "@/lib/format";
 
 const KIND_LABEL: Record<string, string> = {
   COMPANY_PLAN: "Plan de empresa",
-  WORKER_PRO: "Better Work Pro",
+  WORKER_PRO: "Manobra Pro",
   CAMPAIGN: "Campaña de publicidad",
 };
 
@@ -56,7 +56,7 @@ export default async function AdminRevenuePage() {
       <div>
         <h1 className="text-xl font-bold">Ingresos</h1>
         <p className="text-sm text-muted mt-0.5">
-          Better Work Pro, membresías de empresa, publicidad y, con pago protegido, la comisión de los trabajos.
+          Manobra Pro, membresías de empresa, publicidad y, con pago protegido, la comisión de los trabajos.
         </p>
       </div>
 
@@ -67,7 +67,7 @@ export default async function AdminRevenuePage() {
         </div>
         <div className="card p-4">
           <p className="text-lg font-bold">{formatMoney(proIncome)}</p>
-          <p className="text-xs text-faint">Better Work Pro ({activePros} activos)</p>
+          <p className="text-xs text-faint">Manobra Pro ({activePros} activos)</p>
         </div>
         {commissionIncome > 0 && (
           <div className="card p-4">

@@ -143,7 +143,7 @@ export default async function AppHome() {
           {user?.role === "WORKER" ? "Tu día de trabajo" : "Inicio"}
         </p>
         <h1 className="text-[26px] leading-tight font-extrabold tracking-tight truncate">
-          Hola{firstName ? `, ${firstName}` : ""} 👋
+          Hola{firstName ? `, ${firstName}` : ""}
         </h1>
         <p className="text-sm text-muted mt-0.5">
           {user?.role === "WORKER"
@@ -214,7 +214,7 @@ export default async function AppHome() {
                 icon={Sparkles}
                 tone="accent"
                 highlight={!workerPro}
-                title={workerPro ? `Sos Pro hasta el ${formatDate(user.workerProfile!.proUntil!)}` : "Pasate a Better Work Pro"}
+                title={workerPro ? `Sos Pro hasta el ${formatDate(user.workerProfile!.proUntil!)}` : "Pasate a Manobra Pro"}
                 desc={workerPro ? "Aparecés más arriba y mandás presupuestos sin límite." : "Aparecé más arriba y mandá presupuestos sin límite."}
               />
               <ActionRow href="/dashboard" icon={BarChart3} title="Mi rendimiento" desc="Calificación, rango, visitas y evolución." />
@@ -300,7 +300,7 @@ export default async function AppHome() {
 
           {/* Más secciones (salieron del menú inferior para que sea más simple) */}
           <div>
-            <SectionTitle title="Más en Better Work" />
+            <SectionTitle title="Más en Manobra" />
             <div className="flex flex-wrap gap-2">
               <Link href="/feed" className="chip"><Users className="w-4 h-4" aria-hidden /> Comunidad</Link>
               {user?.role === "WORKER" && (

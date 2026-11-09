@@ -85,7 +85,7 @@ export default async function WorkerProfilePage({ params }: { params: Promise<{ 
               <span className="text-faint">({profile.ratingCount} reseñas)</span>
             </span>
           ) : (
-            <span className="badge badge-accent">Nuevo en Better Work</span>
+            <span className="badge badge-accent">Nuevo en Manobra</span>
           )}
           {(profile.zone || profile.city) && (
             <span className="inline-flex items-center gap-1 text-muted">

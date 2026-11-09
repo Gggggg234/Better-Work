@@ -163,7 +163,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               href={withParams({ category: c.slug })}
               className={`chip shadow-soft ${sp.category === c.slug ? "chip-active" : ""}`}
             >
-              <span aria-hidden>{c.icon}</span> {c.name}
+              <span aria-hidden><span className="grayscale">{c.icon}</span></span> {c.name}
             </Link>
           ))}
         </div>

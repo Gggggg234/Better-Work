@@ -157,11 +157,11 @@ export default async function AdminPaymentsPage() {
         </p>
       )}
 
-      {/* ── Suscripciones Better Work Pro ── */}
+      {/* ── Suscripciones Manobra Pro ── */}
       {proReqs.length > 0 && (
         <section>
           <h2 className="font-semibold mb-3">
-            Better Work Pro{" "}
+            Manobra Pro{" "}
             <span className="rounded-full bg-fg text-bg px-2 py-0.5 text-xs">{proReqs.length}</span>
           </h2>
           <div className="space-y-3">

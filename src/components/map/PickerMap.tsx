@@ -27,7 +27,7 @@ function useIsDark() {
 }
 
 const pinIcon = L.divIcon({
-  html: `<div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9999px;background:#000;color:#fff;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,.3);">📍</div>`,
+  html: `<div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9999px;background:#000;color:#fff;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,.3);"><span style="filter:grayscale(1)">📍</span></div>`,
   className: "",
   iconSize: [34, 34],
   iconAnchor: [17, 17],
@@ -110,7 +110,7 @@ export default function PickerMap({
         title="Usar mi ubicación"
         className="absolute bottom-3 right-3 z-[600] w-10 h-10 rounded-full bg-surface border border-line shadow-lg flex items-center justify-center hover:bg-surface-2 transition"
       >
-        📍
+
       </button>
     </div>
   );

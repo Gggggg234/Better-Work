@@ -58,7 +58,7 @@ export function ProductForm({
               <button
                 type="button"
                 onClick={() => setKept((k) => k.filter((x) => x !== u))}
-                className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-danger text-white flex items-center justify-center"
+                className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-fg text-bg flex items-center justify-center"
                 aria-label="Quitar foto"
               >
                 <X className="w-3.5 h-3.5" />

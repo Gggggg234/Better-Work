@@ -54,7 +54,7 @@ export default async function TradePage({ params }: Props) {
       description: copy.intro,
       url,
       areaServed: { "@type": "Country", name: "Argentina" },
-      provider: { "@type": "Organization", name: "Better Work", url: origin },
+      provider: { "@type": "Organization", name: "Manobra", url: origin },
     },
     {
       "@context": "https://schema.org",
@@ -73,7 +73,7 @@ export default async function TradePage({ params }: Props) {
 
       <section>
         <Breadcrumbs items={[{ href: "/servicios", label: "Servicios" }, { label: category.name }]} />
-        <p className="text-4xl mt-6" aria-hidden>{category.icon}</p>
+        <p className="text-4xl mt-6" aria-hidden><span className="grayscale">{category.icon}</span></p>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mt-2">{capitalize(copy.plural)} cerca tuyo</h1>
         <p className="text-muted mt-3 max-w-xl">{copy.intro}</p>
         <div className="flex flex-wrap gap-2 mt-6">
@@ -87,7 +87,7 @@ export default async function TradePage({ params }: Props) {
       {/* Profesionales listados */}
       <section>
         <h2 className="text-lg font-bold">
-          {workers.length > 0 ? `${capitalize(copy.plural)} en Better Work` : `Sumando ${copy.plural}`}
+          {workers.length > 0 ? `${capitalize(copy.plural)} en Manobra` : `Sumando ${copy.plural}`}
         </h2>
         {workers.length > 0 ? (
           <div className="space-y-2.5 mt-4">
@@ -148,7 +148,7 @@ export default async function TradePage({ params }: Props) {
                 href={`/servicios/${c.slug}`}
                 className="rounded-full border border-line px-3.5 py-1.5 text-sm hover:border-fg transition"
               >
-                {c.icon} {c.name}
+                <span className="grayscale">{c.icon}</span> {c.name}
               </Link>
             ))}
           </div>

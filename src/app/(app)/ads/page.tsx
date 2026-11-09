@@ -90,7 +90,7 @@ export default async function AdsDashboardPage({ searchParams }: { searchParams:
 
       {campaigns.length === 0 ? (
         <div className="card p-8 text-center mt-4">
-          <p className="text-2xl">📣</p>
+          <p className="text-2xl"><span className="grayscale">📣</span></p>
           <p className="font-semibold mt-2">Todavía no hiciste publicidad</p>
           <p className="text-sm text-muted mt-1">
             Con una campaña aparecés antes en los listados y el mapa, con insignia de patrocinado.
@@ -245,7 +245,7 @@ function CampaignCard({
         </p>
         {cancellable && (
           <form action={cancelCampaign.bind(null, c.id)}>
-            <button className="btn-ghost !py-1 !px-2 !text-[11px] text-red-600">Cancelar</button>
+            <button className="btn-ghost !py-1 !px-2 !text-[11px] text-danger">Cancelar</button>
           </form>
         )}
       </div>

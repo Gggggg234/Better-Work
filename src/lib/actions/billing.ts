@@ -10,7 +10,7 @@ import { startSubscription, startCheckout, cancelSubscriptionFor } from "@/lib/b
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** El email de la cuenta de Mercado Pago con la que va a pagar (puede no ser el de Better Work). */
+/** El email de la cuenta de Mercado Pago con la que va a pagar (puede no ser el de Manobra). */
 function payerEmail(formData: FormData, fallback: string): string | null {
   const v = String(formData.get("payerEmail") ?? "").trim().toLowerCase() || fallback;
   return EMAIL.test(v) ? v : null;
@@ -32,7 +32,7 @@ async function go(start: () => Promise<string>, errorPath: string): Promise<neve
   redirect(url);
 }
 
-// ── Better Work Pro ──
+// ── Manobra Pro ──
 
 export async function subscribePro(formData: FormData): Promise<void> {
   const user = await requireRole("WORKER");
@@ -46,7 +46,7 @@ export async function subscribePro(formData: FormData): Promise<void> {
         kind: "PRO",
         amount: price,
         payerEmail: email,
-        reason: "Better Work Pro (mensual)",
+        reason: "Manobra Pro (mensual)",
         returnPath: "/pro",
       }),
     "/pro"
@@ -64,7 +64,7 @@ export async function payProOnce(): Promise<void> {
         kind: "PRO",
         amount: price,
         days: 30,
-        title: "Better Work Pro · 30 días",
+        title: "Manobra Pro · 30 días",
         returnPath: "/pro",
       }),
     "/pro"
@@ -93,7 +93,7 @@ export async function subscribePlan(formData: FormData): Promise<void> {
         planKey: plan.key,
         amount: plan.price,
         payerEmail: email,
-        reason: `Better Work · Plan ${plan.name} (mensual)`,
+        reason: `Manobra · Plan ${plan.name} (mensual)`,
         returnPath: "/company/plan",
       }),
     "/company/plan"
@@ -113,7 +113,7 @@ export async function payPlanOnce(formData: FormData): Promise<void> {
         refKey: plan.key,
         amount: plan.price,
         days: 30,
-        title: `Better Work · Plan ${plan.name} · 30 días`,
+        title: `Manobra · Plan ${plan.name} · 30 días`,
         returnPath: "/company/plan",
       }),
     "/company/plan"
@@ -135,7 +135,7 @@ export async function topUpWithMp(formData: FormData): Promise<void> {
         kind: "WALLET",
         amount,
         days: 0,
-        title: "Better Work · Saldo de publicidad",
+        title: "Manobra · Saldo de publicidad",
         returnPath: "/ads/wallet",
       }),
     "/ads/wallet"

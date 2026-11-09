@@ -49,7 +49,7 @@ export default async function AdminSettingsPage() {
           {
             value: "direct",
             title: "Pago directo",
-            desc: "Cliente y profesional arreglan entre ellos (efectivo o transferencia). Better Work no cobra por trabajo: gana con Pro, membresías y publicidad.",
+            desc: "Cliente y profesional arreglan entre ellos (efectivo o transferencia). Manobra no cobra por trabajo: gana con Pro, membresías y publicidad.",
           },
           {
             value: "escrow",
@@ -69,7 +69,7 @@ export default async function AdminSettingsPage() {
           </label>
         ))}
         {mode === "escrow" && !mpReady && (
-          <p className="text-xs text-red-600">
+          <p className="text-xs text-danger">
             ⚠ El pago protegido está elegido pero falta MP_ACCESS_TOKEN: en producción se sigue usando el pago directo
             hasta que cargues la credencial de Mercado Pago.
           </p>
@@ -77,10 +77,10 @@ export default async function AdminSettingsPage() {
         <button className="btn-primary">Guardar</button>
       </form>
 
-      {/* Better Work Pro */}
+      {/* Manobra Pro */}
       <form action={saveProSettings} className="card p-5 space-y-4">
         <div>
-          <h2 className="font-semibold text-sm">Better Work Pro</h2>
+          <h2 className="font-semibold text-sm">Manobra Pro</h2>
           <p className="text-xs text-muted mt-0.5">
             Suscripción mensual de los profesionales. Se paga por transferencia y se aprueba desde{" "}
             <strong>Pagos</strong>. Los cambios aplican a las solicitudes nuevas.
@@ -146,7 +146,7 @@ export default async function AdminSettingsPage() {
       {/* Datos de transferencia para las membresías */}
       <form action={saveTransferInfo} className="card p-5 space-y-4">
         <div>
-          <h2 className="font-semibold text-sm">Datos de transferencia de Better Work</h2>
+          <h2 className="font-semibold text-sm">Datos de transferencia de Manobra</h2>
           <p className="text-xs text-muted mt-0.5">
             Se muestran cuando un profesional activa Pro o una empresa elige un plan. El pago es por transferencia y
             se aprueba a mano desde <strong>Pagos</strong>.
@@ -161,7 +161,7 @@ export default async function AdminSettingsPage() {
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <label className="label">Titular de la cuenta</label>
-            <input name="transfer_holder" defaultValue={transfer.holder} placeholder="Better Work" className="input" />
+            <input name="transfer_holder" defaultValue={transfer.holder} placeholder="Manobra" className="input" />
           </div>
           <div>
             <label className="label">Banco (opcional)</label>
@@ -249,7 +249,7 @@ export default async function AdminSettingsPage() {
       <div className="card p-4 text-xs text-muted space-y-1">
         <p className="font-medium text-fg">Nota técnica</p>
         <p>
-          Ingresos de Better Work: Better Work Pro (<code>lib/pro.ts</code>), membresías de empresa
+          Ingresos de Manobra: Manobra Pro (<code>lib/pro.ts</code>), membresías de empresa
           (<code>lib/plans.ts</code>) y campañas de publicidad (<code>lib/ads.ts</code>), todo por transferencia con
           comprobante. Con pago protegido se suman la comisión y la tarifa de cada trabajo (<code>lib/payments/</code>),
           que sólo corre con <code>MP_ACCESS_TOKEN</code>.

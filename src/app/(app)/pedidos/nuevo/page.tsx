@@ -42,8 +42,8 @@ export default async function NewOpenRequestPage({
       </p>
 
       {sp.error && ERRORS[sp.error] && (
-        <div className="card p-4 mt-5 border-red-300" role="alert">
-          <p className="text-sm text-red-600">⚠ {ERRORS[sp.error]}</p>
+        <div className="card p-4 mt-5 border-danger/30" role="alert">
+          <p className="text-sm text-danger">⚠ {ERRORS[sp.error]}</p>
         </div>
       )}
 

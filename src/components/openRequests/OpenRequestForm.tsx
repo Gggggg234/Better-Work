@@ -104,28 +104,28 @@ export function OpenRequestForm({
             {analyzing && (
               <span aria-hidden className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
             )}
-            {analyzing ? "Analizando las fotos…" : ai?.ok ? "✨ Volver a analizar" : "✨ Completar el pedido con IA"}
+            {analyzing ? "Analizando las fotos…" : ai?.ok ? "Volver a analizar" : "Completar el pedido con IA"}
           </button>
         )}
       </div>
 
       {/* Resultado del análisis */}
       {ai && !ai.ok && (
-        <div className="card p-4 border-red-300" role="alert">
-          <p className="text-sm text-red-600">⚠ {ai.error}</p>
+        <div className="card p-4 border-danger/30" role="alert">
+          <p className="text-sm text-danger">⚠ {ai.error}</p>
         </div>
       )}
       {ai?.ok && (
         <div className="card p-4 space-y-3" aria-live="polite">
           {ai.safetyWarning && (
-            <div className="rounded-xl border border-red-300 p-3" role="alert">
-              <p className="text-sm font-semibold text-red-600">⚠ Antes que nada</p>
-              <p className="text-sm text-red-600 mt-0.5">{ai.safetyWarning}</p>
+            <div className="rounded-xl border border-danger/30 p-3" role="alert">
+              <p className="text-sm font-semibold text-danger">⚠ Antes que nada</p>
+              <p className="text-sm text-danger mt-0.5">{ai.safetyWarning}</p>
             </div>
           )}
 
           <div>
-            <p className="text-sm font-semibold">✨ Armamos tu pedido</p>
+            <p className="text-sm font-semibold">Armamos tu pedido</p>
             <p className="text-xs text-muted mt-0.5">
               {ai.categoryName
                 ? `Parece un trabajo de ${ai.categoryName.toLowerCase()}. `
@@ -156,7 +156,7 @@ export function OpenRequestForm({
 
           {ai.price && (
             <div className="rounded-xl bg-surface-2 p-3">
-              <p className="text-xs text-muted">Precios habituales de {ai.categoryName?.toLowerCase()} en Better Work</p>
+              <p className="text-xs text-muted">Precios habituales de {ai.categoryName?.toLowerCase()} en Manobra</p>
               <p className="text-sm font-semibold mt-0.5">
                 {formatMoney(ai.price.low)} – {formatMoney(ai.price.high)}
               </p>
@@ -181,7 +181,7 @@ export function OpenRequestForm({
         >
           <option value="" disabled>Elegí un oficio</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+            <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
       </div>
@@ -222,7 +222,7 @@ export function OpenRequestForm({
           className="mt-0.5 w-4 h-4 accent-current shrink-0"
         />
         <span>
-          <span className="block text-sm font-semibold">🚨 Lo necesito YA</span>
+          <span className="block text-sm font-semibold">Lo necesito YA</span>
           <span className="block text-xs text-muted mt-0.5">
             Los profesionales lo ven primero y destacado. Se suma un {urgencyPct}% al presupuesto que elijas, que va
             íntegro al profesional. El pedido queda abierto 24 horas.
@@ -254,7 +254,7 @@ export function OpenRequestForm({
       <div>
         <label className="label" htmlFor="address">Dirección exacta</label>
         <input id="address" name="address" required maxLength={200} className="input" placeholder="Calle y número" />
-        <p className="text-xs text-faint mt-1">🔒 Sólo la ve el profesional que elijas.</p>
+        <p className="text-xs text-faint mt-1">Sólo la ve el profesional que elijas.</p>
       </div>
 
       <div>

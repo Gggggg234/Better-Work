@@ -124,8 +124,8 @@ export default async function OpenRequestPage({
         </div>
       )}
       {sp.error && ERRORS[sp.error] && (
-        <div className="card p-4 border-red-300" role="alert">
-          <p className="text-sm text-red-600">⚠ {ERRORS[sp.error]}</p>
+        <div className="card p-4 border-danger/30" role="alert">
+          <p className="text-sm text-danger">⚠ {ERRORS[sp.error]}</p>
         </div>
       )}
 
@@ -133,10 +133,10 @@ export default async function OpenRequestPage({
       <div>
         <div className="flex items-center gap-2 flex-wrap mb-1.5">
           {req.urgent && (
-            <span className="rounded-full bg-fg text-bg px-2.5 py-0.5 text-[11px] font-semibold">🚨 Urgente</span>
+            <span className="rounded-full bg-fg text-bg px-2.5 py-0.5 text-[11px] font-semibold">Urgente</span>
           )}
           <span className="rounded-full border border-line px-2.5 py-0.5 text-[11px] text-muted">
-            {req.category.icon} {req.category.name}
+            <span className="grayscale">{req.category.icon}</span> {req.category.name}
           </span>
           <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] text-muted">{requestStatusLabel(req)}</span>
         </div>
@@ -160,7 +160,7 @@ export default async function OpenRequestPage({
         {isOwner && (
           <div className="p-4 flex justify-between gap-3 text-sm">
             <span className="text-muted">Dirección</span>
-            <span className="font-medium text-right">{req.address} <span className="text-faint">🔒</span></span>
+            <span className="font-medium text-right">{req.address} <span className="text-faint"><span className="grayscale">🔒</span></span></span>
           </div>
         )}
         {req.scheduledFor && (
@@ -284,7 +284,7 @@ export default async function OpenRequestPage({
 
           {open && (
             <form action={cancelOpenRequest.bind(null, req.id)} className="text-center">
-              <button className="btn-ghost !text-sm text-red-600">Cerrar pedido sin elegir</button>
+              <button className="btn-ghost !text-sm text-danger">Cerrar pedido sin elegir</button>
             </form>
           )}
         </>
@@ -296,7 +296,7 @@ export default async function OpenRequestPage({
           {myBid?.status === "ACCEPTED" && req.jobId ? (
             <Link href={`/jobs/${req.jobId}`} className="card p-4 bg-fg text-bg flex items-center justify-between">
               <div>
-                <p className="font-semibold text-sm">🎉 ¡Te eligieron!</p>
+                <p className="font-semibold text-sm">¡Te eligieron!</p>
                 <p className="text-xs text-bg/70">
                   {escrow ? "Cuando el cliente pague, podés arrancar el trabajo." : "Coordiná con el cliente y arrancá el trabajo."}
                 </p>
@@ -320,7 +320,7 @@ export default async function OpenRequestPage({
                       : `Usaste tus ${quota.free} presupuestos gratis de este mes`}
                   </p>
                   <p className="text-xs text-muted mt-1">
-                    Con Better Work Pro mandás presupuestos sin límite y aparecés más arriba en las búsquedas.
+                    Con Manobra Pro mandás presupuestos sin límite y aparecés más arriba en las búsquedas.
                   </p>
                   <Link href="/pro" className="btn-primary !py-2.5 !text-sm mt-3 inline-flex">Pasate a Pro</Link>
                 </div>
@@ -343,7 +343,7 @@ export default async function OpenRequestPage({
               )}
               {myBid?.status === "PENDING" && (
                 <form action={withdrawBid.bind(null, req.id)} className="text-center">
-                  <button className="btn-ghost !text-sm text-red-600">Retirar mi presupuesto</button>
+                  <button className="btn-ghost !text-sm text-danger">Retirar mi presupuesto</button>
                 </form>
               )}
             </>

@@ -15,7 +15,7 @@ import { isPlanActive } from "@/lib/plans";
 import { getFeeConfig } from "@/lib/settings";
 
 /** Cliente crea una solicitud de trabajo para un trabajador, con fecha y
- *  horario propuestos. El pago se hace después, retenido por Better Work. */
+ *  horario propuestos. El pago se hace después, retenido por Manobra. */
 export async function requestJob(formData: FormData) {
   const user = await requireUser();
   const workerId = String(formData.get("workerId"));
@@ -66,7 +66,7 @@ export async function requestJob(formData: FormData) {
   });
   after(() =>
     notify(workerId, {
-      title: `${urgent ? "🚨 Urgente: n" : "N"}ueva solicitud de ${firstName(user.name)}`,
+      title: `${urgent ? "Urgente: n" : "N"}ueva solicitud de ${firstName(user.name)}`,
       body: job.title,
       url: `/jobs/${job.id}`,
     })
@@ -148,7 +148,7 @@ export async function setEnRoute(jobId: string) {
     if (job) {
       after(() =>
         notify(job.clientId, {
-          title: `🚗 ${firstName(user.name)} está en camino`,
+          title: `${firstName(user.name)} está en camino`,
           body: "Tené a mano el código de inicio para dárselo cuando llegue.",
           url: `/jobs/${jobId}`,
         })
@@ -205,7 +205,7 @@ export async function enterEndCode(jobId: string, formData: FormData): Promise<v
   await rewardInvitersForJob(job);
   after(() =>
     notify(job.clientId, {
-      title: "✅ Trabajo terminado",
+      title: "Trabajo terminado",
       body: `Contanos cómo te fue con ${firstName(user.name)}: tu calificación ayuda a otros.`,
       url: `/jobs/${jobId}`,
     })

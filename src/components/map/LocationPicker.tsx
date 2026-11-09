@@ -59,7 +59,7 @@ export function LocationPicker({
         {point ? (
           <>✓ Ubicación marcada. Tocá el mapa o arrastrá el pin para ajustarla.</>
         ) : (
-          <>Tocá el mapa para marcar dónde se hará el trabajo, o usá el botón 📍 para tu ubicación.</>
+          <>Tocá el mapa para marcar dónde se hará el trabajo, o usá el botón para tu ubicación.</>
         )}
       </p>
     </div>

@@ -37,14 +37,14 @@ export function BidForm({
         <p className="text-xs text-muted mt-0.5">
           El cliente compara los presupuestos y elige uno. Los demás profesionales no ven tu precio.{" "}
           {escrow
-            ? `Al terminar cobrás el presupuesto menos la comisión de Better Work (${commissionPct}%).`
-            : "Si te elige, te paga directo al terminar: Better Work no cobra comisión."}
+            ? `Al terminar cobrás el presupuesto menos la comisión de Manobra (${commissionPct}%).`
+            : "Si te elige, te paga directo al terminar: Manobra no cobra comisión."}
         </p>
       </div>
 
       {urgencyPct > 0 && (
         <div className="rounded-xl bg-fg text-bg p-3">
-          <p className="text-sm font-semibold">🚨 Pedido urgente</p>
+          <p className="text-sm font-semibold">Pedido urgente</p>
           <p className="text-xs text-bg/70 mt-0.5">
             Si te eligen, a tu presupuesto se le suma un {urgencyPct}% extra para vos.
           </p>

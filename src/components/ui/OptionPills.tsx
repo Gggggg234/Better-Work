@@ -42,7 +42,7 @@ export function OptionPills<T extends string | number>({
               : "border-line bg-surface text-muted hover:border-fg/40"
           }`}
         >
-          {o.icon ? `${o.icon} ` : ""}
+          {o.icon ? <span className="grayscale">{o.icon} </span> : null}
           {o.label}
         </button>
       ))}

@@ -49,7 +49,7 @@ export default async function CompanyDashboard({ searchParams }: { searchParams:
 
       {sp.ok === "plan" && (
         <div className="card p-4 border-fg bg-surface-2">
-          <p className="text-sm font-medium">✓ Plan activado. Ya podés publicar empleos y aparecer en Better Work.</p>
+          <p className="text-sm font-medium">✓ Plan activado. Ya podés publicar empleos y aparecer en Manobra.</p>
         </div>
       )}
 
@@ -89,7 +89,7 @@ export default async function CompanyDashboard({ searchParams }: { searchParams:
         <div className="card p-5 bg-fg text-bg">
           <p className="font-semibold">Activá un plan para usar las funciones empresariales</p>
           <p className="text-sm text-bg/70 mt-1">
-            Sin un plan activo tu empresa no aparece en Better Work, no podés publicar empleos ni contratar
+            Sin un plan activo tu empresa no aparece en Manobra, no podés publicar empleos ni contratar
             trabajadores. Tu cuenta queda guardada: se reactiva todo al activar el plan.
           </p>
           <Link href="/company/plan" className="btn-secondary w-full mt-4 !bg-bg !text-fg">Ver planes</Link>
@@ -127,7 +127,7 @@ export default async function CompanyDashboard({ searchParams }: { searchParams:
               <p className="text-xs text-muted mt-0.5">Aparecé primero en el mapa y los listados.</p>
             </Link>
             <Link href="/company/dashboard" className="card p-3.5 hover:bg-surface-2 transition">
-              <p className="text-sm font-medium">📊 Métricas</p>
+              <p className="text-sm font-medium">Métricas</p>
               <p className="text-xs text-muted mt-0.5">Postulaciones, contrataciones y visitas.</p>
             </Link>
           </div>

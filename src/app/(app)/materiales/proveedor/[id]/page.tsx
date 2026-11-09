@@ -67,7 +67,7 @@ export default async function SupplierStorePage({
                   {s.ratingCount === 1 ? "reseña" : "reseñas"}
                 </>
               ) : (
-                <span>Nuevo en Better Work</span>
+                <span>Nuevo en Manobra</span>
               )}
             </p>
             {place && (

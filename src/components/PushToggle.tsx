@@ -90,7 +90,7 @@ export function PushToggle({ publicKey, compact = false }: { publicKey: string; 
   return (
     <div className="card p-4 flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="font-semibold text-sm">🔔 {state === "on" ? "Notificaciones activadas" : "Activá las notificaciones"}</p>
+        <p className="font-semibold text-sm">{state === "on" ? "Notificaciones activadas" : "Activá las notificaciones"}</p>
         {text[state] && <p className="text-xs text-muted mt-0.5">{text[state]}</p>}
       </div>
       {(state === "off" || state === "busy") && (

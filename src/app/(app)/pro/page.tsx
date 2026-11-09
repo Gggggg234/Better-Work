@@ -58,13 +58,13 @@ export default async function ProPage({
     <main className="w-full animate-fade-up">
       <section className="relative overflow-hidden bg-hero text-white">
         <div className="absolute inset-0 bg-dots opacity-60" aria-hidden />
-        <div className="absolute -right-10 top-6 w-48 h-48 rounded-full bg-fuchsia-400/30 blur-3xl" aria-hidden />
+        <div className="absolute -right-10 top-6 w-48 h-48 rounded-full bg-white/10 blur-3xl" aria-hidden />
         <div className="relative max-w-lg mx-auto px-5 pt-4 pb-20">
           <div className="[&_*]:!text-white/80">
             <BackButton fallback="/app" />
           </div>
           <p className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold tracking-wide">
-            <Sparkles className="w-3.5 h-3.5" aria-hidden /> BETTER WORK PRO
+            <Sparkles className="w-3.5 h-3.5" aria-hidden /> MANOBRA PRO
           </p>
           <h1 className="text-[30px] leading-tight font-extrabold tracking-tight mt-3">
             {active ? "Sos Pro" : "Conseguí más trabajos"}

@@ -1,4 +1,4 @@
-/** Tono estable por nombre: cada persona tiene siempre su mismo color. */
+/** Valor estable por nombre: cada persona tiene siempre su mismo tono de gris. */
 export function avatarHue(name: string): number {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
@@ -54,7 +54,7 @@ export function Avatar({
         width: size,
         height: size,
         fontSize: size * 0.36,
-        background: `linear-gradient(135deg, hsl(${hue} 75% 58%), hsl(${(hue + 40) % 360} 70% 45%))`,
+        background: `linear-gradient(135deg, hsl(0 0% ${38 + (hue % 18)}%), hsl(0 0% ${14 + (hue % 14)}%))`,
       }}
       aria-label={name}
     >

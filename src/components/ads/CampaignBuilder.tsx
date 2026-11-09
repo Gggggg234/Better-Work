@@ -90,7 +90,7 @@ export function CampaignBuilder({
           </div>
         </div>
         {tooLow && (
-          <p className="text-xs text-red-600">El presupuesto mínimo es {formatMoney(rules.minBudget)}.</p>
+          <p className="text-xs text-danger">El presupuesto mínimo es {formatMoney(rules.minBudget)}.</p>
         )}
       </section>
 
@@ -126,7 +126,7 @@ export function CampaignBuilder({
                 objective === o.value ? "border-fg bg-fg text-bg" : "border-line bg-surface hover:border-fg/40"
               }`}
             >
-              <p className="text-sm font-medium">{o.icon} {o.label}</p>
+              <p className="text-sm font-medium"><span className="grayscale">{o.icon}</span> {o.label}</p>
               <p className={`text-xs mt-0.5 ${objective === o.value ? "text-bg/70" : "text-muted"}`}>{o.hint}</p>
             </button>
           ))}
@@ -146,7 +146,7 @@ export function CampaignBuilder({
                 reach === r.value ? "border-fg bg-fg text-bg" : "border-line bg-surface hover:border-fg/40"
               }`}
             >
-              <span className="block text-base">{r.icon}</span>
+              <span className="block text-base"><span className="grayscale">{r.icon}</span></span>
               <span className="text-xs font-medium">{r.label}</span>
             </button>
           ))}
@@ -181,8 +181,8 @@ export function CampaignBuilder({
       </section>
 
       {tooHigh && (
-        <div className="card p-3.5 border-red-300" role="alert">
-          <p className="text-sm text-red-600">
+        <div className="card p-3.5 border-danger/30" role="alert">
+          <p className="text-sm text-danger">
             ⚠ Te faltan {formatMoney(budget - balance)} de saldo.
           </p>
           <p className="text-xs text-muted mt-0.5">

@@ -62,7 +62,7 @@ function CodeForm({
         placeholder="0000"
         autoComplete="off"
       />
-      {error && <p className="text-sm text-red-600">El código no coincide. Pedíselo de nuevo al cliente.</p>}
+      {error && <p className="text-sm text-danger">El código no coincide. Pedíselo de nuevo al cliente.</p>}
       <button className="btn-primary w-full">Confirmar código</button>
     </form>
   );
@@ -197,7 +197,7 @@ export default async function JobDetailPage({
       <div>
         {job.urgent && (
           <span className="inline-block rounded-full bg-fg text-bg px-2.5 py-0.5 text-[11px] font-semibold mb-1.5">
-            🚨 Urgente
+            Urgente
           </span>
         )}
         <h1 className="text-xl font-bold">{job.title}</h1>
@@ -221,7 +221,7 @@ export default async function JobDetailPage({
       {/* Agenda propuesta: clave para que el trabajador decida */}
       {scheduledLabel && (
         <div className="card p-4 flex items-center gap-3">
-          <span className="text-2xl w-10 text-center shrink-0">🗓</span>
+          <span className="text-2xl w-10 text-center shrink-0"><span className="grayscale">🗓</span></span>
           <div>
             <p className="text-xs uppercase tracking-wide text-faint">Fecha y hora acordadas</p>
             <p className="font-semibold text-sm">{scheduledLabel} hs</p>
@@ -256,7 +256,7 @@ export default async function JobDetailPage({
             {payment
               ? PAYMENT_LABEL[payment.status]
               : escrow
-                ? "Retenido por Better Work"
+                ? "Retenido por Manobra"
                 : "Directo al profesional"}
           </span>
         </div>
@@ -282,7 +282,7 @@ export default async function JobDetailPage({
           <p className="text-xs text-muted">
             {isWorker
               ? "El cliente te paga al terminar, en efectivo o por transferencia, como acuerden."
-              : "Pagás al terminar, en efectivo o por transferencia, como acuerden. Better Work no cobra comisión por el trabajo."}
+              : "Pagás al terminar, en efectivo o por transferencia, como acuerden. Manobra no cobra comisión por el trabajo."}
           </p>
           {isClient && job.worker.workerProfile?.payAlias && (
             <div className="space-y-2">
@@ -328,14 +328,14 @@ export default async function JobDetailPage({
           {/* El profesional ve lo que cobra; el cliente, en qué se fue lo que pagó. */}
           {isWorker && workerCut && payment.status !== "REFUNDED" && (
             <p className="text-[11px] text-faint mt-1">
-              Comisión Better Work: {commissionFree ? "bonificada 🎁" : formatMoney(workerCut.commission)} ·{" "}
+              Comisión Manobra: {commissionFree ? "bonificada" : formatMoney(workerCut.commission)} ·{" "}
               {payment.status === "RELEASED" ? "Cobraste" : "Vas a cobrar"}: {formatMoney(workerCut.net)}
             </p>
           )}
           {!isWorker && (payment.serviceFee > 0 || payment.feeWaived) && (
             <p className="text-[11px] text-faint mt-1">
               Trabajo: {formatMoney(payment.amount)} · Tarifa de servicio:{" "}
-              {payment.feeWaived ? "bonificada 🎁" : formatMoney(payment.serviceFee)}
+              {payment.feeWaived ? "bonificada" : formatMoney(payment.serviceFee)}
             </p>
           )}
         </div>
@@ -357,7 +357,7 @@ export default async function JobDetailPage({
         <div className="card p-4">
           <p className="text-sm font-medium">Esperando el pago del cliente</p>
           <p className="text-xs text-muted mt-0.5">
-            Vas a poder iniciar el trabajo cuando el pago esté retenido por Better Work. Así cobrás seguro al
+            Vas a poder iniciar el trabajo cuando el pago esté retenido por Manobra. Así cobrás seguro al
             terminar.
           </p>
         </div>
@@ -412,7 +412,7 @@ export default async function JobDetailPage({
                 </form>
               )}
               <form action={reject} className="flex-1 flex">
-                <button className="btn-ghost flex-1 !py-3 text-red-600">Rechazar solicitud</button>
+                <button className="btn-ghost flex-1 !py-3 text-danger">Rechazar solicitud</button>
               </form>
             </div>
           )}
@@ -447,7 +447,7 @@ export default async function JobDetailPage({
 
       {job.status === "ACCEPTED" && isWorker && (
         <>
-          <form action={enRoute}><button className="btn-primary w-full !py-3">🚗 Estoy en camino</button></form>
+          <form action={enRoute}><button className="btn-primary w-full !py-3">Estoy en camino</button></form>
           {!pending && (
             <CodeForm action={startCode} label="Cuando llegues, pedile al cliente el código de inicio:" error={codeError} />
           )}
@@ -477,7 +477,7 @@ export default async function JobDetailPage({
 
       {["REQUESTED", "ACCEPTED", "EN_ROUTE"].includes(job.status) && (
         <form action={cancel}>
-          <button className="btn-ghost w-full text-red-600 hover:!bg-red-50">Cancelar trabajo</button>
+          <button className="btn-ghost w-full text-danger hover:!bg-danger/10">Cancelar trabajo</button>
         </form>
       )}
 

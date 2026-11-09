@@ -71,7 +71,7 @@ export default async function WorkerProfileEditPage() {
         <div className="card p-4 mt-3 bg-fg text-bg">
           <p className="text-sm font-medium">Completá tu perfil para empezar</p>
           <p className="text-xs text-bg/70 mt-0.5">
-            Necesitás cargar tu profesión para aparecer en Better Work y recibir trabajos. Es un solo paso.
+            Necesitás cargar tu profesión para aparecer en Manobra y recibir trabajos. Es un solo paso.
           </p>
         </div>
       ) : (

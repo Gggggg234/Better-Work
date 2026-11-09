@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /**
- * Rango de precio de un oficio a partir de presupuestos REALES de Better Work
+ * Rango de precio de un oficio a partir de presupuestos REALES de Manobra
  * (cotizaciones a pedidos abiertos y precios de trabajos aceptados).
  *
  * No lo estima la IA a propósito: con la inflación, cualquier precio que un

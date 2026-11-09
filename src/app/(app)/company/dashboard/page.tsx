@@ -54,7 +54,7 @@ export default async function CompanyDashboardPage() {
     <main className="max-w-lg mx-auto w-full px-4 py-6">
       <BackButton fallback="/company" />
       <h1 className="text-2xl font-bold">Métricas</h1>
-      <p className="text-sm text-muted mt-1">Cómo viene tu búsqueda de talento en Better Work.</p>
+      <p className="text-sm text-muted mt-1">Cómo viene tu búsqueda de talento en Manobra.</p>
 
       <div className="grid grid-cols-2 gap-3 mt-5">
         <Stat label="Empleos publicados" value={m.offersTotal} hint={`${m.offersActive} activos`} />
@@ -83,7 +83,7 @@ export default async function CompanyDashboardPage() {
         {campaigns.length === 0 ? (
           <Link href="/ads/new" className="card p-4 flex items-center justify-between hover:bg-surface-2 transition">
             <div>
-              <p className="text-sm font-medium">📣 Todavía no hiciste campañas</p>
+              <p className="text-sm font-medium">Todavía no hiciste campañas</p>
               <p className="text-xs text-muted">Promocioná tu empresa y medí cuántos postulantes trae.</p>
             </div>
             <span className="text-faint">→</span>

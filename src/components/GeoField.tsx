@@ -49,7 +49,7 @@ export function GeoField({ lat, lng }: { lat?: number | null; lng?: number | nul
           inputMode="decimal"
         />
         <button type="button" onClick={locate} className="btn-secondary shrink-0">
-          📍 Mi ubicación
+          Mi ubicación
         </button>
       </div>
       {status && <p className="text-xs text-muted mt-1.5">{status}</p>}

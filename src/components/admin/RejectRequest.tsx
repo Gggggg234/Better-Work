@@ -19,7 +19,7 @@ export function RejectRequest({
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="btn-secondary flex-1 !py-2.5 !text-sm text-red-600">
+      <button onClick={() => setOpen(true)} className="btn-secondary flex-1 !py-2.5 !text-sm text-danger">
         Rechazar
       </button>
     );
@@ -36,7 +36,7 @@ export function RejectRequest({
         className="input !py-2 !text-sm"
       />
       <div className="flex gap-2">
-        <button className="btn-secondary flex-1 !py-2 !text-sm text-red-600">Confirmar rechazo</button>
+        <button className="btn-secondary flex-1 !py-2 !text-sm text-danger">Confirmar rechazo</button>
         <button type="button" onClick={() => setOpen(false)} className="btn-ghost !py-2 !px-3 !text-sm">
           Cancelar
         </button>

@@ -62,7 +62,7 @@ export default async function CompanyPlanPage({
         subtitle={
           active
             ? `Activo hasta el ${formatDate(company.planActiveUntil!)}.`
-            : "Publicá empleos, recibí postulantes y aparecé primero. Los profesionales usan Better Work gratis."
+            : "Publicá empleos, recibí postulantes y aparecé primero. Los profesionales usan Manobra gratis."
         }
       />
 
@@ -105,7 +105,7 @@ export default async function CompanyPlanPage({
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="font-extrabold text-xl tracking-tight">{p.name}</h2>
                     {isFeatured && (
-                      <span className="badge bg-brand text-white">
+                      <span className="badge bg-brand text-brand-fg">
                         <Crown className="w-3 h-3" aria-hidden /> Recomendado
                       </span>
                     )}

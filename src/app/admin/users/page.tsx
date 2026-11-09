@@ -35,7 +35,7 @@ export default async function AdminUsersPage({
       <h1 className="text-xl font-bold">Usuarios</h1>
 
       {sp.deleteError && (
-        <div className="card p-3.5 border-red-200 bg-red-50 text-red-700 text-sm">
+        <div className="card p-3.5 border-danger/30 bg-danger/10 text-danger text-sm">
           No se pudo eliminar: {sp.deleteError} Suspendela en su lugar, o escribile para resolverlo.
         </div>
       )}
@@ -66,7 +66,7 @@ export default async function AdminUsersPage({
                     <p className="font-semibold text-sm">{u.name}</p>
                   )}
                   <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium">{ROLE_LABEL[u.role]}</span>
-                  {u.suspended && <span className="rounded-full bg-red-50 text-red-600 px-2 py-0.5 text-[11px] font-medium">Suspendido</span>}
+                  {u.suspended && <span className="rounded-full bg-danger/10 text-danger px-2 py-0.5 text-[11px] font-medium">Suspendido</span>}
                   {(u.workerProfile?.verified || u.companyProfile?.verified) && (
                     <span className="rounded-full bg-fg text-bg px-2 py-0.5 text-[11px] font-medium">✓ Verificado</span>
                   )}
@@ -90,7 +90,7 @@ export default async function AdminUsersPage({
                 )}
                 {u.role !== "ADMIN" && (
                   <form action={suspend}>
-                    <button className="btn-ghost !py-1.5 !px-2.5 !text-xs text-red-600">
+                    <button className="btn-ghost !py-1.5 !px-2.5 !text-xs text-danger">
                       {u.suspended ? "Reactivar" : "Suspender"}
                     </button>
                   </form>

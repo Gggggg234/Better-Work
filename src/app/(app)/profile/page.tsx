@@ -139,7 +139,7 @@ export default async function ProfilePage() {
           <div className="flex items-center gap-1.5 mt-2.5">
             <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{ROLE_LABEL[me.role]}</span>
             {pro && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white text-accent px-3 py-1 text-xs font-extrabold">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white text-black px-3 py-1 text-xs font-extrabold">
                 <Sparkles className="w-3 h-3" aria-hidden /> PRO
               </span>
             )}
@@ -187,15 +187,15 @@ export default async function ProfilePage() {
 
         {/* Pro */}
         {me.role === "WORKER" && (
-          <Link href="/pro" className="block relative overflow-hidden rounded-[22px] bg-brand text-white p-5 shadow-glow card-hover">
+          <Link href="/pro" className="block relative overflow-hidden rounded-[22px] bg-brand text-brand-fg p-5 shadow-glow card-hover">
             <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/15 blur-xl" aria-hidden />
-            <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.14em] text-white/80">
-              <Sparkles className="w-3.5 h-3.5" aria-hidden /> Better Work Pro
+            <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.14em] text-brand-fg/80">
+              <Sparkles className="w-3.5 h-3.5" aria-hidden /> Manobra Pro
             </p>
             <p className="text-lg font-extrabold mt-1">
               {pro ? `Activo hasta el ${formatDate(wp!.proUntil!)}` : "Conseguí más trabajos"}
             </p>
-            <p className="text-sm text-white/80 mt-0.5">
+            <p className="text-sm text-brand-fg/80 mt-0.5">
               {pro ? "Gestioná tu suscripción y tus pagos." : "Aparecé primero y mandá presupuestos sin límite."}
             </p>
             <span className="inline-flex items-center gap-1 mt-3 text-sm font-bold">

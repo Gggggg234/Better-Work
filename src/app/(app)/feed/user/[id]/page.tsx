@@ -11,7 +11,7 @@ const ROLE_LABEL: Record<string, string> = {
   WORKER: "Trabajador",
   COMPANY: "Empresa",
   SUPPLIER: "Proveedor",
-  ADMIN: "Better Work",
+  ADMIN: "Manobra",
 };
 
 export default async function UserPostsPage({ params }: { params: Promise<{ id: string }> }) {

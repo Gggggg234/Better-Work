@@ -20,7 +20,7 @@ export function mailConfigured(): boolean {
 }
 
 function fromAddress(): string {
-  return process.env.MAIL_FROM ?? "Better Work <onboarding@resend.dev>";
+  return process.env.MAIL_FROM ?? "Manobra <onboarding@resend.dev>";
 }
 
 export async function sendMail(to: string, subject: string, html: string): Promise<MailResult> {
@@ -52,7 +52,7 @@ function layout(title: string, body: string, cta?: { href: string; label: string
   return `
   <div style="background:#f5f5f5;padding:32px 16px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
     <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:16px;padding:32px">
-      <p style="margin:0 0 24px;font-size:18px;font-weight:700;color:#0a0a0a">Better Work</p>
+      <p style="margin:0 0 24px;font-size:18px;font-weight:700;color:#0a0a0a">Manobra</p>
       <h1 style="margin:0 0 12px;font-size:20px;color:#0a0a0a">${title}</h1>
       <div style="font-size:14px;line-height:1.6;color:#525252">${body}</div>
       ${
@@ -73,7 +73,7 @@ function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
 
-/** Al profesional: se aprobó su pago de Better Work Pro. */
+/** Al profesional: se aprobó su pago de Manobra Pro. */
 export async function sendProApprovedEmail(to: string, until: Date): Promise<MailResult> {
   const date = until.toLocaleDateString("es-AR", {
     day: "numeric",
@@ -83,9 +83,9 @@ export async function sendProApprovedEmail(to: string, until: Date): Promise<Mai
   });
   return sendMail(
     to,
-    "Ya sos Pro — Better Work",
+    "Ya sos Pro — Manobra",
     layout(
-      "Better Work Pro activado",
+      "Manobra Pro activado",
       `<p>Aprobamos tu comprobante: sos Pro hasta el <strong>${date}</strong>. Ya aparecés más arriba en las
        búsquedas y podés mandar presupuestos sin límite.</p>`
     )
@@ -96,10 +96,10 @@ export async function sendProApprovedEmail(to: string, until: Date): Promise<Mai
 export async function sendProRejectedEmail(to: string, reason: string): Promise<MailResult> {
   return sendMail(
     to,
-    "No pudimos validar tu comprobante — Better Work",
+    "No pudimos validar tu comprobante — Manobra",
     layout(
       "Necesitamos revisar tu pago",
-      `<p>No pudimos validar el comprobante de Better Work Pro que enviaste.</p>
+      `<p>No pudimos validar el comprobante de Manobra Pro que enviaste.</p>
        ${reason ? `<p><strong>Motivo:</strong> ${esc(reason)}</p>` : ""}
        <p>Podés volver a enviarlo desde la sección Pro de tu perfil.</p>`
     )
@@ -114,7 +114,7 @@ export async function sendNewOpenRequestEmail(
 ): Promise<MailResult> {
   return sendMail(
     to,
-    `${req.urgent ? "🚨 Urgente: " : ""}nuevo pedido de ${req.category} cerca tuyo — Better Work`,
+    `${req.urgent ? "Urgente: " : ""}nuevo pedido de ${req.category} cerca tuyo — Manobra`,
     layout(
       `${req.urgent ? "Pedido urgente" : "Nuevo pedido"} cerca tuyo`,
       `<p><strong>${esc(req.title)}</strong>${req.zone ? ` · ${esc(req.zone)}` : ""}</p>
@@ -133,7 +133,7 @@ export async function sendNewBidEmail(
 ): Promise<MailResult> {
   return sendMail(
     to,
-    `Recibiste un presupuesto de ${bid.price} — Better Work`,
+    `Recibiste un presupuesto de ${bid.price} — Manobra`,
     layout(
       "Recibiste un presupuesto",
       `<p>${esc(bid.workerName)} cotizó <strong>${bid.price}</strong> para «${esc(bid.title)}».</p>
@@ -147,7 +147,7 @@ export async function sendNewBidEmail(
 export async function sendBidAcceptedEmail(to: string, title: string, url: string): Promise<MailResult> {
   return sendMail(
     to,
-    "¡Te eligieron! — Better Work",
+    "¡Te eligieron! — Manobra",
     layout(
       "El cliente eligió tu presupuesto",
       `<p>Te eligieron para «${esc(title)}». Entrá para ver la dirección y coordinar con el cliente.</p>`,
@@ -159,10 +159,10 @@ export async function sendBidAcceptedEmail(to: string, title: string, url: strin
 export async function sendVerificationEmail(to: string, name: string, url: string): Promise<MailResult> {
   return sendMail(
     to,
-    "Confirmá tu email — Better Work",
+    "Confirmá tu email — Manobra",
     layout(
       `Hola ${name}, confirmá tu email`,
-      "<p>Para empezar a usar Better Work necesitamos verificar que esta dirección es tuya. El enlace vence en 24 horas.</p>",
+      "<p>Para empezar a usar Manobra necesitamos verificar que esta dirección es tuya. El enlace vence en 24 horas.</p>",
       { href: url, label: "Confirmar mi email" }
     )
   );
@@ -171,7 +171,7 @@ export async function sendVerificationEmail(to: string, name: string, url: strin
 export async function sendPlanApprovedEmail(to: string, planName: string, until: Date): Promise<MailResult> {
   return sendMail(
     to,
-    "Tu membresía está activa — Better Work",
+    "Tu membresía está activa — Manobra",
     layout(
       `Plan ${planName} activado`,
       `<p>Aprobamos tu comprobante y tu membresía ya está activa hasta el
@@ -184,7 +184,7 @@ export async function sendPlanApprovedEmail(to: string, planName: string, until:
 export async function sendPlanRejectedEmail(to: string, reason: string): Promise<MailResult> {
   return sendMail(
     to,
-    "No pudimos validar tu comprobante — Better Work",
+    "No pudimos validar tu comprobante — Manobra",
     layout(
       "Necesitamos revisar tu pago",
       `<p>No pudimos validar el comprobante que enviaste.</p>

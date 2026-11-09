@@ -60,7 +60,7 @@ export default async function AdminDashboard() {
         >
           <div>
             <p className="font-semibold">
-              🔔 {pendingPayments} {pendingPayments === 1 ? "pago pendiente de revisión" : "pagos pendientes de revisión"}
+              {pendingPayments} {pendingPayments === 1 ? "pago pendiente de revisión" : "pagos pendientes de revisión"}
             </p>
             <p className="text-sm text-bg/70 mt-0.5">
               {pendingPayments === 1
@@ -83,7 +83,7 @@ export default async function AdminDashboard() {
 
       <div className="grid sm:grid-cols-2 gap-3">
         <div className="card p-5">
-          <h2 className="font-semibold text-sm">Better Work Pro</h2>
+          <h2 className="font-semibold text-sm">Manobra Pro</h2>
           <p className="text-2xl font-bold mt-1">{formatMoney(proIncome)}</p>
           <p className="text-xs text-faint mt-1">
             {activePros} {activePros === 1 ? "profesional Pro activo" : "profesionales Pro activos"}.

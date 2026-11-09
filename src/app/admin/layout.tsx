@@ -31,9 +31,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Better Work" className="w-8 h-8 rounded-[22%] object-cover" />
+            <img src="/logo.png" alt="Manobra" className="w-8 h-8 rounded-[22%] object-cover" />
             <div>
-              <p className="font-bold leading-tight">Better Work</p>
+              <p className="font-bold leading-tight">Manobra</p>
               <p className="text-xs text-bg/50">Panel administrativo</p>
             </div>
           </div>
@@ -43,7 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 href="/admin/payments"
                 className="flex items-center gap-1.5 rounded-full bg-bg text-fg px-2.5 py-1 text-xs font-medium hover:opacity-90 transition"
               >
-                <span aria-hidden>🔔</span>
+                <span aria-hidden><span className="grayscale">🔔</span></span>
                 {pendingPayments} {pendingPayments === 1 ? "pago pendiente" : "pagos pendientes"}
               </Link>
             )}

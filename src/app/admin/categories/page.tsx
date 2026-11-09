@@ -20,7 +20,7 @@ export default async function AdminCategoriesPage() {
       <div className="grid sm:grid-cols-2 gap-2">
         {categories.map((c) => (
           <div key={c.id} className={`card p-4 flex items-center gap-3 ${c.active ? "" : "opacity-50"}`}>
-            <span className="text-xl">{c.icon}</span>
+            <span className="text-xl"><span className="grayscale">{c.icon}</span></span>
             <div className="flex-1">
               <p className="font-semibold text-sm">{c.name}</p>
               <p className="text-xs text-faint">{c._count.workers} trabajadores</p>

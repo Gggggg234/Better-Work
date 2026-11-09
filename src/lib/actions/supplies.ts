@@ -313,7 +313,7 @@ export async function placeOrder(input: {
 
   after(() =>
     notify(supplier.userId, {
-      title: `🛒 Pedido nuevo #${orderNumber(order.id)}`,
+      title: `Pedido nuevo #${orderNumber(order.id)}`,
       body: `${user.name.split(" ")[0]} · ${items.length} ${items.length === 1 ? "producto" : "productos"} · ${formatMoney(subtotal)}`,
       url: `/proveedor/pedidos/${order.id}`,
     })
@@ -410,7 +410,7 @@ export async function confirmOrder(orderId: string, formData: FormData): Promise
 
   after(() =>
     notify(order.buyerId, {
-      title: `✅ ${profile.businessName} confirmó tu pedido`,
+      title: `${profile.businessName} confirmó tu pedido`,
       body: note || `Pedido #${orderNumber(order.id)}`,
       url: `/materiales/pedidos/${orderId}`,
     })
@@ -456,8 +456,8 @@ export async function advanceOrder(orderId: string, next: "READY" | "SHIPPED" | 
   });
 
   const title = {
-    READY: `📦 Tu pedido está listo para retirar`,
-    SHIPPED: `🚚 Tu pedido está en camino`,
+    READY: `Tu pedido está listo para retirar`,
+    SHIPPED: `Tu pedido está en camino`,
     DELIVERED: `Pedido entregado: contanos cómo te fue`,
   }[next];
   after(() =>

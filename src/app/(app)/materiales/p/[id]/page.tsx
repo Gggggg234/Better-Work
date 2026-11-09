@@ -80,7 +80,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             {sale && (
               <p className="text-sm text-faint">
                 <span className="line-through">{formatMoney(p.compareAtPrice!)}</span>{" "}
-                <span className="badge bg-danger text-white ml-1">-{discountPct(p)}%</span>
+                <span className="badge bg-fg text-bg ml-1">-{discountPct(p)}%</span>
               </p>
             )}
             <p className="text-3xl font-bold tracking-tight">
@@ -140,7 +140,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           {s.minOrder && <Condition icon={ShoppingBag} label="Pedido mínimo" value={formatMoney(s.minOrder)} />}
         </div>
         <p className="text-[11px] text-faint">
-          El pago es directo al proveedor, al retirar o al recibir el pedido. Better Work no cobra recargo.
+          El pago es directo al proveedor, al retirar o al recibir el pedido. Manobra no cobra recargo.
         </p>
       </section>
 

@@ -41,20 +41,20 @@ export default async function Landing() {
       {/* ── Hero ── */}
       <section className="relative overflow-hidden bg-hero text-white">
         <div className="absolute inset-0 bg-dots opacity-60" aria-hidden />
-        <div className="absolute -right-24 top-20 w-96 h-96 rounded-full bg-fuchsia-400/25 blur-3xl" aria-hidden />
-        <div className="absolute -left-24 bottom-0 w-80 h-80 rounded-full bg-sky-400/25 blur-3xl" aria-hidden />
+        <div className="absolute -right-24 top-20 w-96 h-96 rounded-full bg-white/10 blur-3xl" aria-hidden />
+        <div className="absolute -left-24 bottom-0 w-80 h-80 rounded-full bg-white/10 blur-3xl" aria-hidden />
 
         <header className="relative flex items-center justify-between px-5 py-5 max-w-6xl mx-auto w-full">
           <Link href="/" className="inline-flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="" className="w-9 h-9 rounded-[22%] ring-2 ring-white/30" />
-            <span className="text-lg font-extrabold tracking-tight whitespace-nowrap">Better Work</span>
+            <span className="text-lg font-extrabold tracking-tight whitespace-nowrap">Manobra</span>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-2">
             <Link href="/login" className="rounded-2xl px-3 sm:px-4 py-2.5 text-sm font-bold whitespace-nowrap text-white/85 hover:text-white hover:bg-white/10 transition">
               Ingresar
             </Link>
-            <Link href="/register" className="rounded-2xl px-3.5 sm:px-4 py-2.5 text-sm font-bold whitespace-nowrap bg-white text-accent hover:bg-white/90 transition shadow-lg">
+            <Link href="/register" className="rounded-2xl px-3.5 sm:px-4 py-2.5 text-sm font-bold whitespace-nowrap bg-white text-black hover:bg-white/90 transition shadow-lg">
               Crear cuenta
             </Link>
           </nav>
@@ -75,7 +75,7 @@ export default async function Landing() {
             los materiales en el mismo lugar.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3 mt-9 animate-fade-up" style={{ animationDelay: "180ms" }}>
-            <Link href="/register" className="rounded-2xl px-7 py-4 text-base font-extrabold bg-white text-accent hover:bg-white/90 transition shadow-xl inline-flex items-center justify-center gap-2">
+            <Link href="/register" className="rounded-2xl px-7 py-4 text-base font-extrabold bg-white text-black hover:bg-white/90 transition shadow-xl inline-flex items-center justify-center gap-2">
               Empezar gratis <ArrowRight className="w-5 h-5" aria-hidden />
             </Link>
             <Link href="/register?rol=trabajador" className="rounded-2xl px-7 py-4 text-base font-bold border border-white/30 hover:bg-white/10 transition inline-flex items-center justify-center gap-2">
@@ -108,7 +108,7 @@ export default async function Landing() {
         <div className="card !rounded-[28px] p-6 sm:p-8 grid sm:grid-cols-3 gap-6">
           {STEPS.map((s, i) => (
             <div key={s.title} className="flex sm:block gap-4">
-              <span className="icon-tile w-12 h-12 bg-brand text-white shadow-glow relative">
+              <span className="icon-tile w-12 h-12 bg-brand text-brand-fg shadow-glow relative">
                 <s.icon className="w-6 h-6" aria-hidden />
                 <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-fg text-bg text-[10px] font-extrabold flex items-center justify-center">
                   {i + 1}
@@ -126,11 +126,11 @@ export default async function Landing() {
       {/* ── Para quién ── */}
       <section className="max-w-6xl mx-auto w-full px-5 py-16 sm:py-20">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-accent text-center">Para todos</p>
-        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-center mt-2">¿Cómo querés usar Better Work?</h2>
+        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-center mt-2">¿Cómo querés usar Manobra?</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
           {ROLES.map((r) => (
             <Link key={r.title} href={r.href} className="card card-hover p-6 flex flex-col group">
-              <span className="icon-tile w-12 h-12 bg-surface-2 text-accent group-hover:bg-brand group-hover:text-white transition">
+              <span className="icon-tile w-12 h-12 bg-surface-2 text-accent group-hover:bg-brand group-hover:text-brand-fg transition">
                 <r.icon className="w-6 h-6" aria-hidden />
               </span>
               <h3 className="font-extrabold text-lg mt-4">{r.title}</h3>
@@ -150,7 +150,7 @@ export default async function Landing() {
           <div className="flex flex-wrap justify-center gap-2 mt-6">
             {trades.map((t) => (
               <Link key={t.slug} href={`/servicios/${t.slug}`} className="chip !py-2 !px-4">
-                <span aria-hidden>{t.icon}</span> {t.name}
+                <span aria-hidden><span className="grayscale">{t.icon}</span></span> {t.name}
               </Link>
             ))}
           </div>
@@ -159,11 +159,11 @@ export default async function Landing() {
 
       {/* ── Llamado final ── */}
       <section className="max-w-6xl mx-auto w-full px-5 pb-16">
-        <div className="relative overflow-hidden rounded-[32px] bg-brand text-white p-8 sm:p-12 text-center shadow-glow">
+        <div className="relative overflow-hidden rounded-[32px] bg-brand text-brand-fg p-8 sm:p-12 text-center shadow-glow">
           <div className="absolute inset-0 bg-dots opacity-50" aria-hidden />
           <h2 className="relative text-3xl sm:text-4xl font-extrabold tracking-tight">Tu próximo trabajo empieza acá</h2>
-          <p className="relative text-white/80 mt-3">Crear la cuenta es gratis y lleva un minuto.</p>
-          <Link href="/register" className="relative inline-flex items-center gap-2 mt-7 rounded-2xl px-7 py-4 font-extrabold bg-white text-accent hover:bg-white/90 transition shadow-xl">
+          <p className="relative text-brand-fg/80 mt-3">Crear la cuenta es gratis y lleva un minuto.</p>
+          <Link href="/register" className="relative inline-flex items-center gap-2 mt-7 rounded-2xl px-7 py-4 font-extrabold bg-bg text-fg hover:opacity-90 transition shadow-xl">
             Crear mi cuenta <ArrowRight className="w-5 h-5" aria-hidden />
           </Link>
         </div>
@@ -171,7 +171,7 @@ export default async function Landing() {
 
       <footer className="border-t border-line">
         <div className="max-w-6xl mx-auto px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-faint">
-          <span>© Better Work — Conectando personas con profesionales.</span>
+          <span>© Manobra — Conectando personas con profesionales.</span>
           <nav className="flex gap-5">
             <Link href="/servicios" className="hover:text-fg">Servicios</Link>
             <Link href="/register?rol=trabajador" className="hover:text-fg">Trabajá con nosotros</Link>

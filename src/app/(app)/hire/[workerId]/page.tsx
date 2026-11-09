@@ -66,7 +66,7 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
         <label className="card p-4 flex items-start gap-3 cursor-pointer transition has-[:checked]:border-fg has-[:checked]:bg-surface-2">
           <input type="checkbox" name="urgent" className="mt-0.5 w-4 h-4 accent-current shrink-0" />
           <span>
-            <span className="block text-sm font-semibold">🚨 Lo necesito YA</span>
+            <span className="block text-sm font-semibold">Lo necesito YA</span>
             <span className="block text-xs text-muted mt-0.5">
               Tu pedido le aparece primero y destacado al profesional. Se suma un {fees.urgencyPct}% al presupuesto,
               que va íntegro al profesional por atenderte con urgencia.
@@ -138,7 +138,7 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
             <>
               <p className="text-sm font-medium">Cómo sigue — Pago protegido</p>
               <p className="text-xs text-muted mt-0.5">
-                Cuando el profesional acepte (o te pase un presupuesto), pagás a través de Better Work. El dinero queda
+                Cuando el profesional acepte (o te pase un presupuesto), pagás a través de Manobra. El dinero queda
                 <strong className="text-fg"> retenido</strong> y se libera al profesional recién cuando confirmás el
                 código de finalización. El trabajo se inicia y termina con códigos de 4 dígitos.
               </p>
@@ -154,7 +154,7 @@ export default async function HirePage({ params }: { params: Promise<{ workerId:
                 El profesional acepta tu solicitud o te pasa un presupuesto. El trabajo se inicia y termina con códigos
                 de 4 dígitos, y al terminar le pagás directo, en efectivo o por transferencia.
               </p>
-              <p className="text-xs text-muted mt-1.5">Pedir es gratis y Better Work no cobra comisión por el trabajo.</p>
+              <p className="text-xs text-muted mt-1.5">Pedir es gratis y Manobra no cobra comisión por el trabajo.</p>
             </>
           )}
         </div>

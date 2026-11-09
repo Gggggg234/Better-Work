@@ -58,12 +58,12 @@ export function AttachmentsInput({ onFilesChange }: { onFilesChange?: (files: Fi
               key={`${f.name}-${i}`}
               className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm"
             >
-              <span aria-hidden>{f.type.startsWith("image/") ? "🖼" : "📄"}</span>
+              <span aria-hidden className="grayscale">{f.type.startsWith("image/") ? "🖼" : "📄"}</span>
               <span className="flex-1 min-w-0 truncate">{f.name}</span>
               <button
                 type="button"
                 onClick={() => removeAt(i)}
-                className="text-faint hover:text-red-600 transition text-xs shrink-0"
+                className="text-faint hover:text-danger transition text-xs shrink-0"
                 aria-label={`Quitar ${f.name}`}
               >
                 ✕

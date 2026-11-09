@@ -12,13 +12,13 @@ import { extendPro } from "@/lib/pro";
  * rinde crear cuentas falsas. Qué se gana depende de cómo se pagan los
  * trabajos:
  *
- *  - Pago directo (default): días de Better Work Pro. El profesional invitado
+ *  - Pago directo (default): días de Manobra Pro. El profesional invitado
  *    arranca con 14; quien invita, si es profesional, gana 30 por invitado.
  *  - Pago protegido: trabajos bonificados (sin comisión para el profesional,
  *    sin tarifa de servicio para quien contrata). El invitado arranca con 1;
  *    quien invita gana 2.
  *
- * En ningún caso sale plata de Better Work por adelantado.
+ * En ningún caso sale plata de Manobra por adelantado.
  */
 
 export const REFERRAL_COOKIE = "bw_ref";

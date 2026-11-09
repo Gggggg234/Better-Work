@@ -39,7 +39,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
       </div>
 
       <PostComposer name={me.name} avatarUrl={me.avatarUrl} action={createPost} />
-      {sp.error === "vacio" && <p className="text-sm text-red-600 mt-2">Escribí algo o agregá una foto.</p>}
+      {sp.error === "vacio" && <p className="text-sm text-danger mt-2">Escribí algo o agregá una foto.</p>}
 
       <div className="space-y-3 mt-4">
         {posts.map((p) => (

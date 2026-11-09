@@ -56,7 +56,7 @@ export async function approveProRequest(requestId: string): Promise<void> {
 
   if (until) await sendProApprovedEmail(req.user.email, until).catch(() => {});
   await notify(req.user.id, {
-    title: "⭐ ¡Ya sos Pro!",
+    title: "¡Ya sos Pro!",
     body: "Aprobamos tu pago. Ya aparecés más arriba y mandás presupuestos sin límite.",
     url: "/pro",
   });

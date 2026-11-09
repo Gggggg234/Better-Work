@@ -17,7 +17,7 @@ export function ConfirmDeleteButton({
         if (!confirm(confirmText)) e.preventDefault();
       }}
     >
-      <button className="btn-ghost !py-1.5 !px-2.5 !text-xs text-red-600">{label}</button>
+      <button className="btn-ghost !py-1.5 !px-2.5 !text-xs text-danger">{label}</button>
     </form>
   );
 }

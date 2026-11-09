@@ -59,7 +59,7 @@ export const registerSchema = z
     email: emailSchema,
     password: passwordSchema,
     confirm: z.string().min(1, "Repetí la contraseña."),
-    role: z.enum(["CLIENT", "WORKER", "COMPANY", "SUPPLIER"], { message: "Elegí cómo vas a usar Better Work." }),
+    role: z.enum(["CLIENT", "WORKER", "COMPANY", "SUPPLIER"], { message: "Elegí cómo vas a usar Manobra." }),
   })
   .refine((d) => d.password === d.confirm, {
     path: ["confirm"],

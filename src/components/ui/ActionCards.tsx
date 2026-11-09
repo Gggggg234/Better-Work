@@ -4,9 +4,9 @@ import { ChevronRight, type LucideIcon } from "lucide-react";
 export type ActionTone = "accent" | "success" | "warning" | "neutral";
 
 const TILE: Record<ActionTone, string> = {
-  accent: "bg-brand text-white shadow-glow",
-  success: "bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-[0_8px_18px_-8px_rgba(16,185,129,0.7)]",
-  warning: "bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-[0_8px_18px_-8px_rgba(245,158,11,0.7)]",
+  accent: "bg-brand text-brand-fg shadow-glow",
+  success: "bg-brand text-brand-fg shadow-glow",
+  warning: "bg-brand text-brand-fg shadow-glow",
   neutral: "bg-surface-2 text-fg",
 };
 
@@ -48,7 +48,7 @@ export function QuickAction({
         <p className="text-xs text-muted mt-1 leading-snug">{desc}</p>
       </div>
       {!!badge && badge > 0 && (
-        <span className="absolute top-3 right-3 min-w-6 h-6 px-1.5 rounded-full bg-danger text-white text-xs font-bold leading-6 text-center">
+        <span className="absolute top-3 right-3 min-w-6 h-6 px-1.5 rounded-full bg-fg text-bg text-xs font-bold leading-6 text-center">
           {badge > 9 ? "9+" : badge}
         </span>
       )}

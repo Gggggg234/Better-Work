@@ -70,7 +70,7 @@ export async function saveTransferInfo(formData: FormData) {
 }
 
 /**
- * Tarifas de Better Work (escrow): comisión al profesional, tarifa de servicio
+ * Tarifas de Manobra (escrow): comisión al profesional, tarifa de servicio
  * al cliente y recargo por urgencia. Cada una admite 0 a 100 %; un valor
  * inválido se ignora sin tocar los demás.
  */
@@ -97,7 +97,7 @@ export async function savePaymentMode(formData: FormData) {
   revalidatePath("/", "layout");
 }
 
-/** Precio mensual de Better Work Pro y tope de presupuestos gratis por mes. */
+/** Precio mensual de Manobra Pro y tope de presupuestos gratis por mes. */
 export async function saveProSettings(formData: FormData) {
   await requireRole("ADMIN");
   const price = parseFloat(String(formData.get("pro_price") ?? ""));

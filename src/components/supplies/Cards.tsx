@@ -38,7 +38,7 @@ export function ProductCard({ p }: { p: ProductCardData }) {
     <Link href={`/materiales/p/${p.id}`} className="card overflow-hidden flex flex-col hover:-translate-y-0.5 hover:border-fg/20 transition">
       <div className="relative">
         <ProductImage images={p.images} category={p.category} className="w-full aspect-square" />
-        {sale && <span className="absolute top-2 left-2 badge bg-danger text-white">-{discountPct(p)}%</span>}
+        {sale && <span className="absolute top-2 left-2 badge bg-fg text-bg">-{discountPct(p)}%</span>}
       </div>
       <div className="p-3 flex flex-col gap-1 flex-1">
         <p className="text-sm font-medium leading-snug line-clamp-2">{p.name}</p>

@@ -22,7 +22,7 @@ export function PostShareReport({
   async function share() {
     const url = `${location.origin}/feed/${postId}`;
     try {
-      if (navigator.share) await navigator.share({ url, title: "Better Work" });
+      if (navigator.share) await navigator.share({ url, title: "Manobra" });
       else {
         await navigator.clipboard.writeText(url);
         setCopied(true);

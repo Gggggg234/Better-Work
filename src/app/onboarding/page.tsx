@@ -65,13 +65,13 @@ export default async function OnboardingPage({
           </div>
         </div>
 
-        <h1 className="text-2xl font-bold mt-6">¿Cómo vas a usar Better Work?</h1>
+        <h1 className="text-2xl font-bold mt-6">¿Cómo vas a usar Manobra?</h1>
         <p className="text-sm text-muted mt-1">
           Elegí una opción para terminar de crear tu cuenta. Podés cambiarla después escribiéndonos.
         </p>
 
         {sp.error === "rol" && (
-          <p className="text-sm text-red-600 mt-3" role="alert">⚠ Elegí una de las tres opciones.</p>
+          <p className="text-sm text-danger mt-3" role="alert">⚠ Elegí una de las tres opciones.</p>
         )}
 
         <div className="space-y-3 mt-6">
@@ -80,7 +80,7 @@ export default async function OnboardingPage({
               <input type="hidden" name="role" value={r.value} />
               <button className="card w-full p-4 flex items-start gap-3.5 text-left hover:border-fg hover:shadow-md transition-all">
                 <span className="w-11 h-11 rounded-xl bg-surface-2 flex items-center justify-center text-xl shrink-0">
-                  {r.icon}
+                  <span className="grayscale">{r.icon}</span>
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold text-sm">{r.title}</span>

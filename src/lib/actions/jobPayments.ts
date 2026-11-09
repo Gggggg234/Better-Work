@@ -51,7 +51,7 @@ export async function startPayment(jobId: string): Promise<void> {
     result = await provider.createCheckout({
       jobId: job.id,
       amount: b.workAmount + serviceFee,
-      title: `Better Work — ${job.title}${job.urgent ? " (urgente)" : ""}`,
+      title: `Manobra — ${job.title}${job.urgent ? " (urgente)" : ""}`,
       payerEmail: user.email,
     });
   } catch {

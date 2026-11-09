@@ -1,7 +1,7 @@
 import { db } from "./db";
 
 /**
- * Membresías de empresa. Los trabajadores usan Better Work gratis; las
+ * Membresías de empresa. Los trabajadores usan Manobra gratis; las
  * empresas necesitan un plan activo para publicar y aparecer.
  *
  * Los planes viven en la tabla `Plan` y se editan desde el panel Super Admin,

@@ -1,6 +1,6 @@
 {
-  "name": "Better Work",
-  "short_name": "Better Work",
+  "name": "Manobra",
+  "short_name": "Manobra",
   "description": "Conectá con trabajadores y empresas cerca tuyo.",
   "start_url": "/app",
   "display": "standalone",

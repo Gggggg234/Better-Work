@@ -18,12 +18,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin()),
   title: {
-    default: "Better Work — Encontrá al profesional indicado",
-    template: "%s · Better Work",
+    default: "Manobra — Encontrá al profesional indicado",
+    template: "%s · Manobra",
   },
   description: "Conectá con trabajadores y empresas cerca tuyo. Simple, rápido y confiable.",
   openGraph: {
-    title: "Better Work",
+    title: "Manobra",
     description: "Encontrá al profesional indicado, cerca tuyo.",
     type: "website",
     images: ["/icon-512.png"],
@@ -38,13 +38,13 @@ export const metadata: Metadata = {
     shortcut: "/favicon.png",
     apple: "/apple-icon.png",
   },
-  appleWebApp: { capable: true, title: "Better Work", statusBarStyle: "black" },
+  appleWebApp: { capable: true, title: "Manobra", statusBarStyle: "black" },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f6fb" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0b14" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f6f6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
   width: "device-width",
   initialScale: 1,

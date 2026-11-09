@@ -90,7 +90,7 @@ export function PostComposer({
               kind === k.value ? "border-fg bg-fg text-bg" : "border-line bg-surface text-muted hover:border-fg/40"
             }`}
           >
-            {k.icon} {k.label}
+            <span className="grayscale">{k.icon}</span> {k.label}
           </button>
         ))}
       </div>
@@ -106,11 +106,11 @@ export function PostComposer({
 
       <div className="flex items-center gap-2 flex-wrap">
         <label className="btn-secondary !py-1.5 !px-3 !text-xs cursor-pointer">
-          🖼 Fotos
+          Fotos
           <input type="file" name="images" accept="image/*" multiple className="hidden" onChange={onFiles} />
         </label>
         <button type="button" onClick={locate} className="btn-secondary !py-1.5 !px-3 !text-xs">
-          📍 {locLabel ? "Ubicación ✓" : "Ubicación"}
+          {locLabel ? "Ubicación ✓" : "Ubicación"}
         </button>
         <div className="flex-1" />
         <button type="button" onClick={() => setOpen(false)} className="btn-ghost !py-1.5 !px-3 !text-xs">

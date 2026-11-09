@@ -11,15 +11,15 @@ export function DeleteAccountForm({ hasPassword }: { hasPassword: boolean }) {
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="btn-ghost w-full text-red-600">
+      <button onClick={() => setOpen(true)} className="btn-ghost w-full text-danger">
         Eliminar cuenta
       </button>
     );
   }
 
   return (
-    <form action={action} className="card p-5 space-y-3 !border-red-200">
-      <h3 className="font-semibold text-sm text-red-600">Eliminar cuenta</h3>
+    <form action={action} className="card p-5 space-y-3 !border-danger/30">
+      <h3 className="font-semibold text-sm text-danger">Eliminar cuenta</h3>
       <p className="text-xs text-muted">
         Esto borra tu cuenta y tu perfil para siempre. Si ya tenés trabajos, pagos, mensajes o reseñas, no podemos
         borrarla automáticamente: escribinos a soporte para darla de baja.
@@ -35,7 +35,7 @@ export function DeleteAccountForm({ hasPassword }: { hasPassword: boolean }) {
 
       <div className="flex gap-2 pt-1">
         <button type="button" onClick={() => setOpen(false)} className="btn-ghost flex-1">Cancelar</button>
-        <SubmitButton pending={pending} pendingLabel="Eliminando…" className="flex-1 !py-2.5 !bg-red-600">
+        <SubmitButton pending={pending} pendingLabel="Eliminando…" className="flex-1 !py-2.5 !bg-danger">
           Sí, eliminar mi cuenta
         </SubmitButton>
       </div>

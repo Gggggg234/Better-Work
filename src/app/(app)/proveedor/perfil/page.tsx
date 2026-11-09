@@ -155,7 +155,7 @@ export default async function SupplierProfileForm({ searchParams }: { searchPara
           </div>
         </Block>
 
-        <Block title="Cobro" hint="El comprador te paga directo, al retirar o al recibir. Better Work no cobra comisión por venta.">
+        <Block title="Cobro" hint="El comprador te paga directo, al retirar o al recibir. Manobra no cobra comisión por venta.">
           <div className="flex flex-wrap gap-2">
             {SUPPLY_PAY_METHODS.map((m) => (
               <label key={m} className="chip !py-1.5 has-[:checked]:border-fg has-[:checked]:bg-fg has-[:checked]:text-bg">

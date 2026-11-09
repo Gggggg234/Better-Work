@@ -27,7 +27,7 @@ export function StatusTimeline({ status }: { status: string }) {
               className={`relative z-10 w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] ${
                 done
                   ? status === "COMPLETED"
-                    ? "bg-success border-success text-white"
+                    ? "bg-fg border-fg text-bg"
                     : "bg-accent border-accent text-accent-fg"
                   : "bg-surface border-line"
               }`}

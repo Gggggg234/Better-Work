@@ -21,7 +21,7 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
     ? {
         icon: "✓",
         title: "¡Email confirmado!",
-        text: "Tu cuenta ya está activa. Iniciá sesión para empezar a usar Better Work.",
+        text: "Tu cuenta ya está activa. Iniciá sesión para empezar a usar Manobra.",
         cta: { href: "/login", label: "Iniciar sesión" },
       }
     : result.reason === "expired"
@@ -47,7 +47,7 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
             result.ok ? "bg-fg text-bg" : "bg-surface-2 text-fg border border-line"
           }`}
         >
-          {view.icon}
+          <span className="grayscale">{view.icon}</span>
         </div>
         <h1 className="text-2xl font-bold mt-5">{view.title}</h1>
         <p className="text-sm text-muted mt-2">{view.text}</p>

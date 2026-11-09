@@ -13,7 +13,7 @@ export function VerifiedBadge() {
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full bg-accent-2/12 px-2 py-0.5 text-[11px] font-bold text-accent-2"
-      title="Identidad verificada por Better Work"
+      title="Identidad verificada por Manobra"
     >
       <BadgeCheck className="w-3.5 h-3.5" aria-hidden />
       Verificado
@@ -21,12 +21,12 @@ export function VerifiedBadge() {
   );
 }
 
-/** Better Work Pro (suscripción del profesional). */
+/** Manobra Pro (suscripción del profesional). */
 export function ProBadge() {
   return (
     <span
-      className="inline-flex items-center gap-0.5 rounded-full bg-brand px-2 py-0.5 text-[10px] font-extrabold tracking-wide text-white"
-      title="Profesional con Better Work Pro"
+      className="inline-flex items-center gap-0.5 rounded-full bg-brand px-2 py-0.5 text-[10px] font-extrabold tracking-wide text-brand-fg"
+      title="Profesional con Manobra Pro"
     >
       <Sparkles className="w-3 h-3" aria-hidden />
       PRO

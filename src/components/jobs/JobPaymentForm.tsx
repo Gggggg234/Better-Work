@@ -29,7 +29,7 @@ function Submit({ mpReady, amount }: { mpReady: boolean; amount: number }) {
 /**
  * Pago del trabajo con dinero retenido (escrow).
  *
- * Better Work retiene el pago y se lo libera al profesional recién cuando el
+ * Manobra retiene el pago y se lo libera al profesional recién cuando el
  * cliente confirma el código de finalización. Con Mercado Pago configurado, el
  * botón lleva al checkout; sin credenciales, el proveedor simulado retiene al
  * instante para poder probar el flujo.
@@ -72,7 +72,7 @@ export function PayButton({
         {feeWaived ? (
           <div className="flex justify-between">
             <dt className="text-muted">Tarifa de servicio</dt>
-            <dd>🎁 Bonificada</dd>
+            <dd>Bonificada</dd>
           </div>
         ) : (
           b.serviceFee > 0 && (
@@ -89,7 +89,7 @@ export function PayButton({
       </dl>
       <p className="text-sm text-muted mt-2">
         {workerName} aceptó el trabajo. Al pagar, el dinero queda <strong className="text-fg">retenido por
-        Better Work</strong> y se le libera <strong className="text-fg">recién cuando vos confirmes</strong> que el
+        Manobra</strong> y se le libera <strong className="text-fg">recién cuando vos confirmes</strong> que el
         trabajo terminó.
       </p>
 

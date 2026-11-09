@@ -14,6 +14,7 @@
   --color-accent: var(--accent);
   --color-accent-2: var(--accent-2);
   --color-accent-fg: var(--accent-fg);
+  --color-brand-fg: var(--brand-fg);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
@@ -21,93 +22,100 @@
 }
 
 /*
- * Identidad: índigo eléctrico → azul. El degradé de marca se usa en la acción
+ * Identidad: blanco y negro, con el brillo metálico del logo. El degradé se usa en la acción
  * principal de cada pantalla, en los encabezados y en lo "premium" (Pro).
  */
 :root {
-  --bg: #f5f6fb;
+  --bg: #f6f6f6;
   --surface: #ffffff;
-  --surface-2: #eef0f7;
-  --fg: #0e1121;
-  --muted: #5a607a;
-  --faint: #959ab0;
-  --line: #e2e5ef;
-  --accent: #4f46e5;
-  --accent-2: #2563eb;
+  --surface-2: #efefef;
+  --fg: #0a0a0a;
+  --muted: #5c5c5c;
+  --faint: #979797;
+  --line: #e3e3e3;
+  --accent: #0a0a0a;
+  --accent-2: #0a0a0a;
   --accent-fg: #ffffff;
-  --success: #0f9d58;
-  --warning: #c2680a;
-  --danger: #e11d48;
-  --gold: #d97706;
-  --brand: linear-gradient(135deg, #6d5efc 0%, #4f46e5 45%, #2563eb 100%);
-  --hero: radial-gradient(120% 120% at 100% 0%, #3b82f6 0%, transparent 55%),
-    radial-gradient(90% 90% at 0% 100%, #7c3aed 0%, transparent 60%), linear-gradient(135deg, #312e81, #1e3a8a);
-  --shadow: 0 1px 2px rgba(17, 24, 64, 0.04), 0 8px 24px -12px rgba(17, 24, 64, 0.12);
-  --shadow-lg: 0 2px 6px rgba(17, 24, 64, 0.06), 0 24px 48px -16px rgba(17, 24, 64, 0.22);
-  --glow: 0 10px 24px -8px rgba(79, 70, 229, 0.55);
+  --success: #0a0a0a;
+  --warning: #4a4a4a;
+  --danger: #0a0a0a;
+  --gold: #0a0a0a;
+  --brand-fg: #ffffff;
+  --brand: linear-gradient(135deg, #2e2e2e 0%, #0a0a0a 60%, #000000 100%);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.06), 0 24px 48px -16px rgba(0, 0, 0, 0.24);
+  --glow: 0 10px 24px -10px rgba(0, 0, 0, 0.5);
+  --hero: radial-gradient(120% 120% at 100% 0%, #3d3d3d 0%, transparent 55%),
+    radial-gradient(90% 90% at 0% 100%, #262626 0%, transparent 60%), linear-gradient(135deg, #141414, #000000);
 }
 
 /* Modo automático: seguir el sistema salvo que el usuario force claro */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0a0b14;
-    --surface: #131521;
-    --surface-2: #1b1e2d;
-    --fg: #f1f2f8;
-    --muted: #a2a7bd;
-    --faint: #6c7189;
-    --line: #262a3d;
-    --accent: #8b85ff;
-    --accent-2: #60a5fa;
-    --accent-fg: #ffffff;
-    --success: #34d399;
-    --warning: #fbbf24;
-    --danger: #fb7185;
-    --gold: #fbbf24;
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface-2: #1f1f1f;
+    --fg: #fafafa;
+    --muted: #a6a6a6;
+    --faint: #6e6e6e;
+    --line: #2b2b2b;
+    --accent: #fafafa;
+    --accent-2: #fafafa;
+    --accent-fg: #0a0a0a;
+    --success: #fafafa;
+    --warning: #bdbdbd;
+    --danger: #fafafa;
+    --gold: #fafafa;
+    --brand-fg: #0a0a0a;
+    --brand: linear-gradient(135deg, #ffffff 0%, #e4e4e4 55%, #b8b8b8 100%);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 28px -14px rgba(0, 0, 0, 0.7);
     --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 28px 56px -18px rgba(0, 0, 0, 0.85);
-    --glow: 0 10px 28px -10px rgba(139, 133, 255, 0.6);
+    --glow: 0 10px 28px -12px rgba(255, 255, 255, 0.28);
   }
 }
 
 /* Overrides explícitos del usuario */
 :root[data-theme="dark"] {
-  --bg: #0a0b14;
-  --surface: #131521;
-  --surface-2: #1b1e2d;
-  --fg: #f1f2f8;
-  --muted: #a2a7bd;
-  --faint: #6c7189;
-  --line: #262a3d;
-  --accent: #8b85ff;
-  --accent-2: #60a5fa;
-  --accent-fg: #ffffff;
-  --success: #34d399;
-  --warning: #fbbf24;
-  --danger: #fb7185;
-  --gold: #fbbf24;
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface-2: #1f1f1f;
+  --fg: #fafafa;
+  --muted: #a6a6a6;
+  --faint: #6e6e6e;
+  --line: #2b2b2b;
+  --accent: #fafafa;
+  --accent-2: #fafafa;
+  --accent-fg: #0a0a0a;
+  --success: #fafafa;
+  --warning: #bdbdbd;
+  --danger: #fafafa;
+  --gold: #fafafa;
+  --brand-fg: #0a0a0a;
+  --brand: linear-gradient(135deg, #ffffff 0%, #e4e4e4 55%, #b8b8b8 100%);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 28px -14px rgba(0, 0, 0, 0.7);
   --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 28px 56px -18px rgba(0, 0, 0, 0.85);
-  --glow: 0 10px 28px -10px rgba(139, 133, 255, 0.6);
+  --glow: 0 10px 28px -12px rgba(255, 255, 255, 0.28);
 }
 :root[data-theme="light"] {
-  --bg: #f5f6fb;
+  --bg: #f6f6f6;
   --surface: #ffffff;
-  --surface-2: #eef0f7;
-  --fg: #0e1121;
-  --muted: #5a607a;
-  --faint: #959ab0;
-  --line: #e2e5ef;
-  --accent: #4f46e5;
-  --accent-2: #2563eb;
+  --surface-2: #efefef;
+  --fg: #0a0a0a;
+  --muted: #5c5c5c;
+  --faint: #979797;
+  --line: #e3e3e3;
+  --accent: #0a0a0a;
+  --accent-2: #0a0a0a;
   --accent-fg: #ffffff;
-  --success: #0f9d58;
-  --warning: #c2680a;
-  --danger: #e11d48;
-  --gold: #d97706;
-  --shadow: 0 1px 2px rgba(17, 24, 64, 0.04), 0 8px 24px -12px rgba(17, 24, 64, 0.12);
-  --shadow-lg: 0 2px 6px rgba(17, 24, 64, 0.06), 0 24px 48px -16px rgba(17, 24, 64, 0.22);
-  --glow: 0 10px 24px -8px rgba(79, 70, 229, 0.55);
+  --success: #0a0a0a;
+  --warning: #4a4a4a;
+  --danger: #0a0a0a;
+  --gold: #0a0a0a;
+  --brand-fg: #ffffff;
+  --brand: linear-gradient(135deg, #2e2e2e 0%, #0a0a0a 60%, #000000 100%);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.06), 0 24px 48px -16px rgba(0, 0, 0, 0.24);
+  --glow: 0 10px 24px -10px rgba(0, 0, 0, 0.5);
 }
 
 body {
@@ -128,13 +136,15 @@ h3 {
 @layer components {
   /* Acción principal: degradé de marca con brillo de color */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none cursor-pointer text-white hover:brightness-110;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none cursor-pointer hover:brightness-110;
+    color: var(--brand-fg);
     background: var(--brand);
     box-shadow: var(--glow);
   }
   /* Igual que la principal (se mantiene el nombre por compatibilidad) */
   .btn-accent {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none cursor-pointer text-white hover:brightness-110;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none cursor-pointer hover:brightness-110;
+    color: var(--brand-fg);
     background: var(--brand);
     box-shadow: var(--glow);
   }
@@ -168,8 +178,10 @@ h3 {
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface text-fg px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap transition hover:border-accent/40 hover:text-accent cursor-pointer;
   }
-  .chip-active {
-    @apply border-transparent text-white hover:text-white;
+  .chip-active,
+  .chip-active:hover {
+    @apply border-transparent;
+    color: var(--brand-fg);
     background: var(--brand);
     box-shadow: var(--glow);
   }
@@ -259,11 +271,11 @@ h3 {
 }
 /* Mapa: el estilo de OSM es muy saturado; se calma para que no compita con la UI. */
 .leaflet-tile-pane {
-  filter: saturate(0.4) brightness(1.05) contrast(0.92);
+  filter: grayscale(1) brightness(1.05) contrast(0.92);
 }
 /* Modo oscuro del mapa: OSM no tiene estilo oscuro, se invierten los tiles. */
 .map-dark .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.86) saturate(0.5);
+  filter: grayscale(1) invert(1) brightness(0.9) contrast(0.86);
 }
 .leaflet-control-attribution {
   font-size: 9px !important;
@@ -294,7 +306,7 @@ h3 {
   border-radius: 9999px;
   padding: 3px;
   background: #fff;
-  box-shadow: 0 6px 16px -4px rgba(15, 17, 40, 0.45);
+  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.45);
 }
 .bw-pin-face {
   width: 100%;
@@ -305,7 +317,7 @@ h3 {
   justify-content: center;
   overflow: hidden;
   background: var(--brand);
-  color: #fff;
+  color: var(--brand-fg);
   font: 700 13px/1 var(--font-jakarta), system-ui, sans-serif;
 }
 .bw-pin-face img {
@@ -320,17 +332,18 @@ h3 {
   background: #fff;
   transform: rotate(45deg);
   border-radius: 2px;
-  box-shadow: 3px 3px 6px -2px rgba(15, 17, 40, 0.35);
+  box-shadow: 3px 3px 6px -2px rgba(0, 0, 0, 0.35);
 }
 .bw-pin--sponsored .bw-pin-head {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  background: #0a0a0a;
 }
 .bw-pin--sponsored .bw-pin-tail {
-  background: #f59e0b;
+  background: #0a0a0a;
 }
 .bw-pin--company .bw-pin-face {
-  background: #0e1121;
+  background: #0a0a0a;
   font-size: 16px;
+  filter: grayscale(1);
 }
 .bw-pin-star {
   position: absolute;
@@ -340,7 +353,7 @@ h3 {
   height: 18px;
   padding: 0 4px;
   border-radius: 9999px;
-  background: #0e1121;
+  background: #0a0a0a;
   color: #fff;
   font: 700 9px/18px var(--font-jakarta), system-ui, sans-serif;
   text-align: center;
@@ -351,16 +364,16 @@ h3 {
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  background: #2563eb;
+  background: #0a0a0a;
   border: 3px solid #fff;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.6);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 .bw-me::after {
   content: "";
   position: absolute;
   inset: -12px;
   border-radius: 9999px;
-  background: rgba(37, 99, 235, 0.22);
+  background: rgba(0, 0, 0, 0.22);
   animation: bw-pulse 2s ease-out infinite;
 }
 @keyframes bw-pulse {

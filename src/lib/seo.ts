@@ -286,11 +286,11 @@ const COPY: Record<string, TradeCopy> = {
   },
 };
 
-/** Preguntas comunes a todos los oficios (describen cómo funciona Better Work). */
+/** Preguntas comunes a todos los oficios (describen cómo funciona Manobra). */
 const SHARED_FAQ: Faq[] = [
   {
     q: "¿Cuánto cuesta?",
-    a: "Lo define cada profesional. Pedir es gratis: te pasan un presupuesto y lo podés aceptar, pedir cambios o rechazar. Better Work no te cobra nada por contratar.",
+    a: "Lo define cada profesional. Pedir es gratis: te pasan un presupuesto y lo podés aceptar, pedir cambios o rechazar. Manobra no te cobra nada por contratar.",
   },
   {
     q: "¿Cómo le pago al profesional?",

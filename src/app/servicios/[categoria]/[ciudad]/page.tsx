@@ -65,14 +65,14 @@ export default async function TradeCityPage({ params }: Props) {
             { label: city.name },
           ]}
         />
-        <p className="text-4xl mt-6" aria-hidden>{category.icon}</p>
+        <p className="text-4xl mt-6" aria-hidden><span className="grayscale">{category.icon}</span></p>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mt-2">
           {capitalize(copy.plural)} en {city.name}
         </h1>
         <p className="text-muted mt-3 max-w-xl">
           {workers.length === 1
-            ? `Hay 1 ${copy.singular} en ${city.name} en Better Work.`
-            : `Hay ${workers.length} ${copy.plural} en ${city.name} en Better Work.`}{" "}
+            ? `Hay 1 ${copy.singular} en ${city.name} en Manobra.`
+            : `Hay ${workers.length} ${copy.plural} en ${city.name} en Manobra.`}{" "}
           Contá qué necesitás, recibí el presupuesto y elegí con calificaciones reales.
         </p>
         <Link href="/register" className="btn-primary !px-6 !py-3 mt-6 inline-flex">Pedir presupuesto gratis</Link>

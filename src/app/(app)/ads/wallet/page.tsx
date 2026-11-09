@@ -64,17 +64,17 @@ export default async function WalletPage({
         </div>
       )}
       {sp.error && ERRORS[sp.error] && (
-        <div className="card p-4 mt-5 border-red-300" role="alert">
-          <p className="text-sm text-red-600">⚠ {ERRORS[sp.error]}</p>
+        <div className="card p-4 mt-5 border-danger/30" role="alert">
+          <p className="text-sm text-danger">⚠ {ERRORS[sp.error]}</p>
         </div>
       )}
 
       {/* Saldo */}
-      <div className="relative overflow-hidden rounded-[22px] p-6 mt-5 bg-brand text-white shadow-glow">
+      <div className="relative overflow-hidden rounded-[22px] p-6 mt-5 bg-brand text-brand-fg shadow-glow">
         <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/15 blur-2xl" aria-hidden />
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/70">Saldo disponible</p>
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-fg/70">Saldo disponible</p>
         <p className="text-4xl font-extrabold tracking-tight mt-1">{formatMoney(wallet.balance)}</p>
-        <p className="text-xs text-white/70 mt-2">Invertido en campañas: {formatMoney(wallet.spent)}</p>
+        <p className="text-xs text-brand-fg/70 mt-2">Invertido en campañas: {formatMoney(wallet.spent)}</p>
       </div>
 
       {/* Carga al instante con Mercado Pago */}

@@ -36,7 +36,7 @@ export default async function AdminPostsPage() {
         <h2 className="font-semibold mb-2">Denunciadas ({reported.length})</h2>
         <div className="space-y-3">
           {reported.map((p) => (
-            <div key={p.id} className="card p-4 border-red-200">
+            <div key={p.id} className="card p-4 border-danger/30">
               <div className="flex items-center gap-2.5">
                 <Avatar name={p.author.name} url={p.author.avatarUrl} size={34} />
                 <div className="flex-1 min-w-0">
@@ -49,7 +49,7 @@ export default async function AdminPostsPage() {
               <div className="mt-2 space-y-1">
                 {p.reports.map((r) => (
                   <div key={r.id} className="flex items-center justify-between text-xs">
-                    <span className="text-muted">🚩 {r.reason} — {r.reporter.name}</span>
+                    <span className="text-muted">{r.reason} — {r.reporter.name}</span>
                     <div className="flex gap-1.5">
                       <form action={resolvePostReport.bind(null, r.id, "DISMISSED" as const)}>
                         <button className="btn-ghost !py-1 !px-2 !text-[11px]">Descartar</button>
@@ -66,13 +66,13 @@ export default async function AdminPostsPage() {
                   <button className="btn-secondary !py-1.5 !px-2.5 !text-xs">{p.hidden ? "Mostrar" : "Ocultar"}</button>
                 </form>
                 <form action={adminDeletePost.bind(null, p.id)}>
-                  <button className="btn-ghost !py-1.5 !px-2.5 !text-xs text-red-600">Eliminar</button>
+                  <button className="btn-ghost !py-1.5 !px-2.5 !text-xs text-danger">Eliminar</button>
                 </form>
               </div>
             </div>
           ))}
           {reported.length === 0 && (
-            <div className="card p-6 text-center text-sm text-faint">No hay publicaciones denunciadas. 🎉</div>
+            <div className="card p-6 text-center text-sm text-faint">No hay publicaciones denunciadas.</div>
           )}
         </div>
       </section>
@@ -92,7 +92,7 @@ export default async function AdminPostsPage() {
                   <button className="btn-ghost !py-1.5 !px-2.5 !text-xs">{p.hidden ? "Mostrar" : "Ocultar"}</button>
                 </form>
                 <form action={adminDeletePost.bind(null, p.id)}>
-                  <button className="btn-ghost !py-1.5 !px-2.5 !text-xs text-red-600">Eliminar</button>
+                  <button className="btn-ghost !py-1.5 !px-2.5 !text-xs text-danger">Eliminar</button>
                 </form>
               </div>
             </div>

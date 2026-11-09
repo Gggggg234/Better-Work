@@ -32,7 +32,7 @@ export default async function NewOfferPage() {
             <select name="categoryId" className="input">
               <option value="">Sin categoría</option>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>

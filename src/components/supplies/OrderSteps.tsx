@@ -32,7 +32,7 @@ export function OrderSteps({ status, delivery }: { status: string; delivery: str
             )}
             <span
               className={`relative z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                reached ? (done ? "bg-success border-success text-white" : "bg-accent border-accent text-accent-fg") : "bg-surface border-line"
+                reached ? (done ? "bg-fg border-fg text-bg" : "bg-accent border-accent text-accent-fg") : "bg-surface border-line"
               }`}
             >
               {reached && <Check className="w-3.5 h-3.5" strokeWidth={3} aria-hidden />}

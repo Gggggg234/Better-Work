@@ -46,7 +46,7 @@ export default async function OfferDetailPage({ params }: { params: Promise<{ id
         <div className="p-4 flex justify-between text-sm"><span className="text-muted">Modalidad</span><span className="font-medium">{offer.modality}</span></div>
         <div className="p-4 flex justify-between text-sm"><span className="text-muted">Salario</span><span className="font-medium">{offer.salary ?? "A convenir"}</span></div>
         {offer.category && (
-          <div className="p-4 flex justify-between text-sm"><span className="text-muted">Categoría</span><span className="font-medium">{offer.category.icon} {offer.category.name}</span></div>
+          <div className="p-4 flex justify-between text-sm"><span className="text-muted">Categoría</span><span className="font-medium"><span className="grayscale">{offer.category.icon}</span> {offer.category.name}</span></div>
         )}
         <div className="p-4 flex justify-between text-sm"><span className="text-muted">Publicado</span><span className="font-medium">{formatDate(offer.createdAt)}</span></div>
       </div>

@@ -23,7 +23,7 @@ export function Field({
       {children}
       {hint && !error && <p className="text-xs text-faint mt-1">{hint}</p>}
       {error && (
-        <p id={`${name}-error`} className="text-xs text-red-600 mt-1 flex items-start gap-1">
+        <p id={`${name}-error`} className="text-xs text-danger mt-1 flex items-start gap-1">
           <span aria-hidden>⚠</span> {error}
         </p>
       )}
@@ -38,7 +38,7 @@ export function Notice({ kind, children }: { kind: "error" | "ok"; children: Rea
       role={kind === "error" ? "alert" : "status"}
       className={`rounded-xl px-3.5 py-3 text-sm flex items-start gap-2 ${
         kind === "error"
-          ? "bg-red-500/10 text-red-700 dark:text-red-400"
+          ? "bg-danger/10 text-danger dark:text-danger"
           : "bg-fg text-bg"
       }`}
     >
@@ -169,7 +169,7 @@ export function VerificationNotice({
 }) {
   return (
     <div className="card p-5 mt-6 text-center">
-      <div className="w-12 h-12 rounded-2xl bg-surface-2 mx-auto flex items-center justify-center text-xl">✉️</div>
+      <div className="w-12 h-12 rounded-2xl bg-surface-2 mx-auto flex items-center justify-center text-xl"><span className="grayscale">✉️</span></div>
       <p className="font-semibold mt-3">Confirmá tu email</p>
       <p className="text-sm text-muted mt-1">
         Te enviamos un enlace{email ? <> a <span className="text-fg font-medium">{email}</span></> : null}. Abrilo para

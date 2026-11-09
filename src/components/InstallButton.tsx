@@ -104,7 +104,7 @@ export function InstallButton({ className = "" }: { className?: string }) {
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
                 {PLATFORM_ICON[help.platform] && (
-                  <span className="text-xl shrink-0" aria-hidden>{PLATFORM_ICON[help.platform]}</span>
+                  <span className="text-xl shrink-0 grayscale" aria-hidden>{PLATFORM_ICON[help.platform]}</span>
                 )}
                 <p className="font-semibold">{help.title}</p>
               </div>
@@ -119,7 +119,7 @@ export function InstallButton({ className = "" }: { className?: string }) {
             </div>
 
             {help.inApp && (
-              <p className="text-xs text-red-600 mt-2">{help.note}</p>
+              <p className="text-xs text-danger mt-2">{help.note}</p>
             )}
 
             <ol className="mt-4 space-y-3">

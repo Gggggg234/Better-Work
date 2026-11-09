@@ -67,7 +67,7 @@ export function ThemeToggle() {
             theme === o.value ? "border-fg bg-fg text-bg" : "border-line bg-surface text-muted hover:border-fg/40"
           }`}
         >
-          <span className="block text-base">{o.icon}</span>
+          <span className="block text-base"><span className="grayscale">{o.icon}</span></span>
           {o.label}
         </button>
       ))}

@@ -51,7 +51,7 @@ export default async function SupplierOrdersPage({ searchParams }: { searchParam
             >
               {TABS[k].label}
               {n > 0 && k !== "finalizados" && (
-                <span className={`min-w-5 h-5 px-1 rounded-full text-[11px] font-bold leading-5 text-center ${k === "nuevos" ? "bg-warning text-white" : "bg-accent/15 text-accent"}`}>
+                <span className={`min-w-5 h-5 px-1 rounded-full text-[11px] font-bold leading-5 text-center ${k === "nuevos" ? "bg-fg text-bg" : "bg-accent/15 text-accent"}`}>
                   {n}
                 </span>
               )}

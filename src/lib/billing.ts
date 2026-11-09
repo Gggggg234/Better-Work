@@ -5,7 +5,7 @@ import { notify } from "@/lib/notify";
 import * as mp from "@/lib/payments/mercadopago";
 
 /**
- * Cobros de la plataforma con Mercado Pago: Better Work Pro, membresías de
+ * Cobros de la plataforma con Mercado Pago: Manobra Pro, membresías de
  * empresa y carga de la billetera de publicidad.
  *
  * Dos formas de pagar:
@@ -87,7 +87,7 @@ async function approveAndApply(paymentId: string, mpPaymentId?: string): Promise
     await db.promotion.create({ data: { userId: p.userId, kind: "WORKER_PRO", refId: "pro", days: p.days, amount: p.amount } });
     if (until) await sendProApprovedEmail(p.user.email, until).catch(() => {});
     await notify(p.userId, {
-      title: "⭐ ¡Ya sos Pro!",
+      title: "¡Ya sos Pro!",
       body: "Recibimos tu pago. Ya aparecés más arriba y mandás presupuestos sin límite.",
       url: "/pro",
     }).catch(() => {});

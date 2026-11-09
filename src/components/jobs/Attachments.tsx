@@ -37,7 +37,7 @@ export function Attachments({ items, title = "Adjuntos de la solicitud" }: { ite
               rel="noreferrer"
               className="aspect-square rounded-xl border border-line flex flex-col items-center justify-center gap-1 p-2 text-center hover:bg-surface-2 transition"
             >
-              <span className="text-2xl" aria-hidden>📄</span>
+              <span className="text-2xl" aria-hidden><span className="grayscale">📄</span></span>
               <span className="text-[10px] text-muted truncate w-full">{a.name}</span>
             </a>
           )

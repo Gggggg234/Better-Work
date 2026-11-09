@@ -31,13 +31,13 @@ export default async function ChatListPage() {
             last?.type === "TEXT"
               ? last.content
               : last?.type === "IMAGE"
-                ? "🖼 Imagen"
+                ? "Imagen"
                 : last?.type === "LOCATION"
-                  ? "📍 Ubicación"
+                  ? "Ubicación"
                   : last?.type === "BUDGET"
-                    ? "💰 Presupuesto"
+                    ? "Presupuesto"
                     : last?.type === "FILE"
-                      ? "📎 Archivo"
+                      ? "Archivo"
                       : "Nueva conversación";
           return (
             <Link key={c.id} href={`/chat/${c.id}`} className="card p-4 flex items-center gap-3.5 hover:shadow-md transition">

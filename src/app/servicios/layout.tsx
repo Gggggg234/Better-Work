@@ -17,7 +17,7 @@ export default function ServiciosLayout({ children }: { children: React.ReactNod
 
       <footer className="border-t border-line mt-16">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 flex flex-wrap items-center justify-between gap-3 text-xs text-faint">
-          <p>Better Work — Conectando personas con profesionales.</p>
+          <p>Manobra — Conectando personas con profesionales.</p>
           <nav className="flex gap-4">
             <Link href="/servicios" className="hover:text-fg">Todos los servicios</Link>
             <Link href="/register?rol=trabajador" className="hover:text-fg">Trabajá con nosotros</Link>

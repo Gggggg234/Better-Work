@@ -2,9 +2,9 @@ import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 
 /**
- * Better Work Pro: suscripción mensual de los profesionales.
+ * Manobra Pro: suscripción mensual de los profesionales.
  *
- * Con pago directo entre cliente y profesional, Better Work no gana por
+ * Con pago directo entre cliente y profesional, Manobra no gana por
  * trabajo: gana por suscripciones (Pro y membresías de empresa) y publicidad.
  * Pro se paga por transferencia con comprobante, como las membresías.
  *

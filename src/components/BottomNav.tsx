@@ -80,7 +80,7 @@ export function BottomNav({ items, onboarding = false }: { items: NavItem[]; onb
             >
               <span
                 className={`flex items-center justify-center h-8 w-12 rounded-full transition-all duration-200 ${
-                  isActive ? "bg-brand text-white shadow-glow scale-105" : ""
+                  isActive ? "bg-brand text-brand-fg shadow-glow scale-105" : ""
                 }`}
               >
                 <Icon className="w-[19px] h-[19px]" strokeWidth={isActive ? 2.5 : 2} aria-hidden />

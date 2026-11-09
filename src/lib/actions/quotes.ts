@@ -76,7 +76,7 @@ export async function acceptQuote(jobId: string, quoteId: string): Promise<void>
   ]);
   after(() =>
     notify(job.workerId, {
-      title: `🎉 ${user.name.split(" ")[0]} aceptó tu presupuesto`,
+      title: `${user.name.split(" ")[0]} aceptó tu presupuesto`,
       body: job.title,
       url: `/jobs/${jobId}`,
     })

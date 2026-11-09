@@ -18,12 +18,12 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       {/* Marca */}
       <section className="relative overflow-hidden bg-hero text-white">
         <div className="absolute inset-0 bg-dots opacity-60" aria-hidden />
-        <div className="absolute -right-20 -bottom-24 w-80 h-80 rounded-full bg-fuchsia-400/25 blur-3xl" aria-hidden />
+        <div className="absolute -right-20 -bottom-24 w-80 h-80 rounded-full bg-white/10 blur-3xl" aria-hidden />
         <div className="relative px-6 pt-8 pb-20 lg:p-14 lg:h-full lg:flex lg:flex-col lg:justify-between max-w-xl">
           <Link href="/" className="inline-flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="" className="w-9 h-9 rounded-[22%] ring-2 ring-white/30" />
-            <span className="text-lg font-extrabold tracking-tight">Better Work</span>
+            <span className="text-lg font-extrabold tracking-tight">Manobra</span>
           </Link>
           <div className="mt-8 lg:mt-0">
             <h2 className="text-[28px] lg:text-5xl leading-[1.08] font-extrabold tracking-tight">
@@ -40,7 +40,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
               ))}
             </ul>
           </div>
-          <p className="hidden lg:block text-xs text-white/50">© Better Work · Hecho en Argentina</p>
+          <p className="hidden lg:block text-xs text-white/50">© Manobra · Hecho en Argentina</p>
         </div>
       </section>
 

@@ -42,19 +42,19 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
       </div>
 
       {sp.error === "saldo" && (
-        <div className="card p-4 mb-3 border-red-300" role="alert">
-          <p className="text-sm text-red-600">⚠ No te alcanza el saldo para ese presupuesto.</p>
+        <div className="card p-4 mb-3 border-danger/30" role="alert">
+          <p className="text-sm text-danger">⚠ No te alcanza el saldo para ese presupuesto.</p>
           <p className="text-xs text-muted mt-0.5">Cargá saldo o bajá el presupuesto de la campaña.</p>
         </div>
       )}
       {sp.error === "presupuesto" && (
-        <p className="text-sm text-red-600 mb-3">⚠ El presupuesto es menor al mínimo.</p>
+        <p className="text-sm text-danger mb-3">⚠ El presupuesto es menor al mínimo.</p>
       )}
-      {sp.error === "datos" && <p className="text-sm text-red-600 mb-3">⚠ Revisá los datos de la campaña.</p>}
+      {sp.error === "datos" && <p className="text-sm text-danger mb-3">⚠ Revisá los datos de la campaña.</p>}
 
       {wallet.balance < rules.minBudget ? (
         <div className="card p-6 text-center">
-          <p className="text-2xl">💳</p>
+          <p className="text-2xl"><span className="grayscale">💳</span></p>
           <p className="font-semibold mt-2">Necesitás saldo para crear una campaña</p>
           <p className="text-sm text-muted mt-1">
             El presupuesto se descuenta de tu billetera de publicidad. El mínimo por campaña es{" "}

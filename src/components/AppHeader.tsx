@@ -7,7 +7,7 @@ import { Avatar } from "@/components/Avatar";
 function CountBadge({ n }: { n: number }) {
   if (n <= 0) return null;
   return (
-    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-danger text-white text-[10px] font-bold leading-[18px] text-center ring-2 ring-surface">
+    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-fg text-bg text-[10px] font-bold leading-[18px] text-center ring-2 ring-surface">
       {n > 9 ? "9+" : n}
     </span>
   );

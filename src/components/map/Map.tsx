@@ -75,7 +75,7 @@ function icon(m: Pick<MapMarker, "kind" | "label" | "avatarUrl" | "rating" | "ra
   }
   if (m.kind === "job") {
     return L.divIcon({
-      html: `<div class="bw-pin"><div class="bw-pin-head"><div class="bw-pin-face">📍</div></div><div class="bw-pin-tail"></div></div>`,
+      html: `<div class="bw-pin"><div class="bw-pin-head"><div class="bw-pin-face"><span style="filter:grayscale(1)">📍</span></div></div><div class="bw-pin-tail"></div></div>`,
       className: "",
       iconSize: [42, 50],
       iconAnchor: [21, 50],

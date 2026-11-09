@@ -30,7 +30,7 @@ export default async function ServiciosPage() {
       <section className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {trades.map((t) => (
           <Link key={t.slug} href={`/servicios/${t.slug}`} className="card p-4 hover:border-fg transition">
-            <span className="text-2xl" aria-hidden>{t.icon}</span>
+            <span className="text-2xl" aria-hidden><span className="grayscale">{t.icon}</span></span>
             <h2 className="font-semibold text-sm mt-2">{t.name}</h2>
             <p className="text-xs text-faint mt-0.5">
               {t.workers > 0 ? `${t.workers} ${t.workers === 1 ? "profesional" : "profesionales"}` : "Sumando profesionales"}

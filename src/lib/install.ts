@@ -39,7 +39,7 @@ export function detectInstall(): InstallInfo {
       platform,
       inApp: true,
       installable: false,
-      title: "Abrí Better Work en tu navegador",
+      title: "Abrí Manobra en tu navegador",
       steps: [
         "Estás viendo esto dentro de otra app (Instagram, Facebook, etc.).",
         isIOS
@@ -87,7 +87,7 @@ export function detectInstall(): InstallInfo {
     title: "Instalar en tu computadora",
     steps: [
       "Mirá el borde derecho de la barra de direcciones: tocá el ícono de instalar (una pantalla con una flecha).",
-      "O abrí el menú del navegador (⋮) y elegí “Instalar Better Work”.",
+      "O abrí el menú del navegador (⋮) y elegí “Instalar Manobra”.",
       "Confirmá con “Instalar”.",
     ],
     note: "Funciona en Chrome, Edge y otros navegadores compatibles.",

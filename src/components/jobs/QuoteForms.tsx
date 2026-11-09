@@ -40,14 +40,14 @@ export function SendQuoteForm({
         <p className="text-xs text-muted mt-0.5">
           El cliente lo va a poder aceptar, rechazar o pedirte cambios. El precio no es automático: lo ponés vos.{" "}
           {escrow
-            ? `Al terminar cobrás el presupuesto menos la comisión de Better Work (${commissionPct}%).`
-            : "El cliente te paga directo al terminar: Better Work no cobra comisión."}
+            ? `Al terminar cobrás el presupuesto menos la comisión de Manobra (${commissionPct}%).`
+            : "El cliente te paga directo al terminar: Manobra no cobra comisión."}
         </p>
       </div>
 
       {urgencyPct > 0 && (
         <div className="rounded-xl bg-fg text-bg p-3">
-          <p className="text-sm font-semibold">🚨 Pedido urgente</p>
+          <p className="text-sm font-semibold">Pedido urgente</p>
           <p className="text-xs text-bg/70 mt-0.5">
             El cliente lo necesita ya. A tu presupuesto se le suma un {urgencyPct}% extra para vos.
           </p>
@@ -127,7 +127,7 @@ export function QuoteReview({
               Pedir cambios
             </button>
             <form action={rejectQuote.bind(null, jobId, quote.id)} className="flex-1 flex">
-              <button className="btn-ghost flex-1 !py-2.5 !text-sm text-red-600">Rechazar</button>
+              <button className="btn-ghost flex-1 !py-2.5 !text-sm text-danger">Rechazar</button>
             </form>
           </div>
         </div>
@@ -158,7 +158,7 @@ export function QuoteReview({
                 b.serviceFee > 0 ? ` + ${formatMoney(b.serviceFee)} de tarifa de servicio` : ""
               })`
             : ""}
-          , que queda retenido por Better Work hasta que confirmes el final del trabajo.
+          , que queda retenido por Manobra hasta que confirmes el final del trabajo.
         </p>
       ) : (
         <p className="text-[11px] text-faint mt-3">

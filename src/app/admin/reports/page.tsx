@@ -53,7 +53,7 @@ export default async function AdminReportsPage() {
           </div>
         ))}
         {reports.length === 0 && (
-          <div className="card p-8 text-center text-sm text-faint">No hay denuncias. 🎉</div>
+          <div className="card p-8 text-center text-sm text-faint">No hay denuncias.</div>
         )}
       </div>
     </div>

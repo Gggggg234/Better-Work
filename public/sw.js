@@ -1,6 +1,6 @@
 // Service worker mínimo: cache de shell para que la PWA sea instalable
 // y responda offline con lo básico.
-const CACHE = "bw-v2";
+const CACHE = "bw-v3";
 const SHELL = ["/", "/manifest.json", "/logo.png", "/icon-192.png"];
 
 self.addEventListener("install", (e) => {
@@ -21,10 +21,10 @@ self.addEventListener("push", (e) => {
   try {
     data = e.data ? e.data.json() : {};
   } catch {
-    data = { title: "Better Work", body: e.data ? e.data.text() : "" };
+    data = { title: "Manobra", body: e.data ? e.data.text() : "" };
   }
   e.waitUntil(
-    self.registration.showNotification(data.title || "Better Work", {
+    self.registration.showNotification(data.title || "Manobra", {
       body: data.body || "",
       icon: "/icon-192.png",
       badge: "/icon-192.png",

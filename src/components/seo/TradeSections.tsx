@@ -72,8 +72,8 @@ export function JoinCta({ singular, place }: { singular: string; place?: string 
     <section className="card p-5 sm:p-6 bg-fg text-bg !border-fg">
       <h2 className="text-lg font-bold">¿Sos {singular}?</h2>
       <p className="text-sm text-bg/70 mt-1">
-        Sumate gratis a Better Work y recibí pedidos de clientes{place ? ` de ${place}` : " de tu zona"}. Pasás tu
-        propio presupuesto y el cliente te paga directo: Better Work no te cobra comisión por trabajo.
+        Sumate gratis a Manobra y recibí pedidos de clientes{place ? ` de ${place}` : " de tu zona"}. Pasás tu
+        propio presupuesto y el cliente te paga directo: Manobra no te cobra comisión por trabajo.
       </p>
       <Link href="/register?rol=trabajador" className="btn-secondary mt-4 inline-flex">
         Quiero recibir trabajos

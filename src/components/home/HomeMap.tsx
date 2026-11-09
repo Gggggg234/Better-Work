@@ -190,7 +190,7 @@ export function HomeMap({
               }}
               className={`chip shadow-soft !py-1.5 ${category === c.slug ? "chip-active" : "glass"}`}
             >
-              <span aria-hidden>{c.icon}</span> {c.name}
+              <span aria-hidden><span className="grayscale">{c.icon}</span></span> {c.name}
             </button>
           ))}
         </div>
@@ -265,7 +265,7 @@ export function PinPreview({ m, onClose }: { m: MapMarker; onClose: () => void }
     <div className="card !rounded-3xl p-4 shadow-float">
       <div className="flex items-start gap-3.5">
         {company ? (
-          <span className="w-14 h-14 rounded-2xl bg-fg text-bg flex items-center justify-center text-2xl shrink-0">🏢</span>
+          <span className="w-14 h-14 rounded-2xl bg-fg text-bg flex items-center justify-center text-2xl shrink-0"><span className="grayscale">🏢</span></span>
         ) : (
           <Avatar name={m.label} url={m.avatarUrl} size={56} className="!rounded-2xl" />
         )}
@@ -273,7 +273,7 @@ export function PinPreview({ m, onClose }: { m: MapMarker; onClose: () => void }
           <div className="flex items-center gap-1.5">
             <p className="font-extrabold truncate">{m.label}</p>
             {m.pro && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-brand px-1.5 py-px text-[10px] font-extrabold text-white">
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-brand px-1.5 py-px text-[10px] font-extrabold text-brand-fg">
                 <Sparkles className="w-2.5 h-2.5" aria-hidden /> PRO
               </span>
             )}

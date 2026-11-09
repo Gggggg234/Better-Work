@@ -25,7 +25,7 @@ function SubmitReceipt({ disabled }: { disabled: boolean }) {
 /**
  * Paso de pago del plan: se despliega al elegirlo para no llenar la pantalla
  * con tres formularios de subida a la vez. Sirve para las membresías de
- * empresa (por defecto) y para Better Work Pro (pasando su `action`).
+ * empresa (por defecto) y para Manobra Pro (pasando su `action`).
  */
 export function PlanCheckout({
   planKey,

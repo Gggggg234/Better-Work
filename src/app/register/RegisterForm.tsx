@@ -69,18 +69,18 @@ export function RegisterForm({
     <AuthShell>
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight">Creá tu cuenta</h1>
-        <p className="text-sm text-muted mt-1">Elegí cómo querés usar Better Work.</p>
+        <p className="text-sm text-muted mt-1">Elegí cómo querés usar Manobra.</p>
 
         {invitedBy && (
           <div className="card p-4 mt-5 bg-fg text-bg !border-fg">
-            <p className="text-sm font-semibold">🎁 {invitedBy} te invitó</p>
+            <p className="text-sm font-semibold">{invitedBy} te invitó</p>
             <p className="text-xs text-bg/70 mt-0.5">
               {escrow
                 ? role === "WORKER"
                   ? "Tu primer trabajo va sin comisión."
                   : "Tu primer trabajo va sin tarifa de servicio."
                 : role === "WORKER"
-                  ? "Arrancás con 14 días de Better Work Pro gratis."
+                  ? "Arrancás con 14 días de Manobra Pro gratis."
                   : "Encontrá profesionales de confianza cerca tuyo."}
             </p>
           </div>
@@ -110,7 +110,7 @@ export function RegisterForm({
                 </button>
               ))}
             </div>
-            {state?.fields?.role && <p className="text-xs text-red-600 mt-1">⚠ {state.fields.role}</p>}
+            {state?.fields?.role && <p className="text-xs text-danger mt-1">⚠ {state.fields.role}</p>}
           </div>
 
           <Field

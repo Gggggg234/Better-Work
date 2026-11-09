@@ -15,7 +15,7 @@ export const PAYMENT_STATUS = {
 
 export const PAYMENT_LABEL: Record<string, string> = {
   PENDING: "Pago iniciado",
-  HELD: "Retenido por Better Work",
+  HELD: "Retenido por Manobra",
   RELEASED: "Liberado al profesional",
   REFUNDED: "Devuelto al cliente",
 };
@@ -58,16 +58,16 @@ export type PriceBreakdown = {
   price: number; //       presupuesto acordado
   surcharge: number; //   recargo por urgencia (va al profesional)
   workAmount: number; //  price + surcharge: lo que se retiene para el trabajo
-  serviceFee: number; //  tarifa de servicio que paga el cliente (Better Work)
+  serviceFee: number; //  tarifa de servicio que paga el cliente (Manobra)
   clientTotal: number; // lo que paga el cliente
-  commission: number; //  lo que Better Work descuenta al profesional
+  commission: number; //  lo que Manobra descuenta al profesional
   net: number; //         lo que cobra el profesional
 };
 
 /**
  * Desglose completo del cobro de un trabajo.
  *
- * Better Work gana por los dos lados: la tarifa de servicio que paga el cliente
+ * Manobra gana por los dos lados: la tarifa de servicio que paga el cliente
  * encima del trabajo y la comisión que se descuenta al profesional al liberar.
  * El recargo por urgencia es íntegro para el profesional (menos la comisión).
  */

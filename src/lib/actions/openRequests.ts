@@ -92,7 +92,7 @@ export async function createOpenRequest(formData: FormData): Promise<void> {
     await notify(
       targets.map((w) => w.userId),
       {
-        title: `${urgent ? "🚨 Urgente: n" : "N"}uevo pedido de ${category.name.toLowerCase()} cerca tuyo`,
+        title: `${urgent ? "Urgente: n" : "N"}uevo pedido de ${category.name.toLowerCase()} cerca tuyo`,
         body: `${title} · ${zone}`,
         url: `/pedidos/${req.id}`,
       }
@@ -233,7 +233,7 @@ export async function acceptBid(requestId: string, bidId: string): Promise<void>
 
   after(async () => {
     await notify(bid.workerId, {
-      title: "🎉 ¡Te eligieron!",
+      title: "¡Te eligieron!",
       body: `${req.title}. Entrá para ver la dirección y coordinar.`,
       url: `/jobs/${jobId}`,
     });
