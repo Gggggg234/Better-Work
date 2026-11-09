@@ -30,14 +30,15 @@ import { siteUrl } from "@/lib/mail";
 const API = "https://api.mercadopago.com";
 
 function token(): string {
-  const t = process.env.MP_ACCESS_TOKEN;
+  // Al pegarlo en Vercel es fácil arrastrar un espacio o un salto de línea, y eso rompe el encabezado.
+  const t = process.env.MP_ACCESS_TOKEN?.trim();
   if (!t) throw new Error("MP_ACCESS_TOKEN no está definido.");
   return t;
 }
 
 /** Con credenciales de prueba (TEST-...) se usa el checkout de sandbox. */
 function isSandbox(): boolean {
-  return (process.env.MP_ACCESS_TOKEN ?? "").startsWith("TEST-");
+  return (process.env.MP_ACCESS_TOKEN ?? "").trim().startsWith("TEST-");
 }
 
 async function mpFetch(path: string, init?: RequestInit): Promise<Response> {
@@ -170,11 +171,32 @@ export type MpPreapproval = {
   summarized?: { charged_quantity?: number | null; last_charged_date?: string | null } | null;
 };
 
+/** Rechazo de la API, con el código que explica por qué. */
+export class MpApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    public detail: string,
+    path: string
+  ) {
+    super(`Mercado Pago respondió ${status} en ${path}. ${code} ${detail}`.trim());
+  }
+}
+
 async function mpJson<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await mpFetch(path, init);
   if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`Mercado Pago respondió ${res.status} en ${path}. ${detail.slice(0, 300)}`);
+    const text = await res.text().catch(() => "");
+    let code = "";
+    let detail = text.slice(0, 300);
+    try {
+      const j = JSON.parse(text) as { error?: string; code?: string; message?: string };
+      code = j.error ?? j.code ?? "";
+      detail = (j.message ?? detail).slice(0, 300);
+    } catch {
+      /* la respuesta no era JSON: queda el texto crudo */
+    }
+    throw new MpApiError(res.status, code, detail, path);
   }
   return (await res.json()) as T;
 }
@@ -263,6 +285,22 @@ export async function createOneTimePreference(input: {
   const url = (isSandbox() ? pref.sandbox_init_point : pref.init_point) ?? pref.init_point;
   if (!url) throw new Error("Mercado Pago no devolvió una URL de pago.");
   return { id: pref.id, url };
+}
+
+/**
+ * Comprueba las credenciales: lee la cuenta y crea una preferencia de prueba.
+ * Crear una preferencia no cobra nada; el link se descarta sin usarlo.
+ */
+export async function probeMercadoPago(base: string): Promise<{ account: string; site: string }> {
+  const me = await mpJson<{ id: number; nickname?: string; site_id?: string }>("/users/me");
+  await createOneTimePreference({
+    title: "Prueba de conexión",
+    amount: 100,
+    externalReference: "prueba-de-conexion",
+    backUrl: `${base}/pro`,
+    notificationUrl: `${base}/api/pagos/webhook`,
+  });
+  return { account: me.nickname ?? String(me.id), site: me.site_id ?? "" };
 }
 
 /** Datos crudos de un pago (para reconciliar por `external_reference`). */

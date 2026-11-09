@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { listPlans, benefitList, isPlanActive } from "@/lib/plans";
 import { getTransferInfo } from "@/lib/settings";
 import { subscribePlan, payPlanOnce, cancelSubscription } from "@/lib/actions/billing";
-import { billingMode, confirmReturn, userSubscriptions } from "@/lib/billing";
+import { billingMode, confirmReturn, getBillingMethods, userSubscriptions } from "@/lib/billing";
 import { formatMoney, formatDate, formatDateTime } from "@/lib/format";
 import { PlanCheckout } from "@/components/company/PlanCheckout";
 import { CopyField } from "@/components/CopyField";
@@ -19,6 +19,7 @@ const ERRORS: Record<string, string> = {
   archivo: "No pudimos leer ese archivo. Subí una imagen (JPG, PNG o WEBP) de hasta 8 MB.",
   mp: "Mercado Pago no pudo iniciar el pago. Probá de nuevo en un rato o pagá por transferencia.",
   email: "Revisá el email de tu cuenta de Mercado Pago.",
+  metodo: "Ese medio de pago no está disponible en este momento.",
 };
 
 export default async function CompanyPlanPage({
@@ -33,6 +34,7 @@ export default async function CompanyPlanPage({
 
   const result = await confirmReturn(me.id, sp);
   const mode = billingMode();
+  const methods = await getBillingMethods();
 
   const [plans, company, transfer, subs] = await Promise.all([
     listPlans(),
@@ -132,7 +134,7 @@ export default async function CompanyPlanPage({
 
               <div className="mt-5">
                 <MpPayOptions
-                  mode={mode}
+                  mode={methods === "transfer" ? "off" : mode}
                   subscribeAction={subscribePlan}
                   onceAction={payPlanOnce}
                   hidden={{ planKey: p.key }}
@@ -146,7 +148,8 @@ export default async function CompanyPlanPage({
         })}
 
         {/* Transferencia (alternativa manual) */}
-        <details className="card group" open={mode === "off" ? true : undefined}>
+        {methods !== "mp" && (
+        <details className="card group" open={methods === "transfer" ? true : undefined}>
           <summary className="list-none cursor-pointer flex items-center gap-3 p-4">
             <span className="icon-tile w-10 h-10 bg-surface-2 text-fg">
               <Landmark className="w-5 h-5" aria-hidden />
@@ -186,6 +189,7 @@ export default async function CompanyPlanPage({
             ))}
           </div>
         </details>
+        )}
 
         <p className="text-xs text-faint text-center px-4">
           Cada pago suma 30 días. Renovar el mismo plan antes del vencimiento acumula días; cambiar de plan reinicia el

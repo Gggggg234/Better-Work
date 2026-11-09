@@ -1,5 +1,6 @@
 "use server";
 
+import { getBillingMethods } from "@/lib/billing";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -15,6 +16,7 @@ import { getOrCreateWallet, MIN_TOPUP } from "@/lib/wallet";
 export async function requestTopUp(formData: FormData): Promise<void> {
   const user = await requireUser();
   if (user.role !== "WORKER" && user.role !== "COMPANY") redirect("/app");
+  if ((await getBillingMethods()) === "mp") redirect("/ads/wallet?error=metodo");
 
   const amount = Math.round(parseFloat(String(formData.get("amount") ?? "0")) || 0);
   if (amount < MIN_TOPUP) redirect("/ads/wallet?error=monto");

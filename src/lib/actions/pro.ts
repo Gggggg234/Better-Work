@@ -8,6 +8,7 @@ import { trySaveImage } from "@/lib/upload";
 import { PRO_DAYS, extendPro, getProConfig } from "@/lib/pro";
 import { sendProApprovedEmail, sendProRejectedEmail } from "@/lib/mail";
 import { notify } from "@/lib/notify";
+import { getBillingMethods } from "@/lib/billing";
 
 /**
  * El profesional envía el comprobante de la transferencia de Pro. No se
@@ -15,6 +16,7 @@ import { notify } from "@/lib/notify";
  */
 export async function requestPro(formData: FormData): Promise<void> {
   const user = await requireRole("WORKER");
+  if ((await getBillingMethods()) === "mp") redirect("/pro?error=metodo");
 
   // Una sola solicitud en revisión por vez: evita comprobantes duplicados.
   const pending = await db.proRequest.findFirst({ where: { userId: user.id, status: "PENDING" } });

@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { requireRole, requireUser } from "@/lib/auth";
 import { getProConfig } from "@/lib/pro";
 import { MIN_TOPUP } from "@/lib/wallet";
-import { startSubscription, startCheckout, cancelSubscriptionFor } from "@/lib/billing";
+import { startSubscription, startCheckout, cancelSubscriptionFor, getBillingMethods } from "@/lib/billing";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -22,6 +22,7 @@ function payerEmail(formData: FormData, fallback: string): string | null {
  * try: internamente es una excepción).
  */
 async function go(start: () => Promise<string>, errorPath: string): Promise<never> {
+  if ((await getBillingMethods()) === "transfer") redirect(`${errorPath}?error=metodo`);
   let url: string;
   try {
     url = await start();

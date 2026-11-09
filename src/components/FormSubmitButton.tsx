@@ -13,14 +13,16 @@ export function FormSubmitButton({
   children,
   pendingLabel,
   className = "",
+  variant = "primary",
 }: {
   children: React.ReactNode;
   pendingLabel: string;
   className?: string;
+  variant?: "primary" | "secondary";
 }) {
   const { pending } = useFormStatus();
   return (
-    <button disabled={pending} className={`btn-primary w-full !py-3.5 ${className}`} aria-busy={pending}>
+    <button disabled={pending} className={`${variant === "secondary" ? "btn-secondary" : "btn-primary"} w-full !py-3.5 ${className}`} aria-busy={pending}>
       <span className="inline-flex items-center justify-center gap-2">
         {pending && (
           <span

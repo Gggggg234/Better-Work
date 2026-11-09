@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { getAdRules, estimateCampaign } from "@/lib/ads";
-import { saveAdRules, saveTransferInfo, saveFeeSettings, savePaymentMode, saveProSettings } from "@/lib/actions/admin";
+import { saveAdRules, saveTransferInfo, saveFeeSettings, savePaymentMode, saveProSettings, saveBillingMethods } from "@/lib/actions/admin";
 import { getTransferInfo, getFeeConfig, getPaymentMode } from "@/lib/settings";
 import { paymentsConfigured } from "@/lib/payments";
+import { getBillingMethods } from "@/lib/billing";
 import { getProConfig } from "@/lib/pro";
 import { priceBreakdown } from "@/lib/payments/escrow";
 import { formatMoney } from "@/lib/format";
@@ -17,12 +18,13 @@ function PctInput({ name, value }: { name: string; value: number }) {
 }
 
 export default async function AdminSettingsPage() {
-  const [rules, transfer, fees, mode, pro] = await Promise.all([
+  const [rules, transfer, fees, mode, pro, methods] = await Promise.all([
     getAdRules(),
     getTransferInfo(),
     getFeeConfig(),
     getPaymentMode(),
     getProConfig(),
+    getBillingMethods(),
   ]);
   const mpReady = paymentsConfigured();
 
@@ -77,13 +79,39 @@ export default async function AdminSettingsPage() {
         <button className="btn-primary">Guardar</button>
       </form>
 
+      {/* Cómo se cobra lo de la plataforma */}
+      <form action={saveBillingMethods} className="card p-5 space-y-3">
+        <div>
+          <h2 className="font-semibold text-sm">Cobro de Pro, planes y saldo de publicidad</h2>
+          <p className="text-xs text-muted mt-0.5">Es independiente del pago de los trabajos.</p>
+        </div>
+        {[
+          { value: "mp", title: "Sólo Mercado Pago", desc: "Tarjeta, dinero en cuenta o efectivo. Se acredita solo." },
+          { value: "both", title: "Mercado Pago y transferencia", desc: "Quien paga elige. Las transferencias se aprueban a mano en Pagos." },
+          { value: "transfer", title: "Sólo transferencia", desc: "Con comprobante, aprobado a mano en Pagos." },
+        ].map((o) => (
+          <label
+            key={o.value}
+            className="flex items-start gap-3 rounded-xl border border-line p-3 cursor-pointer has-[:checked]:border-fg"
+          >
+            <input type="radio" name="billing_methods" value={o.value} defaultChecked={methods === o.value} className="mt-1" />
+            <span>
+              <span className="block text-sm font-medium">{o.title}</span>
+              <span className="block text-xs text-muted mt-0.5">{o.desc}</span>
+            </span>
+          </label>
+        ))}
+        {!mpReady && <p className="text-xs text-danger">Falta MP_ACCESS_TOKEN: mientras tanto se cobra sólo por transferencia.</p>}
+        <button className="btn-primary">Guardar</button>
+      </form>
+
       {/* Manobra Pro */}
       <form action={saveProSettings} className="card p-5 space-y-4">
         <div>
           <h2 className="font-semibold text-sm">Manobra Pro</h2>
           <p className="text-xs text-muted mt-0.5">
-            Suscripción mensual de los profesionales. Se paga por transferencia y se aprueba desde{" "}
-            <strong>Pagos</strong>. Los cambios aplican a las solicitudes nuevas.
+            Suscripción mensual de los profesionales. Los cambios aplican a los cobros nuevos; quien ya tiene débito
+            automático sigue con el precio con el que se suscribió.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3">

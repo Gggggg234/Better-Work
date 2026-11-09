@@ -6,7 +6,7 @@ import { getTransferInfo } from "@/lib/settings";
 import { isPro, getProConfig, proBenefits, bidsThisMonth } from "@/lib/pro";
 import { requestPro } from "@/lib/actions/pro";
 import { subscribePro, payProOnce, cancelSubscription } from "@/lib/actions/billing";
-import { billingMode, confirmReturn, userSubscriptions } from "@/lib/billing";
+import { billingMode, confirmReturn, getBillingMethods, userSubscriptions } from "@/lib/billing";
 import { formatMoney, formatDate, formatDateTime } from "@/lib/format";
 import { PlanCheckout } from "@/components/company/PlanCheckout";
 import { CopyField } from "@/components/CopyField";
@@ -19,6 +19,7 @@ const ERRORS: Record<string, string> = {
   archivo: "No pudimos leer ese archivo. Subí una imagen (JPG, PNG o WEBP) de hasta 8 MB.",
   mp: "Mercado Pago no pudo iniciar el pago. Probá de nuevo en un rato o pagá por transferencia.",
   email: "Revisá el email de tu cuenta de Mercado Pago.",
+  metodo: "Ese medio de pago no está disponible en este momento.",
 };
 
 const PERKS = [
@@ -40,6 +41,7 @@ export default async function ProPage({
   // Primero se confirma la vuelta de Mercado Pago (puede activar Pro ahora mismo).
   const result = await confirmReturn(me.id, sp);
   const mode = billingMode();
+  const methods = await getBillingMethods();
 
   const [config, transfer, used, pending, lastRejected, subs, profile] = await Promise.all([
     getProConfig(),
@@ -139,7 +141,7 @@ export default async function ProPage({
 
           <div className="mt-5">
             <MpPayOptions
-              mode={mode}
+              mode={methods === "transfer" ? "off" : mode}
               subscribeAction={subscribePro}
               onceAction={payProOnce}
               defaultEmail={me.email}
@@ -150,7 +152,8 @@ export default async function ProPage({
         </section>
 
         {/* Transferencia (alternativa manual) */}
-        <details className="card group" open={mode === "off" ? true : undefined}>
+        {methods !== "mp" && (
+        <details className="card group" open={methods === "transfer" ? true : undefined}>
           <summary className="list-none cursor-pointer flex items-center gap-3 p-4">
             <span className="icon-tile w-10 h-10 bg-surface-2 text-fg">
               <Landmark className="w-5 h-5" aria-hidden />
@@ -183,6 +186,7 @@ export default async function ProPage({
             />
           </div>
         </details>
+        )}
 
         <p className="text-xs text-faint text-center px-4">
           Cada pago suma 30 días. Si renovás antes del vencimiento, los días se acumulan. Sin Pro seguís usando Better

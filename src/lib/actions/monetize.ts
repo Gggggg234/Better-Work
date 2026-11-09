@@ -8,6 +8,7 @@ import { isPlanActive } from "@/lib/plans";
 import { getAdRules, estimateCampaign, OBJECTIVES, REACHES } from "@/lib/ads";
 import { trySaveImage } from "@/lib/upload";
 import { getOrCreateWallet } from "@/lib/wallet";
+import { getBillingMethods } from "@/lib/billing";
 
 const PLAN_DAYS = 30;
 
@@ -21,6 +22,7 @@ const PLAN_DAYS = 30;
  */
 export async function requestPlan(formData: FormData): Promise<void> {
   const user = await requireRole("COMPANY");
+  if ((await getBillingMethods()) === "mp") redirect("/company/plan?error=metodo");
   const key = String(formData.get("planKey") ?? "");
 
   const plan = await db.plan.findUnique({ where: { key } });

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { requireRole, requireUser } from "@/lib/auth";
 import { setSetting } from "@/lib/settings";
 import { deleteAccountIfEmpty } from "@/lib/accountDeletion";
+import { runMpCheck } from "@/lib/billing";
 /**
  * Guarda un plan de empresa (Super Admin).
  *
@@ -95,6 +96,25 @@ export async function savePaymentMode(formData: FormData) {
   if (mode !== "direct" && mode !== "escrow") return;
   await setSetting("payment_mode", mode);
   revalidatePath("/", "layout");
+}
+
+/** Cómo se cobran Pro, los planes de empresa y el saldo de publicidad. */
+export async function saveBillingMethods(formData: FormData) {
+  await requireRole("ADMIN");
+  const v = String(formData.get("billing_methods") ?? "");
+  if (v !== "both" && v !== "mp" && v !== "transfer") return;
+  await setSetting("billing_methods", v);
+  revalidatePath("/admin/settings");
+  revalidatePath("/pro");
+  revalidatePath("/company/plan");
+  revalidatePath("/ads/wallet");
+}
+
+/** Prueba las credenciales de Mercado Pago sin cobrar nada. */
+export async function testMercadoPago() {
+  await requireRole("ADMIN");
+  await runMpCheck();
+  revalidatePath("/admin/payments");
 }
 
 /** Precio mensual de Manobra Pro y tope de presupuestos gratis por mes. */

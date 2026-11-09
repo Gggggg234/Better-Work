@@ -5,14 +5,16 @@ import { approveProRequest, rejectProRequest } from "@/lib/actions/pro";
 import { PLAN_REQUEST_STATUS } from "@/lib/planRequests";
 import { formatMoney, formatDateTime } from "@/lib/format";
 import { RejectRequest } from "@/components/admin/RejectRequest";
-import { billingMode, SUB_STATUS_LABEL } from "@/lib/billing";
+import { billingMode, explainMpError, getMpDiagnostics, SUB_STATUS_LABEL } from "@/lib/billing";
+import { testMercadoPago } from "@/lib/actions/admin";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 
 const MP_KIND: Record<string, string> = { PRO: "Pro", PLAN: "Plan", WALLET: "Saldo publicitario" };
 
 /** Cobros que entraron solos por Mercado Pago (no requieren aprobación manual). */
 async function MercadoPagoSection() {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const [recent, activeSubs, monthTotal] = await Promise.all([
+  const [recent, activeSubs, monthTotal, diag] = await Promise.all([
     db.mpPayment.findMany({
       where: { status: { in: ["APPROVED", "REJECTED"] } },
       include: { user: { select: { name: true, email: true } } },
@@ -26,6 +28,7 @@ async function MercadoPagoSection() {
       take: 50,
     }),
     db.mpPayment.aggregate({ where: { status: "APPROVED", approvedAt: { gte: monthStart } }, _sum: { amount: true } }),
+    getMpDiagnostics(),
   ]);
   const mode = billingMode();
   return (
@@ -40,6 +43,39 @@ async function MercadoPagoSection() {
               : "Sin credenciales: cargá MP_ACCESS_TOKEN en Vercel para cobrar con Mercado Pago."}
         </p>
       </div>
+      {mode === "mercadopago" && (
+        <form action={testMercadoPago}>
+          <FormSubmitButton variant="secondary" pendingLabel="Probando…" className="!py-2.5">
+            Probar la conexión (no cobra nada)
+          </FormSubmitButton>
+        </form>
+      )}
+      {diag.check && (
+        <div className="card p-4 text-sm" role="status">
+          {diag.check.ok ? (
+            <p className="font-semibold">Conexión correcta con la cuenta {diag.check.account}{diag.check.site ? ` (${diag.check.site})` : ""}.</p>
+          ) : (
+            <>
+              <p className="font-semibold">La prueba falló.</p>
+              <p className="text-xs text-muted mt-1">{explainMpError(diag.check)}</p>
+              <p className="text-xs text-faint mt-1 break-words">
+                {[diag.check.status, diag.check.code, diag.check.detail].filter(Boolean).join(" · ")}
+              </p>
+            </>
+          )}
+          <p className="text-[11px] text-faint mt-1">{formatDateTime(new Date(diag.check.at))}</p>
+        </div>
+      )}
+      {diag.lastError && (
+        <div className="card p-4 text-sm">
+          <p className="font-semibold">Último rechazo: {diag.lastError.where}</p>
+          <p className="text-xs text-muted mt-1">{explainMpError(diag.lastError)}</p>
+          <p className="text-xs text-faint mt-1 break-words">
+            {[diag.lastError.status, diag.lastError.code, diag.lastError.detail].filter(Boolean).join(" · ")}
+          </p>
+          <p className="text-[11px] text-faint mt-1">{formatDateTime(new Date(diag.lastError.at))}</p>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div className="card p-4">
           <p className="text-xs text-muted">Cobrado este mes</p>

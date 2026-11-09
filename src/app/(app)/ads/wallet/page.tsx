@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getOrCreateWallet, TOPUP_STATUS, TOPUP_PRESETS, MIN_TOPUP } from "@/lib/wallet";
 import { topUpWithMp } from "@/lib/actions/billing";
-import { billingMode, confirmReturn } from "@/lib/billing";
+import { billingMode, confirmReturn, getBillingMethods } from "@/lib/billing";
 import { ReturnBanner } from "@/components/billing/BillingParts";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { getTransferInfo } from "@/lib/settings";
@@ -18,6 +18,7 @@ const ERRORS: Record<string, string> = {
   comprobante: "Adjuntá el comprobante de la transferencia.",
   archivo: "No pudimos leer ese archivo. Subí una imagen (JPG, PNG o WEBP) de hasta 8 MB.",
   mp: "Mercado Pago no pudo iniciar el pago. Probá de nuevo en un rato o cargá por transferencia.",
+  metodo: "Ese medio de pago no está disponible en este momento.",
 };
 
 export default async function WalletPage({
@@ -33,6 +34,7 @@ export default async function WalletPage({
   // La vuelta de Mercado Pago se verifica antes de leer el saldo (puede acreditarlo ahora).
   const result = await confirmReturn(me.id, sp);
   const mode = billingMode();
+  const methods = await getBillingMethods();
 
   const [wallet, transfer] = await Promise.all([getOrCreateWallet(me.id), getTransferInfo()]);
 
@@ -78,7 +80,7 @@ export default async function WalletPage({
       </div>
 
       {/* Carga al instante con Mercado Pago */}
-      {mode !== "off" && (
+      {mode !== "off" && methods !== "transfer" && (
         <section className="card p-5 mt-5">
           <h2 className="font-bold">Cargar con Mercado Pago</h2>
           <p className="text-sm text-muted mt-1">Se acredita al instante con tarjeta o dinero en cuenta.</p>
@@ -115,9 +117,11 @@ export default async function WalletPage({
         </div>
       )}
 
+      {methods !== "mp" && (
+        <>
       {/* Cómo cargar */}
       <section className="card p-5 mt-5">
-        <h2 className="font-semibold">{mode === "off" ? "Cómo cargar saldo" : "O cargá por transferencia"}</h2>
+        <h2 className="font-semibold">{methods === "transfer" ? "Cómo cargar saldo" : "O cargá por transferencia"}</h2>
         <p className="text-sm text-muted mt-1">
           Transferí el monto que quieras cargar y subí el comprobante. Acreditamos el saldo cuando lo validemos.
         </p>
@@ -129,6 +133,8 @@ export default async function WalletPage({
       </section>
 
       <TopUpForm alias={transfer.alias} blocked={!!pending} />
+        </>
+      )}
 
       {/* Historial */}
       {topUps.length > 0 && (

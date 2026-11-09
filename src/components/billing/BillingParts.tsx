@@ -117,9 +117,9 @@ export function MpPayOptions({
       )}
       <form action={onceAction}>
         {fields}
-        <button className="btn-secondary w-full !py-3">
+        <FormSubmitButton variant="secondary" pendingLabel="Abriendo Mercado Pago…" className="!py-3">
           <CreditCard className="w-4 h-4" aria-hidden /> {subscribed ? "Pagar un mes extra" : "Pagar sólo un mes"}
-        </button>
+        </FormSubmitButton>
       </form>
       <p className="flex items-center justify-center gap-1.5 text-[11px] text-faint text-center">
         <ShieldCheck className="w-3.5 h-3.5" aria-hidden />

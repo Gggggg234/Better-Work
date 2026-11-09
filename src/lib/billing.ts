@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { siteUrl, sendProApprovedEmail, sendPlanApprovedEmail } from "@/lib/mail";
 import { extendPro } from "@/lib/pro";
 import { notify } from "@/lib/notify";
+import { getSetting, setSetting } from "@/lib/settings";
 import * as mp from "@/lib/payments/mercadopago";
 
 /**
@@ -32,8 +33,86 @@ const DAY = 86_400_000;
 
 /** Con credenciales, Mercado Pago real. Sin ellas: simulado en desarrollo, apagado en producción. */
 export function billingMode(): BillingMode {
-  if (process.env.MP_ACCESS_TOKEN) return "mercadopago";
+  if (process.env.MP_ACCESS_TOKEN?.trim()) return "mercadopago";
   return process.env.NODE_ENV !== "production" ? "simulated" : "off";
+}
+
+export type BillingMethods = "both" | "mp" | "transfer";
+
+/** Lo que eligió el Super Admin para cobrar Pro, planes y saldo. Sin Mercado Pago, sólo transferencia. */
+export async function getBillingMethods(): Promise<BillingMethods> {
+  if (billingMode() === "off") return "transfer";
+  const v = await getSetting("billing_methods", "both");
+  return v === "mp" || v === "transfer" ? v : "both";
+}
+
+export type MpCheck = {
+  at: string;
+  ok: boolean;
+  where: string;
+  account?: string;
+  site?: string;
+  status?: number;
+  code?: string;
+  detail?: string;
+};
+
+/** Saca de un mensaje cualquier cosa que pueda ser una credencial. */
+function sinCredenciales(s: string): string {
+  return s.replace(/Bearer\s+\S+/gi, "Bearer ***").replace(/\b(APP_USR|TEST)-[\w-]+/g, "$1-***").slice(0, 300);
+}
+
+function describirError(where: string, e: unknown): MpCheck {
+  const base = { at: new Date().toISOString(), ok: false, where };
+  if (e instanceof mp.MpApiError) return { ...base, status: e.status, code: e.code, detail: sinCredenciales(e.detail) };
+  return { ...base, detail: sinCredenciales(e instanceof Error ? e.message : String(e)) };
+}
+
+/** Guarda el último rechazo para mostrarlo en Admin → Pagos: es adonde se mira cuando algo falla. */
+async function recordMpError(where: string, e: unknown): Promise<void> {
+  await setSetting("mp_last_error", JSON.stringify(describirError(where, e))).catch(() => {});
+}
+
+/** Traduce el rechazo a qué hay que hacer. */
+export function explainMpError(c: Pick<MpCheck, "status" | "code" | "detail">): string {
+  const code = (c.code ?? "").toLowerCase();
+  if (code.includes("collector_does_not_comply"))
+    return "La cuenta de Mercado Pago tiene una validación de identidad pendiente. La tiene que completar el titular de la cuenta.";
+  if (code.includes("invalid_access_token") || c.status === 401)
+    return "Mercado Pago no acepta el MP_ACCESS_TOKEN. Copiá de nuevo el Access Token de producción, cargalo en Vercel y volvé a desplegar.";
+  if (code.includes("invalid_back_urls"))
+    return "La dirección del sitio no es válida. Revisá NEXT_PUBLIC_SITE_URL en Vercel: tiene que empezar con https://.";
+  if (c.status === 403)
+    return "Mercado Pago no autorizó la operación: el token no es válido o la aplicación no tiene activadas las credenciales de producción. Revisá el Access Token en Tus integraciones, cargalo en Vercel y volvé a desplegar.";
+  return "Mercado Pago rechazó la operación. El detalle de abajo dice el motivo.";
+}
+
+/** Prueba real contra Mercado Pago, a pedido del Super Admin. No cobra nada. */
+export async function runMpCheck(): Promise<void> {
+  let r: MpCheck;
+  if (billingMode() !== "mercadopago") {
+    r = { at: new Date().toISOString(), ok: false, where: "Prueba", detail: "El servidor no tiene MP_ACCESS_TOKEN." };
+  } else {
+    try {
+      const { account, site } = await mp.probeMercadoPago(await siteUrl());
+      r = { at: new Date().toISOString(), ok: true, where: "Prueba", account, site };
+    } catch (e) {
+      r = describirError("Prueba", e);
+    }
+  }
+  await setSetting("mp_last_check", JSON.stringify(r));
+}
+
+export async function getMpDiagnostics(): Promise<{ check: MpCheck | null; lastError: MpCheck | null }> {
+  const parse = (s: string): MpCheck | null => {
+    try {
+      return s ? (JSON.parse(s) as MpCheck) : null;
+    } catch {
+      return null;
+    }
+  };
+  const [check, lastError] = await Promise.all([getSetting("mp_last_check"), getSetting("mp_last_error")]);
+  return { check: parse(check), lastError: parse(lastError) };
 }
 
 export const SUB_STATUS_LABEL: Record<string, string> = {
@@ -245,6 +324,7 @@ export async function startSubscription(input: {
   } catch (e) {
     // Si Mercado Pago la rechazó, no queda una suscripción colgada.
     await db.subscription.delete({ where: { id: sub.id } }).catch(() => {});
+    await recordMpError("Suscripción", e);
     throw e;
   }
 }
@@ -289,16 +369,23 @@ export async function startCheckout(input: {
   }
 
   const base = await siteUrl();
-  const pref = await mp.createOneTimePreference({
-    title: input.title,
-    amount: input.amount,
-    externalReference: `pay:${p.id}`,
-    payerEmail: input.payerEmail,
-    backUrl: `${base}${input.returnPath}`,
-    notificationUrl: `${base}/api/pagos/webhook`,
-  });
-  await db.mpPayment.update({ where: { id: p.id }, data: { mpPreferenceId: pref.id } });
-  return pref.url;
+  try {
+    const pref = await mp.createOneTimePreference({
+      title: input.title,
+      amount: input.amount,
+      externalReference: `pay:${p.id}`,
+      payerEmail: input.payerEmail,
+      backUrl: `${base}${input.returnPath}`,
+      notificationUrl: `${base}/api/pagos/webhook`,
+    });
+    await db.mpPayment.update({ where: { id: p.id }, data: { mpPreferenceId: pref.id } });
+    return pref.url;
+  } catch (e) {
+    // Si Mercado Pago lo rechazó, no queda un pago colgado.
+    await db.mpPayment.delete({ where: { id: p.id } }).catch(() => {});
+    await recordMpError("Pago único", e);
+    throw e;
+  }
 }
 
 // ───────────────────────── Avisos y vuelta del checkout ─────────────────────────
